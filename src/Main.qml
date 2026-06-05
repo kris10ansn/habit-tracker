@@ -131,6 +131,17 @@ Rectangle {
                             height: App.Theme.boxSize
                         }
                     }
+
+                    Repeater {
+                        model: Math.floor((landscape.daysInMonth - 1) / 7)
+
+                        Rectangle {
+                            width: App.Theme.borderWidth
+                            height: gridStack.height
+                            x: -landscape.scrollX + (index + 1) * 7 * (App.Theme.boxSize + App.Theme.boxSpacing) - App.Theme.boxSpacing / 2 - width / 2
+                            color: App.Theme.fg
+                        }
+                    }
                 }
 
                 Column {
