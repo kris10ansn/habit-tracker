@@ -10,6 +10,11 @@ Row {
     height: App.Theme.boxSize
     spacing: App.Theme.boxSpacing
 
+    onVisibleChanged: if (!visible) {
+        input.focus = false
+        Qt.inputMethod.hide()
+    }
+
     function submit() {
         var value = input.text;
         if (!value || value.replace(/^\s+|\s+$/g, "").length === 0) return;

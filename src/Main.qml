@@ -165,10 +165,9 @@ Rectangle {
         }
 
         App.AppButton {
-            anchors.right: quitButton.left
+            anchors.left: parent.left
             anchors.bottom: parent.bottom
             anchors.margins: App.Theme.margin
-            anchors.rightMargin: App.Theme.buttonGap
             width: App.Theme.quitButtonWidth
             height: App.Theme.quitButtonHeight
             text: landscape.editing ? "Done" : "Edit"
