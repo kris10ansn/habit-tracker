@@ -47,6 +47,13 @@ Rectangle {
 
         onViewportWidthChanged: scrollToDay(currentDay)
 
+        // Hide keyboard if clicked outside of input
+        MouseArea {
+            anchors.fill: parent
+            z: -1
+            onClicked: Qt.inputMethod.hide()
+        }
+
         Column {
             anchors.fill: parent
             anchors.margins: App.Theme.margin
@@ -71,15 +78,17 @@ Rectangle {
                         model: habitsStore.habits
 
                         App.HabitRow {
-                            name: modelData
+                            name: modelData.name
+                            negative: modelData.negative
                             editing: landscape.editing
                             onRemoveClicked: habitsStore.remove(index)
+                            onNegativeToggled: habitsStore.setNegative(index, !modelData.negative)
                         }
                     }
 
                     App.HabitAddRow {
                         visible: landscape.editing
-                        onAddRequested: habitsStore.add(name)
+                        onAddRequested: habitsStore.add(name, negative)
                     }
                 }
 
