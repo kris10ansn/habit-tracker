@@ -152,7 +152,6 @@ Rectangle {
                                     text: index + 1
                                     font.pixelSize: 22
                                     font.bold: index + 1 === landscape.currentDay
-                                    color: index + 1 === landscape.currentDay ? "white" : "black"
                                     horizontalAlignment: Text.AlignHCenter
                                     verticalAlignment: Text.AlignVCenter
                                 }
