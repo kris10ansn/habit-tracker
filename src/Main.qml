@@ -29,6 +29,8 @@ Rectangle {
         property date today: new Date()
         property int daysInMonth: DateUtils.daysInMonth(today)
         property int currentDay: today.getDate()
+        property int currentYear: today.getFullYear()
+        property int currentMonth: today.getMonth()
         property bool editing: false
         property int pendingDeleteIndex: -1
 
@@ -135,6 +137,11 @@ Rectangle {
                             App.HabitGridRow {
                                 daysInMonth: landscape.daysInMonth
                                 currentDay: landscape.currentDay
+                                year: landscape.currentYear
+                                month: landscape.currentMonth
+                                negative: modelData.negative
+                                entries: modelData.entries || ({})
+                                onDayClicked: habitsStore.toggleEntry(index, DateUtils.dateKey(landscape.currentYear, landscape.currentMonth, day))
                             }
                         }
 

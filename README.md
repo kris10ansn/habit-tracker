@@ -2,7 +2,7 @@
 
 A small habit tracker for the **reMarkable 1** e-ink tablet. It draws a landscape grid: one row per habit, one column per day of the current month, with today's column highlighted. No syncing, no accounts, no backend — just a QML scene rendered on the device.
 
-This is a prototype: check-marks aren't persisted yet. The habit list itself is editable in-app and persisted to a JSON file on the device.
+Tap a box to cycle its state. **Positive habits** cycle empty → X → O → empty (X = done, O = explicitly not done). **Negative habits** start with X (treated as the default "didn't slip up") and toggle to O when you mark a slip. For negative habits, future days are rendered muted. The habit list and all marks are persisted to a JSON file on the device.
 
 ## What it looks like
 
@@ -87,7 +87,7 @@ On the device, hold the middle button ~3 seconds to open apploader. The "reMarka
 
 ## Customizing the habits
 
-Tap **Edit** (bottom-right, next to **Quit**) to enter edit mode. Each row gains a `×` to delete it, and an input row appears at the bottom of the habit list — type a name and tap **+** (or press Enter) to add. Tap **Done** to leave edit mode.
+Tap **Edit** (bottom-right, next to **Quit**) to enter edit mode. Each row gains a `×` to delete it, a `−` toggle to mark the habit as negative (tracks slips rather than wins), and the habit name becomes editable. An input row appears at the bottom of the habit list — type a name and tap **+** (or press Enter) to add. Tap **Done** to leave edit mode.
 
 The list is persisted to `habits.json` next to the app on the device (`/home/root/xovi/exthome/appload/habit-tracker/habits.json`). On first launch the file is seeded from the defaults in `src/js/habits.js`. To wipe back to defaults, delete that file on the device and relaunch.
 

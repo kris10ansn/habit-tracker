@@ -7,3 +7,11 @@ function daysInMonth(d) {
 function monthName(d) {
     return Qt.formatDate(d, "MMMM yyyy")
 }
+
+function pad2(n) {
+    return n < 10 ? "0" + n : "" + n
+}
+
+function dateKey(year, month, day) {
+    return year + "-" + pad2(month + 1) + "-" + pad2(day)
+}

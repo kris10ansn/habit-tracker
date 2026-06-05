@@ -41,7 +41,7 @@ QtObject {
     function add(name, negative) {
         var trimmed = (name || "").replace(/^\s+|\s+$/g, "");
         if (!trimmed) return;
-        habits = habits.concat([{ name: trimmed, negative: !!negative }]);
+        habits = habits.concat([{ name: trimmed, negative: !!negative, entries: {} }]);
         save();
     }
 
@@ -56,7 +56,7 @@ QtObject {
     function setNegative(index, negative) {
         if (index < 0 || index >= habits.length) return;
         var copy = habits.slice();
-        copy[index] = { name: copy[index].name, negative: !!negative };
+        copy[index] = { name: copy[index].name, negative: !!negative, entries: copy[index].entries };
         habits = copy;
         save();
     }
@@ -66,7 +66,29 @@ QtObject {
         var trimmed = (name || "").replace(/^\s+|\s+$/g, "");
         if (!trimmed) return;
         var copy = habits.slice();
-        copy[index] = { name: trimmed, negative: copy[index].negative };
+        copy[index] = { name: trimmed, negative: copy[index].negative, entries: copy[index].entries };
+        habits = copy;
+        save();
+    }
+
+    function toggleEntry(index, dateKey) {
+        if (index < 0 || index >= habits.length) return;
+        var copy = habits.slice();
+        var h = copy[index];
+        var entries = {};
+        for (var k in h.entries) entries[k] = h.entries[k];
+        var current = entries[dateKey] || "";
+        var next;
+        if (h.negative) {
+            // negative cycle: empty(displayed X) -> o -> empty
+            next = current === "o" ? "" : "o";
+        } else {
+            // positive cycle: empty -> x -> o -> empty
+            next = current === "" ? "x" : current === "x" ? "o" : "";
+        }
+        if (next) entries[dateKey] = next;
+        else delete entries[dateKey];
+        copy[index] = { name: h.name, negative: h.negative, entries: entries };
         habits = copy;
         save();
     }
