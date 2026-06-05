@@ -36,6 +36,15 @@ These are easy to miss and have already cost debug cycles:
 3. **Root QML conventions.** The root component must declare `signal close` and `function unloading() { ... }`. Emit `close()` from your "Quit" handler to ask apploader to unload the frontend — `Qt.quit()` is a no-op (Qt's process is xochitl).
 4. **No hardcoded root size.** apploader sizes the container; use `anchors.fill: parent` on the root and anchor children to it. Hardcoded `width: 1404; height: 1872` will be silently ignored.
 
+## Display constraints (grayscale e-ink)
+
+The rM1 screen is 16-level grayscale e-ink. Color is not just stylistic — it determines whether content is visible at all:
+
+- **Never use white or near-white** (`"white"`, `"#fff"`, very light grays) for foreground content (text, icons, borders). It vanishes against the paper-white background. Default background is white; default foreground is black.
+- **Avoid colored fills/strokes** (red, blue, green, etc.). They render as a mid-gray that washes out and loses contrast. Use black, dark gray, or leave unfilled.
+- For emphasis, prefer weight/size/borders/inversion (black-on-white vs white-on-black blocks) over color.
+- When inverting (light text on dark fill), the fill must be dark enough — black or near-black — for the light text to read.
+
 ## Debugging
 
 apploader runs inside xochitl, so QML errors and `console.log` go to xochitl's stderr → systemd journal on the device:
