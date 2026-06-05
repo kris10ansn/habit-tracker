@@ -74,13 +74,22 @@ Rectangle {
                     }
                 }
 
-                App.AppButton {
-                    width: App.Theme.buttonWidth
-                    height: gridStack.height
-                    text: "‹"
-                    fontSize: App.Theme.scrollFont
-                    fadeOpacity: landscape.scrollX > 0 ? 1.0 : App.Theme.fadedOpacity
-                    onClicked: landscape.scrollByBoxes(-7)
+                Column {
+                    spacing: App.Theme.rowSpacing
+
+                    Item {
+                        width: App.Theme.buttonWidth
+                        height: App.Theme.dayLabelHeight
+                    }
+
+                    App.AppButton {
+                        width: App.Theme.buttonWidth
+                        height: gridStack.height - App.Theme.dayLabelHeight - App.Theme.rowSpacing
+                        text: "‹"
+                        fontSize: App.Theme.scrollFont
+                        fadeOpacity: landscape.scrollX > 0 ? 1.0 : App.Theme.fadedOpacity
+                        onClicked: landscape.scrollByBoxes(-7)
+                    }
                 }
 
                 Item {
@@ -109,13 +118,22 @@ Rectangle {
                     }
                 }
 
-                App.AppButton {
-                    width: App.Theme.buttonWidth
-                    height: gridStack.height
-                    text: "›"
-                    fontSize: App.Theme.scrollFont
-                    fadeOpacity: landscape.scrollX < landscape.maxScrollX ? 1.0 : App.Theme.fadedOpacity
-                    onClicked: landscape.scrollByBoxes(7)
+                Column {
+                    spacing: App.Theme.rowSpacing
+
+                    Item {
+                        width: App.Theme.buttonWidth
+                        height: App.Theme.dayLabelHeight
+                    }
+
+                    App.AppButton {
+                        width: App.Theme.buttonWidth
+                        height: gridStack.height - App.Theme.dayLabelHeight - App.Theme.rowSpacing
+                        text: "›"
+                        fontSize: App.Theme.scrollFont
+                        fadeOpacity: landscape.scrollX < landscape.maxScrollX ? 1.0 : App.Theme.fadedOpacity
+                        onClicked: landscape.scrollByBoxes(7)
+                    }
                 }
             }
         }
