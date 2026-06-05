@@ -27,6 +27,7 @@ Rectangle {
         property int labelGap: 20
         property int buttonWidth: 80
         property int buttonGap: 20
+        property int dayLabelHeight: 32
 
         property var today: new Date()
         property int daysInMonth: new Date(today.getFullYear(), today.getMonth() + 1, 0).getDate()
@@ -88,6 +89,11 @@ Rectangle {
                 Column {
                     spacing: landscape.rowSpacing
 
+                    Item {
+                        width: landscape.goalsWidth
+                        height: landscape.dayLabelHeight
+                    }
+
                     Repeater {
                         model: goalsModel
 
@@ -133,6 +139,25 @@ Rectangle {
                         id: goalsList
                         x: -landscape.scrollX
                         spacing: landscape.rowSpacing
+
+                        Row {
+                            spacing: landscape.boxSpacing
+
+                            Repeater {
+                                model: landscape.daysInMonth
+
+                                Text {
+                                    width: landscape.boxSize
+                                    height: landscape.dayLabelHeight
+                                    text: index + 1
+                                    font.pixelSize: 22
+                                    font.bold: index + 1 === landscape.currentDay
+                                    color: index + 1 === landscape.currentDay ? "white" : "black"
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
+                                }
+                            }
+                        }
 
                         Repeater {
                             model: goalsModel
