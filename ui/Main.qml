@@ -90,6 +90,16 @@ Rectangle {
                                 color: "white"
                                 border.color: "black"
                                 border.width: 2
+
+                                Rectangle {
+                                    anchors.fill: parent
+                                    anchors.leftMargin: -landscape.boxSpacing / 2
+                                    anchors.rightMargin: -landscape.boxSpacing / 2
+                                    anchors.topMargin: -landscape.rowSpacing / 2
+                                    anchors.bottomMargin: -landscape.rowSpacing / 2
+                                    color: index + 1 === landscape.currentDay ? "black" : "transparent"
+                                    z: -1
+                                }
                             }
                         }
                     }
