@@ -2,9 +2,12 @@ REMARKABLE_HOST ?= remarkable
 APP_ID := rmhello
 REMOTE_DIR := /home/root/xovi/exthome/appload/$(APP_ID)
 RCC ?= rcc-qt5
+QMLLINT ?= qmllint-qt5
+QML_IMPORT_PATH ?= /usr/lib/qt/qml
 BUILD_DIR := build
+QML_FILES := $(shell find ui -name '*.qml')
 
-.PHONY: build deploy remove clean
+.PHONY: build deploy remove clean lint
 
 build:
 	mkdir -p $(BUILD_DIR)
@@ -20,3 +23,6 @@ remove:
 
 clean:
 	rm -rf $(BUILD_DIR)
+
+lint:
+	$(QMLLINT) -I $(QML_IMPORT_PATH) $(QML_FILES)
