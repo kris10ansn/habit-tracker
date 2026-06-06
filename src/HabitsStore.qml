@@ -9,42 +9,59 @@ QtObject {
     property string filePath: "/home/root/xovi/exthome/appload/habit-tracker/habits.json"
     property var habits: []
 
-    signal saved()
+    signal saved
 
     Component.onCompleted: load()
 
     function load() {
-        const data = Storage.readJson(filePath)
+        const data = Storage.readJson(filePath);
+
         if (Array.isArray(data)) {
-            habits = data
-            return
+            habits = data;
+            return;
         }
 
-        habits = DefaultHabits.habits.slice()
+        habits = DefaultHabits.habits.slice();
 
         if (Storage.isCorrupt(data)) {
-            console.warn("HabitsStore: refusing to overwrite corrupt file at", filePath, "- using defaults in memory only")
-            return
+            console.warn("HabitsStore: refusing to overwrite corrupt file at", filePath, "- using defaults in memory only");
+            return;
         }
-        save()
+
+        save();
     }
 
     function save() {
-        Storage.writeJson(filePath, habits)
-        saved()
+        Storage.writeJson(filePath, habits);
+        saved();
     }
 
     function _apply(next) {
-        if (next === null) return
-        habits = next
-        save()
+        if (next === null)
+            return;
+        habits = next;
+        save();
     }
 
-    function add(name, negative)         { _apply(Logic.addHabit(habits, name, negative)) }
-    function move(from, to)              { _apply(Logic.moveHabit(habits, from, to)) }
-    function remove(index)               { _apply(Logic.removeHabit(habits, index)) }
-    function setNegative(index, negative){ _apply(Logic.setNegative(habits, index, negative)) }
-    function setHideFromSleep(index, hidden) { _apply(Logic.setHideFromSleep(habits, index, hidden)) }
-    function setName(index, name)        { _apply(Logic.setName(habits, index, name)) }
-    function toggleEntry(index, dateKey) { _apply(Logic.toggleEntry(habits, index, dateKey)) }
+    function add(name, negative) {
+        _apply(Logic.addHabit(habits, name, negative));
+    }
+    function move(from, to) {
+        _apply(Logic.moveHabit(habits, from, to));
+    }
+    function remove(index) {
+        _apply(Logic.removeHabit(habits, index));
+    }
+    function setNegative(index, negative) {
+        _apply(Logic.setNegative(habits, index, negative));
+    }
+    function setHideFromSleep(index, hidden) {
+        _apply(Logic.setHideFromSleep(habits, index, hidden));
+    }
+    function setName(index, name) {
+        _apply(Logic.setName(habits, index, name));
+    }
+    function toggleEntry(index, dateKey) {
+        _apply(Logic.toggleEntry(habits, index, dateKey));
+    }
 }
