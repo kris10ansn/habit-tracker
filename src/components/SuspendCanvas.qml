@@ -9,6 +9,7 @@ Canvas {
     readonly property string targetPath: "/usr/share/remarkable/suspended.png"
     readonly property string backupPath: "/usr/share/remarkable/suspended.png.bak"
     readonly property string markerPath: "/home/root/xovi/exthome/appload/habit-tracker/.backup-done"
+    readonly property string signaturePath: "/home/root/xovi/exthome/appload/habit-tracker/.sleep-sig"
 
     property var habits: []
     property date today: new Date()
@@ -16,6 +17,7 @@ Canvas {
     property bool saveQueued: false
     property string phase: ""
     property int remainingSeconds: 0
+    property string lastRenderedSignature: ""
 
     readonly property string statusText: {
         switch (canvas.phase) {
@@ -52,7 +54,10 @@ Canvas {
     renderStrategy: Canvas.Cooperative
     renderTarget: Canvas.Image
 
-    Component.onCompleted: SuspendRender.ensureBackup(canvas.targetPath, canvas.backupPath, canvas.markerPath)
+    Component.onCompleted: {
+        SuspendRender.ensureBackup(canvas.targetPath, canvas.backupPath, canvas.markerPath)
+        canvas.lastRenderedSignature = SuspendRender.readSignature(canvas.signaturePath)
+    }
 
     Timer {
         id: debounceTimer
@@ -81,26 +86,41 @@ Canvas {
     }
 
     function scheduleRender() {
-        canvas.remainingSeconds = debounceTimer.interval / 1000
+        if (_upToDate()) { _cancelPending(); return }
         canvas.phase = "pending"
+        canvas.remainingSeconds = debounceTimer.interval / 1000
         debounceTimer.restart()
         statusTickTimer.restart()
     }
 
     function renderNow() {
-        debounceTimer.stop()
-        statusTickTimer.stop()
-        canvas.phase = "saving"
+        if (!_beginSaving()) return
         _beginAsyncRender()
     }
 
     function flushNow() {
-        debounceTimer.stop()
-        statusTickTimer.stop()
-        canvas.phase = "saving"
+        if (!_beginSaving()) return
         _draw()
         canvas.saveQueued = false
         _save()
+    }
+
+    function _upToDate() {
+        return SuspendDraw.computeSignature(canvas.habits, canvas.today) === canvas.lastRenderedSignature
+    }
+
+    function _beginSaving() {
+        if (_upToDate()) { _cancelPending(); return false }
+        debounceTimer.stop()
+        statusTickTimer.stop()
+        canvas.phase = "saving"
+        return true
+    }
+
+    function _cancelPending() {
+        debounceTimer.stop()
+        statusTickTimer.stop()
+        if (canvas.phase === "pending") canvas.phase = ""
     }
 
     function _draw() {
@@ -116,6 +136,11 @@ Canvas {
         const ok = canvas.save(canvas.targetPath)
         canvas.lastRenderFailed = !ok
         canvas.phase = ok ? "saved" : ""
-        if (!ok) console.warn("SuspendCanvas: save failed for", canvas.targetPath)
+        if (!ok) {
+            console.warn("SuspendCanvas: save failed for", canvas.targetPath)
+            return
+        }
+        canvas.lastRenderedSignature = SuspendDraw.computeSignature(canvas.habits, canvas.today)
+        SuspendRender.writeSignature(canvas.signaturePath, canvas.lastRenderedSignature)
     }
 }

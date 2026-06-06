@@ -1,5 +1,26 @@
 .import "DateUtils.js" as DateUtils
 
+function computeSignature(habits, today) {
+    const currentDay = today.getDate();
+    const year = today.getFullYear();
+    const month = today.getMonth();
+    const visible = habits.filter((h) => !h.hideFromSleep);
+
+    const parts = [`${year}-${month}-${currentDay}`];
+
+    for (let i = 0; i < visible.length; i++) {
+        const h = visible[i];
+        const entries = h.entries || {};
+        const entryParts = [];
+        for (let d = 1; d <= currentDay; d++) {
+            entryParts.push(entries[DateUtils.dateKey(year, month, d)] || "");
+        }
+        parts.push(`${h.name}|${h.negative ? 1 : 0}|${entryParts.join(",")}`);
+    }
+
+    return parts.join("\n");
+}
+
 function draw(ctx, canvasWidth, canvasHeight, habits, today, cfg) {
     ctx.fillStyle = cfg.bg;
     ctx.fillRect(0, 0, canvasWidth, canvasHeight);

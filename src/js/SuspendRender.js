@@ -13,3 +13,12 @@ function ensureBackup(srcPath, bakPath) {
     if (!ok) console.warn("SuspendRender: could not write backup", bakPath);
     return ok;
 }
+
+function readSignature(path) {
+    const sig = Storage.readJson(path);
+    return typeof sig === "string" ? sig : "";
+}
+
+function writeSignature(path, signature) {
+    return Storage.writeJson(path, signature);
+}
