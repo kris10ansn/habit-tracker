@@ -1,11 +1,11 @@
-const pad2 = (n) => (n < 10 ? `0${n}` : `${n}`);
+const pad2 = (number) => (number < 10 ? `0${number}` : `${number}`);
 
-function daysInMonth(d) {
-    return new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+function daysInMonth(date) {
+    return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate();
 }
 
-function monthName(d) {
-    return Qt.formatDate(d, "MMMM yyyy");
+function monthName(date) {
+    return Qt.formatDate(date, "MMMM yyyy");
 }
 
 function dateKey(year, month, day) {

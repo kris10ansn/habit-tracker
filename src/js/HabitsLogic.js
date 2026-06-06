@@ -30,38 +30,47 @@ const nextEntryValue = (current, negative) => {
 function addHabit(habits, name, negative) {
     const trimmed = trim(name);
     if (!trimmed) return null;
+
     return [...habits, { name: trimmed, negative: !!negative, entries: {} }];
 }
 
 function moveHabit(habits, from, to) {
-    if (!inBounds(habits, from) || !inBounds(habits, to) || from === to)
+    if (!inBounds(habits, from) || !inBounds(habits, to) || from === to) {
         return null;
+    }
+
     const copy = habits.slice();
     const [item] = copy.splice(from, 1);
     copy.splice(to, 0, item);
+
     return copy;
 }
 
 function removeHabit(habits, index) {
     if (!inBounds(habits, index)) return null;
+
     return [...habits.slice(0, index), ...habits.slice(index + 1)];
 }
 
 function setNegative(habits, index, negative) {
     if (!inBounds(habits, index)) return null;
+
     return updateAt(habits, index, { negative: !!negative });
 }
 
 function setName(habits, index, name) {
     const trimmed = trim(name);
     if (!inBounds(habits, index) || !trimmed) return null;
+
     return updateAt(habits, index, { name: trimmed });
 }
 
 function toggleEntry(habits, index, dateKey) {
     if (!inBounds(habits, index)) return null;
+
     const habit = habits[index];
     const next = nextEntryValue(habit.entries[dateKey] || "", habit.negative);
+
     return updateAt(habits, index, {
         entries: withEntry(habit.entries, dateKey, next),
     });
