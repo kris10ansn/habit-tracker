@@ -54,7 +54,7 @@ const drawHeader = (ctx, x, y, today, cfg) => {
 
     ctx.font = `${cfg.subtitleFont}px sans-serif`;
     const days = DateUtils.daysInMonth(today);
-    ctx.fillText(`${days} days · today is day ${today.getDate()}`, x, y + cfg.titleFont + 4);
+    ctx.fillText(`${days} days · today is the ${DateUtils.ordinal(today.getDate())}`, x, y + cfg.titleFont + 4);
 };
 
 const drawDayLabels = (ctx, x, y, daysIn, currentDay, cfg) => {

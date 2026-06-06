@@ -8,7 +8,7 @@ Tap a box to cycle its state. **Positive habits** cycle empty → X → O → em
 
 ```
 June 2026
-30 days · today is day 5
+30 days · today is the 5th
 
 Read 20 pages           ▢ ▢ ▢ ▢ ▣ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ …
 Exercise                ▢ ▢ ▢ ▢ ▣ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ ▢ …

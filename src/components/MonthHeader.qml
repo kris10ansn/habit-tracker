@@ -18,7 +18,7 @@ Column {
     }
 
     Text {
-        text: DateUtils.daysInMonth(header.date) + " days · today is day " + header.date.getDate()
+        text: DateUtils.daysInMonth(header.date) + " days · today is the " + DateUtils.ordinal(header.date.getDate())
         font.pixelSize: App.Theme.subtitleFont
         color: App.Theme.fg
     }
