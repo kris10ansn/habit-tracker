@@ -2,7 +2,7 @@
 
 A small habit tracker for the **reMarkable 1** e-ink tablet. It draws a landscape grid: one row per habit, one column per day of the current month, with today's column highlighted. No syncing, no accounts, no backend — just a QML scene rendered on the device.
 
-Tap a box to cycle its state. **Positive habits** cycle empty → X → O → empty (X = done, O = explicitly not done). **Negative habits** start with X (treated as the default "didn't slip up") and toggle to O when you mark a slip. For negative habits, future days are rendered muted. The habit list and all marks are persisted to a JSON file on the device.
+Tap a box to cycle its state. **Positive habits** cycle empty → X → O → empty (X = done, O = explicitly not done). **Negative habits** start with X (treated as the default "didn't slip up") and toggle to O when you mark a slip. For negative habits, future days are rendered muted and the habit name is suffixed with `(−)` to mark it as negative at a glance. The habit list and all marks are persisted to a JSON file on the device.
 
 ## What it looks like
 
