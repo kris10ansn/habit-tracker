@@ -1,5 +1,3 @@
-.pragma library
-
 const habits = [
     { name: "Read 20 pages", negative: false, entries: {} },
     { name: "Exercise", negative: false, entries: {} },

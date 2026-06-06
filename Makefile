@@ -7,12 +7,23 @@ QML_IMPORT_PATH ?= /usr/lib/qt/qml
 BUILD_DIR := build
 QML_FILES := $(shell find ui -name '*.qml')
 
-.PHONY: build deploy remove clean lint
+.PHONY: build inject-pragma deploy remove clean lint
 
-build:
-	mkdir -p $(BUILD_DIR)
-	$(RCC) --binary -o $(BUILD_DIR)/resources.rcc application.qrc
+build: inject-pragma
+	cp application.qrc $(BUILD_DIR)/
+	cd $(BUILD_DIR) && $(RCC) --binary -o resources.rcc application.qrc
 	cp manifest.json icon.png $(BUILD_DIR)/
+
+# Stage src/ into build/src/ and prepend `.pragma library` to every JS file.
+# Sources omit the directive so prettier/VSCode can parse them; Qt requires it
+# at runtime for shared-library JS modules.
+inject-pragma:
+	mkdir -p $(BUILD_DIR)
+	rm -rf $(BUILD_DIR)/src
+	cp -r src $(BUILD_DIR)/src
+	@for f in $(BUILD_DIR)/src/js/*.js; do \
+		{ printf '.pragma library\n'; cat "$$f"; } > "$$f.tmp" && mv "$$f.tmp" "$$f"; \
+	done
 
 lint:
 	@command -v qmllint-qt5 >/dev/null 2>&1 && qmllint-qt5 src/*.qml src/components/*.qml || echo "qmllint-qt5 not installed; skipping"

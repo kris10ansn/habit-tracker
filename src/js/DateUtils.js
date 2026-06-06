@@ -1,5 +1,3 @@
-.pragma library
-
 const pad2 = (n) => n < 10 ? `0${n}` : `${n}`
 
 function daysInMonth(d) {

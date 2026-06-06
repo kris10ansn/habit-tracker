@@ -1,5 +1,3 @@
-.pragma library
-
 const clampScroll = (x, max) => Math.max(0, Math.min(max, x))
 
 function scrollByBoxes(currentX, boxes, step, max) {

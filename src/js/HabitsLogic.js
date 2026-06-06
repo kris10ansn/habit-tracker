@@ -1,5 +1,3 @@
-.pragma library
-
 const trim = (s) => (s || "").trim()
 
 const inBounds = (arr, i) => i >= 0 && i < arr.length

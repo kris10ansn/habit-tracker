@@ -1,5 +1,3 @@
-.pragma library
-
 function readJson(path) {
     try {
         const xhr = new XMLHttpRequest()
