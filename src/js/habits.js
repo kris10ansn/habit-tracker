@@ -1,6 +1,6 @@
 .pragma library
 
-var habits = [
+const habits = [
     { name: "Read 20 pages", negative: false, entries: {} },
     { name: "Exercise", negative: false, entries: {} },
     { name: "Meditate", negative: false, entries: {} },

@@ -12,7 +12,7 @@ QtObject {
     Component.onCompleted: load()
 
     function load() {
-        var data = Storage.readJson(filePath)
+        const data = Storage.readJson(filePath)
         if (Array.isArray(data)) {
             habits = data
             return

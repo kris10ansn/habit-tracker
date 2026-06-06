@@ -2,22 +2,21 @@
 
 function readJson(path) {
     try {
-        var xhr = new XMLHttpRequest()
-        xhr.open("GET", "file://" + path, false)
+        const xhr = new XMLHttpRequest()
+        xhr.open("GET", `file://${path}`, false)
         xhr.send()
-        if ((xhr.status === 200 || xhr.status === 0) && xhr.responseText && xhr.responseText.length > 0) {
-            return JSON.parse(xhr.responseText)
-        }
+        const ok = (xhr.status === 200 || xhr.status === 0) && xhr.responseText
+        return ok ? JSON.parse(xhr.responseText) : null
     } catch (e) {
         console.log("Storage: could not read", path, "-", e)
+        return null
     }
-    return null
 }
 
 function writeJson(path, value) {
     try {
-        var xhr = new XMLHttpRequest()
-        xhr.open("PUT", "file://" + path)
+        const xhr = new XMLHttpRequest()
+        xhr.open("PUT", `file://${path}`)
         xhr.send(JSON.stringify(value))
         return true
     } catch (e) {

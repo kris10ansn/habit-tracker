@@ -129,12 +129,12 @@ Row {
                 selectByMouse: true
 
                 onEditingFinished: {
-                    var trimmed = text.replace(/^\s+|\s+$/g, "");
-                    if (trimmed && trimmed !== habitRow.name) {
-                        habitRow.nameEdited(trimmed);
-                    } else {
+                    const trimmed = text.trim();
+                    if (!trimmed || trimmed === habitRow.name) {
                         text = habitRow.name;
+                        return;
                     }
+                    habitRow.nameEdited(trimmed);
                 }
             }
         }

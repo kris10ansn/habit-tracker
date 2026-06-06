@@ -18,9 +18,8 @@ Row {
     }
 
     function submit() {
-        var value = input.text;
-        if (!value || value.replace(/^\s+|\s+$/g, "").length === 0) return;
-        addRow.addRequested(value, addRow.negative);
+        if (!input.text.trim()) return;
+        addRow.addRequested(input.text, addRow.negative);
         input.text = "";
         addRow.negative = false;
     }

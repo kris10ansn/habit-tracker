@@ -29,19 +29,11 @@ Row {
 
             readonly property int day: index + 1
             readonly property bool isFuture: day > gridRow.currentDay
-            readonly property string entry: {
-                var e = gridRow.entries || {};
-                return e[DateUtils.dateKey(gridRow.year, gridRow.month, day)] || "";
-            }
-            readonly property string mark: {
-                if (entry === "x")
-                    return "X";
-                if (entry === "o")
-                    return "O";
-                if (gridRow.negative)
-                    return "X";
-                return "";
-            }
+            readonly property string entry: (gridRow.entries || {})[DateUtils.dateKey(gridRow.year, gridRow.month, day)] || ""
+            readonly property string mark: entry === "x" ? "X"
+                                         : entry === "o" ? "O"
+                                         : gridRow.negative ? "X" : ""
+            readonly property bool faded: mark === "O" || isFuture
 
             Rectangle {
                 anchors.fill: parent
@@ -59,13 +51,7 @@ Row {
                 font.pixelSize: App.Theme.boxSize * 0.7
                 font.bold: true
                 color: App.Theme.fg
-                opacity: {
-                    if (box.mark === "O")
-                        return App.Theme.fadedOpacity;
-                    if (box.isFuture)
-                        return App.Theme.fadedOpacity;
-                    return 1.0;
-                }
+                opacity: box.faded ? App.Theme.fadedOpacity : 1.0
             }
 
             MouseArea {

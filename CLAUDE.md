@@ -70,6 +70,11 @@ Append to `<qresource>` in `application.qrc` **and** register the type in the di
 - **Stores are thin holders.** A store owns state + persistence wiring and delegates each method to the JS logic and storage modules. Don't grow business logic inside the store.
 - **Container components forward signals; they don't reach into stores.** Components expose signals up to the page that owns the store, which wires them to store methods. Keeps components reusable and dependencies one-way.
 - **Extract on duplication, not speculation.** Collapse near-identical blocks into a component.
+- **Target ES2016 / Qt 5.15 V4 engine.** Use `let`/`const` (never `var`), arrow functions, template literals, destructuring, array spread (`[...arr]`), default params, `Array.prototype.includes`, native `String.prototype.trim()`. NOT available: `async`/`await`, object spread (`{...obj}` — use `Object.assign({}, a, b)`), optional chaining (`?.`), nullish coalescing (`??`).
+- **Functional style.** Prefer pure functions, immutable updates (spread / `Object.assign` / `slice` over in-place mutation), `.map`/`.filter`/`.reduce` over imperative loops, `const` arrows for small helpers. In `.pragma library` files, top-level exports use `function` declarations; internal helpers use `const` arrows.
+- **Flat code, max 2 levels of nesting.** No `if` / `try` / loop nested 3+ deep. Use early returns, guard clauses, extracted helpers, or logical operators (`||`, `&&`, ternaries) to flatten. If a block would reach 3 levels, extract a function.
+- **In QML bindings, prefer expressions over imperative blocks.** A `property` or signal handler that's just an `if`-ladder returning values should be a ternary, or a small extracted `readonly property` should carry the condition.
+- **Self-update on style refactor.** When a refactor revises a code-style preference here (banning a pattern, adopting a new helper convention, moving the JS target), update this section in the same change so future sessions inherit the rule.
 
 ## Keep README.md current
 
