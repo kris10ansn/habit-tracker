@@ -21,16 +21,16 @@ Row {
     height: App.Theme.boxSize
     spacing: App.Theme.boxSpacing
 
-    Column {
-        id: reorderColumn
-        width: App.Theme.deleteButtonSize
-        height: App.Theme.boxSize
+    Row {
+        id: reorderRow
+        height: App.Theme.deleteButtonSize
         spacing: App.Theme.boxSpacing
+        anchors.verticalCenter: parent.verticalCenter
         visible: habitRow.editing
 
         Rectangle {
-            width: parent.width
-            height: (App.Theme.boxSize - App.Theme.boxSpacing) / 2
+            width: App.Theme.deleteButtonSize
+            height: App.Theme.deleteButtonSize
             color: App.Theme.bg
             border.color: App.Theme.fg
             border.width: App.Theme.buttonBorderWidth
@@ -51,8 +51,8 @@ Row {
         }
 
         Rectangle {
-            width: parent.width
-            height: (App.Theme.boxSize - App.Theme.boxSpacing) / 2
+            width: App.Theme.deleteButtonSize
+            height: App.Theme.deleteButtonSize
             color: App.Theme.bg
             border.color: App.Theme.fg
             border.width: App.Theme.buttonBorderWidth
@@ -98,7 +98,7 @@ Row {
 
     Item {
         id: nameSlot
-        width: habitRow.width - (habitRow.editing ? 4 * (App.Theme.deleteButtonSize + habitRow.spacing) : 0)
+        width: habitRow.width - (habitRow.editing ? 5 * (App.Theme.deleteButtonSize + habitRow.spacing) : 0)
         height: habitRow.height
 
         Text {
