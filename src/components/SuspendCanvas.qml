@@ -39,6 +39,8 @@ Canvas {
     renderStrategy: Canvas.Cooperative
     renderTarget: Canvas.Image
 
+    Component.onCompleted: SuspendRender.ensureBackup(canvas.targetPath, canvas.backupPath, canvas.markerPath)
+
     Timer {
         id: debounceTimer
         interval: 3000
@@ -65,14 +67,12 @@ Canvas {
 
     function flushNow() {
         debounceTimer.stop()
-        SuspendRender.ensureBackup(canvas.targetPath, canvas.backupPath, canvas.markerPath)
         SuspendDraw.draw(canvas.getContext("2d"), canvas.width, canvas.height, canvas.habits, canvas.today, canvas.drawConfig)
         canvas.saveQueued = false
         _save()
     }
 
     function _beginAsyncRender() {
-        SuspendRender.ensureBackup(canvas.targetPath, canvas.backupPath, canvas.markerPath)
         canvas.saveQueued = true
         canvas.requestPaint()
     }
