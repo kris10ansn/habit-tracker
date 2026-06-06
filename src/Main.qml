@@ -31,7 +31,9 @@ Rectangle {
 
     Connections {
         target: habitsStore
-        function onSaved() { suspendCanvas.scheduleRender() }
+        function onSaved() {
+            if (!landscape.editing) suspendCanvas.scheduleRender()
+        }
     }
 
     Item {
@@ -48,6 +50,8 @@ Rectangle {
         property int currentMonth: today.getMonth()
         property bool editing: false
         property int pendingDeleteIndex: -1
+
+        onEditingChanged: if (!editing) suspendCanvas.renderNow()
 
         property int step: App.Theme.boxSize + App.Theme.boxSpacing
         property int habitsRowWidth: App.Theme.habitsWidth + (editing ? App.Theme.editingExtraWidth : 0)
