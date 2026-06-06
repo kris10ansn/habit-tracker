@@ -65,9 +65,6 @@ Append to `<qresource>` in `application.qrc` **and** register the type in the di
 
 ## Code style
 
-- **Logic in JS, UI in QML.** Domain mutations, storage I/O, and math live in `src/js/*.js` as `.pragma library` modules; QML files stay presentational (bindings, layout, signal wiring). When a QML file grows inline `function` blocks doing real work, extract to JS. The `.pragma library` directive is **not** in the source files (so prettier/VSCode can parse them) — the `inject-pragma` target in the Makefile prepends it to the staged copies during `make build`.
-- **Pure-function logic layer.** Mutation helpers take the current value plus inputs, return a new value, and return `null` on invalid input. No in-place mutation, no exceptions for control flow.
-- **Stores are thin holders.** A store owns state + persistence wiring and delegates each method to the JS logic and storage modules. Don't grow business logic inside the store.
 - **Container components forward signals; they don't reach into stores.** Components expose signals up to the page that owns the store, which wires them to store methods. Keeps components reusable and dependencies one-way.
 - **Extract on duplication, not speculation.** Collapse near-identical blocks into a component.
 - **Target ES2016 / Qt 5.15 V4 engine.** Use `let`/`const` (never `var`), arrow functions, template literals, destructuring, array spread (`[...arr]`), default params, `Array.prototype.includes`, native `String.prototype.trim()`. NOT available: `async`/`await`, object spread (`{...obj}` — use `Object.assign({}, a, b)`), optional chaining (`?.`), nullish coalescing (`??`).

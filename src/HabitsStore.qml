@@ -1,6 +1,5 @@
 import QtQuick 2.15
 import "js/Storage.js" as Storage
-import "js/HabitsLogic.js" as Logic
 import "js/habits.js" as DefaultHabits
 
 QtObject {
@@ -36,32 +35,73 @@ QtObject {
         saved();
     }
 
-    function _apply(next) {
-        if (next === null)
-            return;
-        habits = next;
+    function _inBounds(i) {
+        return i >= 0 && i < habits.length;
+    }
+
+    function _replace(index, updates) {
+        const merged = Object.assign({}, habits[index], updates);
+        habits = [...habits.slice(0, index), merged, ...habits.slice(index + 1)];
         save();
     }
 
     function add(name, negative) {
-        _apply(Logic.addHabit(habits, name, negative));
+        const trimmed = (name || "").trim();
+        if (!trimmed) return;
+
+        habits = [...habits, { name: trimmed, negative: !!negative, entries: {} }];
+        save();
     }
+
     function move(from, to) {
-        _apply(Logic.moveHabit(habits, from, to));
+        if (!_inBounds(from) || !_inBounds(to) || from === to) return;
+
+        const copy = habits.slice();
+        const [item] = copy.splice(from, 1);
+        copy.splice(to, 0, item);
+
+        habits = copy;
+        save();
     }
+
     function remove(index) {
-        _apply(Logic.removeHabit(habits, index));
+        if (!_inBounds(index)) return;
+
+        habits = [...habits.slice(0, index), ...habits.slice(index + 1)];
+        save();
     }
+
     function setNegative(index, negative) {
-        _apply(Logic.setNegative(habits, index, negative));
+        if (!_inBounds(index)) return;
+        _replace(index, { negative: !!negative });
     }
+
     function setHideFromSleep(index, hidden) {
-        _apply(Logic.setHideFromSleep(habits, index, hidden));
+        if (!_inBounds(index)) return;
+        _replace(index, { hideFromSleep: !!hidden });
     }
+
     function setName(index, name) {
-        _apply(Logic.setName(habits, index, name));
+        const trimmed = (name || "").trim();
+        if (!_inBounds(index) || !trimmed) return;
+        _replace(index, { name: trimmed });
     }
+
     function toggleEntry(index, dateKey) {
-        _apply(Logic.toggleEntry(habits, index, dateKey));
+        if (!_inBounds(index)) return;
+
+        const habit = habits[index];
+        const current = habit.entries[dateKey] || "";
+        // positive: empty -> x -> o -> empty
+        // negative: empty(displayed X) -> o -> empty
+        const next = habit.negative
+            ? (current === "o" ? "" : "o")
+            : (current === "" ? "x" : current === "x" ? "o" : "");
+
+        const entries = Object.assign({}, habit.entries);
+        if (next) entries[dateKey] = next;
+        else delete entries[dateKey];
+
+        _replace(index, { entries: entries });
     }
 }
