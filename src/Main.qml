@@ -14,10 +14,23 @@ Rectangle {
         console.log("Habit Tracker unloading");
     }
 
-    Component.onCompleted: console.log("Habit Tracker loaded; size:", width, "x", height)
+    Component.onCompleted: {
+        console.log("Habit Tracker loaded; size:", width, "x", height)
+        suspendCanvas.render()
+    }
 
     App.HabitsStore {
         id: habitsStore
+    }
+
+    App.SuspendCanvas {
+        id: suspendCanvas
+        habits: habitsStore.habits
+    }
+
+    Connections {
+        target: habitsStore
+        function onSaved() { suspendCanvas.render() }
     }
 
     Item {
@@ -57,6 +70,7 @@ Rectangle {
 
             App.MonthHeader {
                 date: landscape.today
+                warn: suspendCanvas.lastRenderFailed
             }
 
             Row {

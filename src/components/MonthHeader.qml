@@ -6,6 +6,7 @@ Column {
     id: header
 
     property date date: new Date()
+    property bool warn: false
 
     spacing: 4
 
@@ -19,6 +20,13 @@ Column {
     Text {
         text: DateUtils.daysInMonth(header.date) + " days · today is day " + header.date.getDate()
         font.pixelSize: App.Theme.subtitleFont
+        color: App.Theme.fg
+    }
+
+    Text {
+        visible: header.warn
+        text: "(!) sleep image render failed"
+        font.pixelSize: App.Theme.subtitleFont * 0.7
         color: App.Theme.fg
     }
 }

@@ -12,6 +12,8 @@ Item {
     property int month: 0
     property bool editing: false
     property int scrollX: 0
+    property real boxSize: App.Theme.boxSize
+    property real boxSpacing: App.Theme.boxSpacing
 
     property alias contentHeight: stack.height
 
@@ -27,6 +29,8 @@ Item {
         DayLabelsRow {
             daysInMonth: grid.daysInMonth
             currentDay: grid.currentDay
+            boxSize: grid.boxSize
+            boxSpacing: grid.boxSpacing
         }
 
         Repeater {
@@ -39,6 +43,8 @@ Item {
                 month: grid.month
                 negative: modelData.negative
                 entries: modelData.entries || ({})
+                boxSize: grid.boxSize
+                boxSpacing: grid.boxSpacing
                 onDayClicked: grid.entryToggled(index, DateUtils.dateKey(grid.year, grid.month, day))
             }
         }
@@ -46,7 +52,7 @@ Item {
         Item {
             visible: grid.editing
             width: 1
-            height: App.Theme.boxSize
+            height: grid.boxSize
         }
     }
 
@@ -56,7 +62,7 @@ Item {
         Rectangle {
             width: App.Theme.borderWidth
             height: stack.height
-            x: -grid.scrollX + (index + 1) * 7 * (App.Theme.boxSize + App.Theme.boxSpacing) - App.Theme.boxSpacing / 2 - width / 2
+            x: -grid.scrollX + (index + 1) * 7 * (grid.boxSize + grid.boxSpacing) - grid.boxSpacing / 2 - width / 2
             color: App.Theme.fg
         }
     }

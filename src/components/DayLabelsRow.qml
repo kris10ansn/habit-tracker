@@ -6,14 +6,16 @@ Row {
 
     property int daysInMonth: 0
     property int currentDay: 0
+    property real boxSize: App.Theme.boxSize
+    property real boxSpacing: App.Theme.boxSpacing
 
-    spacing: App.Theme.boxSpacing
+    spacing: labels.boxSpacing
 
     Repeater {
         model: labels.daysInMonth
 
         Text {
-            width: App.Theme.boxSize
+            width: labels.boxSize
             height: App.Theme.dayLabelHeight
             text: index + 1
             font.pixelSize: App.Theme.dayLabelFont

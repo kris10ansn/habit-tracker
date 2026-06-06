@@ -9,6 +9,8 @@ QtObject {
     property string filePath: "/home/root/xovi/exthome/appload/habit-tracker/habits.json"
     property var habits: []
 
+    signal saved()
+
     Component.onCompleted: load()
 
     function load() {
@@ -23,6 +25,7 @@ QtObject {
 
     function save() {
         Storage.writeJson(filePath, habits)
+        saved()
     }
 
     function _apply(next) {

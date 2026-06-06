@@ -11,18 +11,20 @@ Row {
     property int month: 0
     property bool negative: false
     property var entries: ({})
+    property real boxSize: App.Theme.boxSize
+    property real boxSpacing: App.Theme.boxSpacing
 
     signal dayClicked(int day)
 
-    spacing: App.Theme.boxSpacing
+    spacing: gridRow.boxSpacing
 
     Repeater {
         model: gridRow.daysInMonth
 
         Rectangle {
             id: box
-            width: App.Theme.boxSize
-            height: App.Theme.boxSize
+            width: gridRow.boxSize
+            height: gridRow.boxSize
             color: App.Theme.bg
             border.color: App.Theme.fg
             border.width: App.Theme.borderWidth
@@ -35,8 +37,8 @@ Row {
 
             Rectangle {
                 anchors.fill: parent
-                anchors.leftMargin: -App.Theme.boxSpacing / 2
-                anchors.rightMargin: -App.Theme.boxSpacing / 2
+                anchors.leftMargin: -gridRow.boxSpacing / 2
+                anchors.rightMargin: -gridRow.boxSpacing / 2
                 anchors.topMargin: -App.Theme.rowSpacing / 2
                 anchors.bottomMargin: -App.Theme.rowSpacing / 2
                 color: box.day === gridRow.currentDay ? App.Theme.fg : "transparent"
@@ -46,7 +48,7 @@ Row {
             Text {
                 anchors.centerIn: parent
                 text: box.mark
-                font.pixelSize: App.Theme.boxSize * 0.7
+                font.pixelSize: gridRow.boxSize * 0.7
                 font.bold: true
                 color: App.Theme.fg
                 opacity: box.faded ? App.Theme.fadedOpacity : 1.0
