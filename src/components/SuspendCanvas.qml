@@ -72,7 +72,7 @@ Canvas {
         onTriggered: canvas.remainingSeconds = Math.max(0, canvas.remainingSeconds - 1)
     }
 
-    onPaint: SuspendDraw.draw(getContext("2d"), canvas.width, canvas.height, canvas.habits, canvas.today, canvas.drawConfig)
+    onPaint: _draw()
 
     onPainted: {
         if (!canvas.saveQueued) return
@@ -97,9 +97,14 @@ Canvas {
     function flushNow() {
         debounceTimer.stop()
         statusTickTimer.stop()
-        SuspendDraw.draw(canvas.getContext("2d"), canvas.width, canvas.height, canvas.habits, canvas.today, canvas.drawConfig)
+        canvas.phase = "saving"
+        _draw()
         canvas.saveQueued = false
         _save()
+    }
+
+    function _draw() {
+        SuspendDraw.draw(canvas.getContext("2d"), canvas.width, canvas.height, canvas.habits, canvas.today, canvas.drawConfig)
     }
 
     function _beginAsyncRender() {
