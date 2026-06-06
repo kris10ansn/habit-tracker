@@ -101,14 +101,13 @@ const drawHabitCells = (ctx, x, y, habit, daysIn, currentDay, year, month, cfg) 
         ctx.lineWidth = cfg.borderWidth;
         ctx.strokeRect(cellX, y, cfg.boxSize, cfg.boxSize);
 
+        if (d > currentDay) continue;
+
         const entry = entries[DateUtils.dateKey(year, month, d)] || "";
         const mark = entry === "x" ? "X" : entry === "o" ? "O" : habit.negative ? "X" : "";
         if (!mark) continue;
 
-        const isFuture = d > currentDay;
-        const faded = mark === "O" || isFuture;
-
-        ctx.globalAlpha = faded ? fadedOpacity : 1.0;
+        ctx.globalAlpha = mark === "O" ? fadedOpacity : 1.0;
         ctx.fillStyle = cfg.fg;
         ctx.font = `bold ${cfg.boxSize * 0.7}px sans-serif`;
         ctx.textAlign = "center";
