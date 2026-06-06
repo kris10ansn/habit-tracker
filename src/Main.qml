@@ -97,7 +97,6 @@ Rectangle {
                 App.HabitsGrid {
                     id: grid
                     width: landscape.viewportWidth
-                    height: contentHeight
                     habits: habitsStore.habits
                     daysInMonth: landscape.daysInMonth
                     currentDay: landscape.currentDay

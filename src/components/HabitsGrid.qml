@@ -19,6 +19,7 @@ Item {
 
     signal entryToggled(int index, string dateKey)
 
+    height: stack.height + App.Theme.rowSpacing / 2
     clip: true
 
     Column {
