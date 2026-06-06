@@ -37,7 +37,7 @@ Canvas {
     height: 1872
     x: -2000
     visible: true
-    renderStrategy: Canvas.Immediate
+    renderStrategy: Canvas.Threaded
     renderTarget: Canvas.Image
 
     onPaint: SuspendDraw.draw(getContext("2d"), canvas.width, canvas.height, canvas.habits, canvas.today, canvas.drawConfig)
