@@ -55,7 +55,10 @@ QtObject {
     }
 
     function flushPendingSave() {
-        if (!_saveTimer.running) return;
+        if (!_saveTimer.running) {
+            return;
+        }
+
         _saveTimer.stop();
         _doSave();
     }
@@ -75,57 +78,79 @@ QtObject {
 
     function add(name, negative) {
         const trimmed = (name || "").trim();
-        if (!trimmed) return;
-        habits.append({ name: trimmed, negative: !!negative, entries: {} });
+        if (!trimmed) {
+            return;
+        }
+
+        habits.append({
+            name: trimmed,
+            negative: !!negative,
+            entries: {}
+        });
+
         _scheduleSave();
     }
 
     function move(from, to) {
-        if (!_inBounds(from) || !_inBounds(to) || from === to) return;
+        if (!_inBounds(from) || !_inBounds(to) || from === to) {
+            return;
+        }
+
         habits.move(from, to, 1);
         _scheduleSave();
     }
 
     function remove(index) {
-        if (!_inBounds(index)) return;
+        if (!_inBounds(index)) {
+            return;
+        }
         habits.remove(index);
         _scheduleSave();
     }
 
     function setNegative(index, negative) {
-        if (!_inBounds(index)) return;
+        if (!_inBounds(index)) {
+            return;
+        }
         habits.setProperty(index, "negative", !!negative);
         _scheduleSave();
     }
 
     function setHideFromSleep(index, hidden) {
-        if (!_inBounds(index)) return;
+        if (!_inBounds(index)) {
+            return;
+        }
         habits.setProperty(index, "hideFromSleep", !!hidden);
         _scheduleSave();
     }
 
     function setName(index, name) {
         const trimmed = (name || "").trim();
-        if (!_inBounds(index) || !trimmed) return;
+        if (!_inBounds(index) || !trimmed) {
+            return;
+        }
         habits.setProperty(index, "name", trimmed);
         _scheduleSave();
     }
 
     function toggleEntry(index, dateKey) {
-        if (!_inBounds(index)) return;
+        if (!_inBounds(index)) {
+            return;
+        }
 
         const habit = habits.get(index);
         const currentEntries = habit.entries || {};
         const current = currentEntries[dateKey] || "";
         // positive: empty -> x -> o -> empty
         // negative: empty(displayed X) -> o -> empty
-        const next = habit.negative
-            ? (current === "o" ? "" : "o")
-            : (current === "" ? "x" : current === "x" ? "o" : "");
+        const next = habit.negative ? (current === "o" ? "" : "o") : (current === "" ? "x" : current === "x" ? "o" : "");
 
         const entries = Object.assign({}, currentEntries);
-        if (next) entries[dateKey] = next;
-        else delete entries[dateKey];
+        if (next) {
+            entries[dateKey] = next;
+        } else {
+            delete entries[dateKey];
+        }
 
         habits.setProperty(index, "entries", entries);
         _scheduleSave();
