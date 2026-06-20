@@ -16,10 +16,7 @@ Rectangle {
         suspendCanvas.renderSync();
     }
 
-    Component.onCompleted: {
-        console.log("Habit Tracker loaded; size:", width, "x", height);
-        suspendCanvas.renderAsync();
-    }
+    Component.onCompleted: console.log("Habit Tracker loaded; size:", width, "x", height)
 
     App.HabitsStore {
         id: habitsStore
@@ -32,6 +29,9 @@ Rectangle {
 
     Connections {
         target: habitsStore
+        function onLoaded() {
+            suspendCanvas.renderAsync();
+        }
         function onSaved() {
             if (!landscape.editing)
                 suspendCanvas.scheduleRender();
@@ -70,7 +70,7 @@ Rectangle {
         property int bodyViewportHeight: viewportHeight - App.Theme.dayLabelHeight - App.Theme.rowSpacing
         property int rowStep: App.Theme.boxSize + App.Theme.rowSpacing
         property int scrollRows: Math.max(1, Math.floor(bodyViewportHeight / rowStep) - 1)
-        property int maxScrollY: Math.max(0, grid.bodyContentHeight - bodyViewportHeight)
+        property int maxScrollY: Math.max(0, (gridLoader.item ? gridLoader.item.bodyContentHeight : 0) - bodyViewportHeight)
         property bool canScrollY: maxScrollY > 0
         property int scrollY: 0
 
@@ -119,19 +119,27 @@ Rectangle {
                     onClicked: landscape.scrollX = Scroll.scrollByBoxes(landscape.scrollX, -7, landscape.step, landscape.maxScrollX)
                 }
 
-                App.HabitsGrid {
-                    id: grid
+                Loader {
+                    id: gridLoader
                     width: landscape.viewportWidth
-                    viewportHeight: landscape.viewportHeight
-                    habits: habitsStore.habits
-                    daysInMonth: landscape.daysInMonth
-                    currentDay: landscape.currentDay
-                    year: landscape.currentYear
-                    month: landscape.currentMonth
-                    editing: landscape.editing
-                    scrollX: landscape.scrollX
-                    scrollY: landscape.scrollY
-                    onEntryToggled: habitsStore.toggleEntry(index, dateKey)
+                    height: landscape.viewportHeight
+                    asynchronous: true
+
+                    sourceComponent: Component {
+                        App.HabitsGrid {
+                            width: landscape.viewportWidth
+                            viewportHeight: landscape.viewportHeight
+                            habits: habitsStore.habits
+                            daysInMonth: landscape.daysInMonth
+                            currentDay: landscape.currentDay
+                            year: landscape.currentYear
+                            month: landscape.currentMonth
+                            editing: landscape.editing
+                            scrollX: landscape.scrollX
+                            scrollY: landscape.scrollY
+                            onEntryToggled: habitsStore.toggleEntry(index, dateKey)
+                        }
+                    }
                 }
 
                 App.SideScrollButton {

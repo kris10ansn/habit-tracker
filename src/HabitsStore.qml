@@ -19,8 +19,16 @@ QtObject {
     }
 
     signal saved
+    signal loaded
 
-    Component.onCompleted: load()
+    // Deferred so the QML scene becomes paint-ready before the file read,
+    // N appends, and resulting delegate instantiations run on the main thread.
+    Component.onCompleted: Qt.callLater(_initialLoad)
+
+    function _initialLoad() {
+        load();
+        loaded();
+    }
 
     function load() {
         const data = Storage.readJson(filePath);
