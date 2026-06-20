@@ -72,6 +72,7 @@ Append to `<qresource>` in `application.qrc` **and** register the type in the di
 - **Flat code, max 2 levels of nesting.** No `if` / `try` / loop nested 3+ deep. Use early returns, guard clauses, extracted helpers, or logical operators (`||`, `&&`, ternaries) to flatten. If a block would reach 3 levels, extract a function.
 - **In QML bindings, prefer expressions over imperative blocks.** A `property` or signal handler that's just an `if`-ladder returning values should be a ternary, or a small extracted `readonly property` should carry the condition.
 - **Blank lines within functions separate logical phases.** Add a blank line after guard clauses / early returns, between setup and computation, or before a return statement. Groups related statements visually.
+- **Comments sparingly.** Default to no comments. Only add one when the WHY is non-obvious (hidden constraint, subtle invariant, workaround for a specific bug, surprising behavior). Don't explain WHAT — well-named identifiers do that. If removing the comment wouldn't confuse a future reader, don't write it.
 - **Self-update on style refactor.** When a refactor revises a code-style preference here (banning a pattern, adopting a new helper convention, moving the JS target), update this section in the same change so future sessions inherit the rule.
 
 ## Keep README.md current
