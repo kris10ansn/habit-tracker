@@ -2,6 +2,7 @@ import QtQuick 2.15
 import ".." as App
 import "../js/SuspendRender.js" as SuspendRender
 import "../js/SuspendDraw.js" as SuspendDraw
+import "../js/HabitsModel.js" as HabitsModel
 
 Canvas {
     id: canvas
@@ -114,7 +115,7 @@ Canvas {
     }
 
     function _upToDate() {
-        return SuspendDraw.computeSignature(canvas.habits, canvas.today) === canvas.lastRenderedSignature;
+        return SuspendDraw.computeSignature(HabitsModel.toArray(canvas.habits), canvas.today) === canvas.lastRenderedSignature;
     }
 
     function _beginSaving() {
@@ -136,7 +137,7 @@ Canvas {
     }
 
     function _draw() {
-        SuspendDraw.draw(canvas.getContext("2d"), canvas.width, canvas.height, canvas.habits, canvas.today, canvas.drawConfig);
+        SuspendDraw.draw(canvas.getContext("2d"), canvas.width, canvas.height, HabitsModel.toArray(canvas.habits), canvas.today, canvas.drawConfig);
     }
 
     function _beginAsyncRender() {
@@ -152,7 +153,7 @@ Canvas {
             console.warn("SuspendCanvas: save failed for", canvas.targetPath);
             return;
         }
-        canvas.lastRenderedSignature = SuspendDraw.computeSignature(canvas.habits, canvas.today);
+        canvas.lastRenderedSignature = SuspendDraw.computeSignature(HabitsModel.toArray(canvas.habits), canvas.today);
         SuspendRender.writeSignature(canvas.signaturePath, canvas.lastRenderedSignature);
     }
 }

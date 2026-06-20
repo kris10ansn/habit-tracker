@@ -12,6 +12,7 @@ Rectangle {
     signal close
     function unloading() {
         console.log("Habit Tracker unloading");
+        habitsStore.flushPendingSave();
         suspendCanvas.renderSync();
     }
 
@@ -89,8 +90,8 @@ Rectangle {
                     editing: landscape.editing
                     rowWidth: landscape.habitsRowWidth
                     onRemoveRequested: landscape.pendingDeleteIndex = index
-                    onNegativeToggled: habitsStore.setNegative(index, !habitsStore.habits[index].negative)
-                    onHideFromSleepToggled: habitsStore.setHideFromSleep(index, !habitsStore.habits[index].hideFromSleep)
+                    onNegativeToggled: habitsStore.setNegative(index, !habitsStore.habits.get(index).negative)
+                    onHideFromSleepToggled: habitsStore.setHideFromSleep(index, !habitsStore.habits.get(index).hideFromSleep)
                     onNameEdited: habitsStore.setName(index, newName)
                     onMoveRequested: habitsStore.move(from, to)
                     onAddRequested: habitsStore.add(name, negative)
@@ -158,7 +159,7 @@ Rectangle {
 
         App.ConfirmDialog {
             visible: landscape.pendingDeleteIndex >= 0
-            message: visible ? "Delete “" + habitsStore.habits[landscape.pendingDeleteIndex].name + "”?" : ""
+            message: visible ? "Delete “" + habitsStore.habits.get(landscape.pendingDeleteIndex).name + "”?" : ""
             confirmText: "Delete"
             onConfirmed: {
                 habitsStore.remove(landscape.pendingDeleteIndex);

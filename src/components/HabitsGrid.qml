@@ -42,8 +42,8 @@ Item {
                 currentDay: grid.currentDay
                 year: grid.year
                 month: grid.month
-                negative: modelData.negative
-                entries: modelData.entries || ({})
+                negative: model.negative
+                entries: model.entries || ({})
                 boxSize: grid.boxSize
                 boxSpacing: grid.boxSpacing
                 onDayClicked: grid.entryToggled(index, DateUtils.dateKey(grid.year, grid.month, day))

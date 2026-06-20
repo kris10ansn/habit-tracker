@@ -1,12 +1,22 @@
 import QtQuick 2.15
 import "js/Storage.js" as Storage
 import "js/habits.js" as DefaultHabits
+import "js/HabitsModel.js" as HabitsModel
 
 QtObject {
     id: store
 
     property string filePath: "/home/root/xovi/exthome/appload/habit-tracker/habits.json"
-    property var habits: []
+
+    property ListModel habits: ListModel {
+        dynamicRoles: true
+    }
+
+    property Timer _saveTimer: Timer {
+        interval: 200
+        repeat: false
+        onTriggered: store._doSave()
+    }
 
     signal saved
 
@@ -14,94 +24,98 @@ QtObject {
 
     function load() {
         const data = Storage.readJson(filePath);
+        habits.clear();
 
         if (Array.isArray(data)) {
-            habits = data;
+            for (let i = 0; i < data.length; i++) habits.append(data[i]);
             return;
         }
 
-        habits = DefaultHabits.habits.slice();
+        const defaults = DefaultHabits.habits;
+        for (let i = 0; i < defaults.length; i++) habits.append(defaults[i]);
 
         if (Storage.isCorrupt(data)) {
             console.warn("HabitsStore: refusing to overwrite corrupt file at", filePath, "- using defaults in memory only");
             return;
         }
 
-        save();
+        _doSave();
     }
 
-    function save() {
-        Storage.writeJson(filePath, habits);
+    function flushPendingSave() {
+        if (!_saveTimer.running) return;
+        _saveTimer.stop();
+        _doSave();
+    }
+
+    function _doSave() {
+        Storage.writeJson(filePath, HabitsModel.toArray(habits));
         saved();
     }
 
-    function _inBounds(i) {
-        return i >= 0 && i < habits.length;
+    function _scheduleSave() {
+        _saveTimer.restart();
     }
 
-    function _replace(index, updates) {
-        const merged = Object.assign({}, habits[index], updates);
-        habits = [...habits.slice(0, index), merged, ...habits.slice(index + 1)];
-        save();
+    function _inBounds(i) {
+        return i >= 0 && i < habits.count;
     }
 
     function add(name, negative) {
         const trimmed = (name || "").trim();
         if (!trimmed) return;
-
-        habits = [...habits, { name: trimmed, negative: !!negative, entries: {} }];
-        save();
+        habits.append({ name: trimmed, negative: !!negative, entries: {} });
+        _scheduleSave();
     }
 
     function move(from, to) {
         if (!_inBounds(from) || !_inBounds(to) || from === to) return;
-
-        const copy = habits.slice();
-        const [item] = copy.splice(from, 1);
-        copy.splice(to, 0, item);
-
-        habits = copy;
-        save();
+        habits.move(from, to, 1);
+        _scheduleSave();
     }
 
     function remove(index) {
         if (!_inBounds(index)) return;
-
-        habits = [...habits.slice(0, index), ...habits.slice(index + 1)];
-        save();
+        habits.remove(index);
+        _scheduleSave();
     }
 
     function setNegative(index, negative) {
         if (!_inBounds(index)) return;
-        _replace(index, { negative: !!negative });
+        habits.setProperty(index, "negative", !!negative);
+        _scheduleSave();
     }
 
     function setHideFromSleep(index, hidden) {
         if (!_inBounds(index)) return;
-        _replace(index, { hideFromSleep: !!hidden });
+        habits.setProperty(index, "hideFromSleep", !!hidden);
+        _scheduleSave();
     }
 
     function setName(index, name) {
         const trimmed = (name || "").trim();
         if (!_inBounds(index) || !trimmed) return;
-        _replace(index, { name: trimmed });
+        habits.setProperty(index, "name", trimmed);
+        _scheduleSave();
     }
 
     function toggleEntry(index, dateKey) {
         if (!_inBounds(index)) return;
 
-        const habit = habits[index];
-        const current = habit.entries[dateKey] || "";
+        const habit = habits.get(index);
+        const currentEntries = habit.entries || {};
+        const current = currentEntries[dateKey] || "";
         // positive: empty -> x -> o -> empty
         // negative: empty(displayed X) -> o -> empty
         const next = habit.negative
             ? (current === "o" ? "" : "o")
             : (current === "" ? "x" : current === "x" ? "o" : "");
 
-        const entries = Object.assign({}, habit.entries);
+        const entries = Object.assign({}, currentEntries);
         if (next) entries[dateKey] = next;
         else delete entries[dateKey];
 
-        _replace(index, { entries: entries });
+        habits.setProperty(index, "entries", entries);
+        _scheduleSave();
     }
 }

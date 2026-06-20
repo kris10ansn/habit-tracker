@@ -27,12 +27,12 @@ Column {
 
         HabitRow {
             width: habitsColumn.rowWidth
-            name: modelData.name
-            negative: modelData.negative
-            hideFromSleep: !!modelData.hideFromSleep
+            name: model.name
+            negative: model.negative
+            hideFromSleep: !!model.hideFromSleep
             editing: habitsColumn.editing
             canMoveUp: index > 0
-            canMoveDown: index < habitsColumn.habits.length - 1
+            canMoveDown: index < habitsColumn.habits.count - 1
             onRemoveClicked: habitsColumn.removeRequested(index)
             onNegativeToggled: habitsColumn.negativeToggled(index)
             onHideFromSleepToggled: habitsColumn.hideFromSleepToggled(index)
