@@ -22,7 +22,7 @@ Journal                 ▢ ▢ ▢ ▢ ▣ ▢ ▢ ▢ ▢ ▢ …
 
 ## Features
 
-- **Calendar grid layout.** One row per habit, one column per day of the month, today's column highlighted in inverted ink. Horizontal `‹` / `›` buttons scroll a week at a time when the month doesn't fit; the view opens centered on today.
+- **Calendar grid layout.** One row per habit, one column per day of the month, today's column highlighted in inverted ink. Horizontal `‹` / `›` buttons scroll a week at a time when the month doesn't fit; the view opens centered on today. Vertical `↑` / `↓` buttons scroll a page of habits at a time when the list is taller than the screen; the day-of-month header stays fixed while the rows scroll.
 - **Two habit modes.**
     - _Positive_ habits cycle empty → X → O → empty. X = done, O = explicitly not done.
     - _Negative_ habits invert it: every day is implicitly X ("didn't slip up today"), tap to flip to O when you do slip. Future days render muted and the name carries a `(−)` suffix.

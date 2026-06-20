@@ -12,48 +12,63 @@ Item {
     property int month: 0
     property bool editing: false
     property int scrollX: 0
+    property int scrollY: 0
     property real boxSize: App.Theme.boxSize
     property real boxSpacing: App.Theme.boxSpacing
+    property real viewportHeight: 0
 
-    property alias contentHeight: stack.height
+    property alias bodyContentHeight: body.height
 
     signal entryToggled(int index, string dateKey)
 
-    height: stack.height + App.Theme.rowSpacing / 2
+    height: viewportHeight
     clip: true
 
-    Column {
-        id: stack
+    DayLabelsRow {
+        id: dayLabels
         x: -grid.scrollX
-        spacing: App.Theme.rowSpacing
+        daysInMonth: grid.daysInMonth
+        currentDay: grid.currentDay
+        boxSize: grid.boxSize
+        boxSpacing: grid.boxSpacing
+    }
 
-        DayLabelsRow {
-            daysInMonth: grid.daysInMonth
-            currentDay: grid.currentDay
-            boxSize: grid.boxSize
-            boxSpacing: grid.boxSpacing
-        }
+    Item {
+        id: bodyViewport
+        // Start half a row-gap above the first box so the today-column highlight,
+        // which bleeds rowSpacing/2 past the box, isn't clipped at the top.
+        y: dayLabels.height + App.Theme.rowSpacing / 2
+        width: grid.width
+        height: grid.height - y
+        clip: true
 
-        Repeater {
-            model: grid.habits
+        Column {
+            id: body
+            x: -grid.scrollX
+            y: App.Theme.rowSpacing / 2 - grid.scrollY
+            spacing: App.Theme.rowSpacing
 
-            HabitGridRow {
-                daysInMonth: grid.daysInMonth
-                currentDay: grid.currentDay
-                year: grid.year
-                month: grid.month
-                negative: model.negative
-                entries: model.entries || ({})
-                boxSize: grid.boxSize
-                boxSpacing: grid.boxSpacing
-                onDayClicked: grid.entryToggled(index, DateUtils.dateKey(grid.year, grid.month, day))
+            Repeater {
+                model: grid.habits
+
+                HabitGridRow {
+                    daysInMonth: grid.daysInMonth
+                    currentDay: grid.currentDay
+                    year: grid.year
+                    month: grid.month
+                    negative: model.negative
+                    entries: model.entries || ({})
+                    boxSize: grid.boxSize
+                    boxSpacing: grid.boxSpacing
+                    onDayClicked: grid.entryToggled(index, DateUtils.dateKey(grid.year, grid.month, day))
+                }
             }
-        }
 
-        Item {
-            visible: grid.editing
-            width: 1
-            height: grid.boxSize
+            Item {
+                visible: grid.editing
+                width: 1
+                height: grid.boxSize
+            }
         }
     }
 

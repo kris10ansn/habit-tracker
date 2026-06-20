@@ -58,12 +58,24 @@ Rectangle {
 
         property int step: App.Theme.boxSize + App.Theme.boxSpacing
         property int habitsRowWidth: App.Theme.habitsWidth + (editing ? App.Theme.editingExtraWidth : 0)
-        property int viewportWidth: width - 2 * App.Theme.margin - habitsRowWidth - App.Theme.labelGap - 2 * App.Theme.buttonWidth - 2 * App.Theme.buttonGap
+        property int viewportWidth: width - 2 * App.Theme.margin - habitsRowWidth - App.Theme.labelGap - 2 * App.Theme.buttonWidth - 2 * App.Theme.buttonGap - (canScrollY ? App.Theme.buttonWidth + App.Theme.buttonGap : 0)
         property int contentWidth: daysInMonth * App.Theme.boxSize + (daysInMonth - 1) * App.Theme.boxSpacing
         property int maxScrollX: Math.max(0, contentWidth - viewportWidth)
         property int scrollX: 0
 
         onViewportWidthChanged: scrollX = Scroll.centerOnDay(currentDay, viewportWidth, App.Theme.boxSize, App.Theme.boxSpacing, maxScrollX)
+
+        // Vertical scrolling for when the habit rows overflow the available height.
+        property int viewportHeight: height - 2 * App.Theme.margin - monthHeader.height - App.Theme.quitButtonHeight - 2 * App.Theme.rowSpacing
+        property int bodyViewportHeight: viewportHeight - App.Theme.dayLabelHeight - App.Theme.rowSpacing
+        property int rowStep: App.Theme.boxSize + App.Theme.rowSpacing
+        property int scrollRows: Math.max(1, Math.floor(bodyViewportHeight / rowStep) - 1)
+        property int maxScrollY: Math.max(0, grid.bodyContentHeight - bodyViewportHeight)
+        property bool canScrollY: maxScrollY > 0
+        property int scrollY: 0
+
+        onMaxScrollYChanged: if (scrollY > maxScrollY)
+            scrollY = maxScrollY
 
         // Hide keyboard if clicked outside of input
         MouseArea {
@@ -78,6 +90,7 @@ Rectangle {
             spacing: App.Theme.rowSpacing
 
             App.MonthHeader {
+                id: monthHeader
                 date: landscape.today
                 warn: suspendCanvas.lastRenderFailed
             }
@@ -89,6 +102,8 @@ Rectangle {
                     habits: habitsStore.habits
                     editing: landscape.editing
                     rowWidth: landscape.habitsRowWidth
+                    viewportHeight: landscape.viewportHeight
+                    scrollY: landscape.scrollY
                     onRemoveRequested: landscape.pendingDeleteIndex = index
                     onNegativeToggled: habitsStore.setNegative(index, !habitsStore.habits.get(index).negative)
                     onHideFromSleepToggled: habitsStore.setHideFromSleep(index, !habitsStore.habits.get(index).hideFromSleep)
@@ -100,13 +115,14 @@ Rectangle {
                 App.SideScrollButton {
                     text: "‹"
                     fadeOpacity: landscape.scrollX > 0 ? 1.0 : App.Theme.fadedOpacity
-                    contentHeight: grid.contentHeight
+                    contentHeight: landscape.viewportHeight
                     onClicked: landscape.scrollX = Scroll.scrollByBoxes(landscape.scrollX, -7, landscape.step, landscape.maxScrollX)
                 }
 
                 App.HabitsGrid {
                     id: grid
                     width: landscape.viewportWidth
+                    viewportHeight: landscape.viewportHeight
                     habits: habitsStore.habits
                     daysInMonth: landscape.daysInMonth
                     currentDay: landscape.currentDay
@@ -114,14 +130,44 @@ Rectangle {
                     month: landscape.currentMonth
                     editing: landscape.editing
                     scrollX: landscape.scrollX
+                    scrollY: landscape.scrollY
                     onEntryToggled: habitsStore.toggleEntry(index, dateKey)
                 }
 
                 App.SideScrollButton {
                     text: "›"
                     fadeOpacity: landscape.scrollX < landscape.maxScrollX ? 1.0 : App.Theme.fadedOpacity
-                    contentHeight: grid.contentHeight
+                    contentHeight: landscape.viewportHeight
                     onClicked: landscape.scrollX = Scroll.scrollByBoxes(landscape.scrollX, 7, landscape.step, landscape.maxScrollX)
+                }
+
+                // Vertical ↑ / ↓ buttons scroll a page of habits; shown only when they overflow the height.
+                Column {
+                    spacing: App.Theme.rowSpacing
+                    visible: landscape.canScrollY
+
+                    Item {
+                        width: App.Theme.buttonWidth
+                        height: App.Theme.dayLabelHeight
+                    }
+
+                    App.AppButton {
+                        width: App.Theme.buttonWidth
+                        height: (landscape.bodyViewportHeight - App.Theme.rowSpacing) / 2
+                        text: "↑"
+                        fontSize: App.Theme.scrollFont
+                        fadeOpacity: landscape.scrollY > 0 ? 1.0 : App.Theme.fadedOpacity
+                        onClicked: landscape.scrollY = Scroll.scrollByBoxes(landscape.scrollY, -landscape.scrollRows, landscape.rowStep, landscape.maxScrollY)
+                    }
+
+                    App.AppButton {
+                        width: App.Theme.buttonWidth
+                        height: (landscape.bodyViewportHeight - App.Theme.rowSpacing) / 2
+                        text: "↓"
+                        fontSize: App.Theme.scrollFont
+                        fadeOpacity: landscape.scrollY < landscape.maxScrollY ? 1.0 : App.Theme.fadedOpacity
+                        onClicked: landscape.scrollY = Scroll.scrollByBoxes(landscape.scrollY, landscape.scrollRows, landscape.rowStep, landscape.maxScrollY)
+                    }
                 }
             }
         }
