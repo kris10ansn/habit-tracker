@@ -107,7 +107,9 @@ Item {
 
                                 Rectangle {
                                     id: cell
-                                    property bool marked: false
+                                    property string entry: ""
+                                    readonly property string mark: entry === "x" ? "X" : entry === "o" ? "O" : ""
+                                    readonly property bool faded: entry === "o"
 
                                     width: scene.boxSize
                                     height: scene.boxSize
@@ -117,15 +119,16 @@ Item {
 
                                     Text {
                                         anchors.centerIn: parent
-                                        text: cell.marked ? "X" : ""
+                                        text: cell.mark
                                         font.pixelSize: scene.boxSize * 0.7
                                         font.bold: true
                                         color: "black"
+                                        opacity: cell.faded ? 0.3 : 1.0
                                     }
 
                                     MouseArea {
                                         anchors.fill: parent
-                                        onClicked: cell.marked = !cell.marked
+                                        onClicked: cell.entry = cell.entry === "" ? "x" : cell.entry === "x" ? "o" : ""
                                     }
                                 }
                             }

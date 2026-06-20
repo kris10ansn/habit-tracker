@@ -7,7 +7,9 @@ Item {
 
     signal back
 
-    property bool marked: false
+    property string entry: ""
+    readonly property string mark: entry === "x" ? "X" : entry === "o" ? "O" : ""
+    readonly property bool faded: entry === "o"
 
     Rectangle {
         anchors.centerIn: parent
@@ -19,15 +21,16 @@ Item {
 
         Text {
             anchors.centerIn: parent
-            text: scene.marked ? "X" : ""
+            text: scene.mark
             font.pixelSize: 56
             font.bold: true
             color: "black"
+            opacity: scene.faded ? 0.3 : 1.0
         }
 
         MouseArea {
             anchors.fill: parent
-            onClicked: scene.marked = !scene.marked
+            onClicked: scene.entry = scene.entry === "" ? "x" : scene.entry === "x" ? "o" : ""
         }
     }
 
