@@ -19,28 +19,32 @@ QtObject {
     }
 
     signal saved
-    signal loaded
 
-    // Deferred so the QML scene becomes paint-ready before the file read,
-    // N appends, and resulting delegate instantiations run on the main thread.
+    property bool isLoaded: false
+
+    // Defer past first paint.
     Component.onCompleted: Qt.callLater(_initialLoad)
 
     function _initialLoad() {
         load();
-        loaded();
+        isLoaded = true;
     }
 
     function load() {
         const data = Storage.readJson(filePath);
+        const hasData = Array.isArray(data);
+        const items = hasData ? data : DefaultHabits.habits;
+
+        // Bulk append — one rowsInserted vs N avoids per-row e-ink flash.
         habits.clear();
 
-        if (Array.isArray(data)) {
-            for (let i = 0; i < data.length; i++) habits.append(data[i]);
-            return;
+        if (items.length > 0) {
+            habits.append(items);
         }
 
-        const defaults = DefaultHabits.habits;
-        for (let i = 0; i < defaults.length; i++) habits.append(defaults[i]);
+        if (hasData) {
+            return;
+        }
 
         if (Storage.isCorrupt(data)) {
             console.warn("HabitsStore: refusing to overwrite corrupt file at", filePath, "- using defaults in memory only");

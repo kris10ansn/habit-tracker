@@ -29,9 +29,6 @@ Rectangle {
 
     Connections {
         target: habitsStore
-        function onLoaded() {
-            suspendCanvas.renderAsync();
-        }
         function onSaved() {
             if (!landscape.editing)
                 suspendCanvas.scheduleRender();
@@ -119,11 +116,18 @@ Rectangle {
                     onClicked: landscape.scrollX = Scroll.scrollByBoxes(landscape.scrollX, -7, landscape.step, landscape.maxScrollX)
                 }
 
+                // Async + gated + hidden-until-Ready: builds the ~600-item
+                // subtree off the main thread against a populated model, and
+                // never exposes partial e-ink state. Canvas paint chains off
+                // onLoaded to avoid main-thread contention with the build.
                 Loader {
                     id: gridLoader
                     width: landscape.viewportWidth
                     height: landscape.viewportHeight
                     asynchronous: true
+                    active: habitsStore.isLoaded
+                    visible: status === Loader.Ready
+                    onLoaded: suspendCanvas.renderAsync()
 
                     sourceComponent: Component {
                         App.HabitsGrid {
