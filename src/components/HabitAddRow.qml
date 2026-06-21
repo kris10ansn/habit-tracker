@@ -57,25 +57,13 @@ Row {
         }
     }
 
-    Rectangle {
+    AppButton {
         id: negativeButton
         width: App.Theme.deleteButtonSize
         height: addRow.height
-        color: addRow.negative ? App.Theme.fg : App.Theme.bg
-        border.color: App.Theme.fg
-        border.width: App.Theme.buttonBorderWidth
-
-        Text {
-            anchors.centerIn: parent
-            text: "−"
-            font.pixelSize: App.Theme.buttonFont
-            color: addRow.negative ? App.Theme.bg : App.Theme.fg
-        }
-
-        MouseArea {
-            anchors.fill: parent
-            onClicked: addRow.negative = !addRow.negative
-        }
+        text: "−"
+        active: addRow.negative
+        onClicked: addRow.negative = !addRow.negative
     }
 
     AppButton {

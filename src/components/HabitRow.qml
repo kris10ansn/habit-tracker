@@ -28,72 +28,31 @@ Row {
         anchors.verticalCenter: parent.verticalCenter
         visible: habitRow.editing
 
-        Rectangle {
+        AppButton {
             width: App.Theme.deleteButtonSize
             height: App.Theme.deleteButtonSize
-            color: App.Theme.bg
-            border.color: App.Theme.fg
-            border.width: App.Theme.buttonBorderWidth
-            opacity: habitRow.canMoveUp ? 1.0 : App.Theme.fadedOpacity
-
-            Text {
-                anchors.centerIn: parent
-                text: "↑"
-                font.pixelSize: App.Theme.buttonFont
-                color: App.Theme.fg
-            }
-
-            MouseArea {
-                anchors.fill: parent
-                enabled: habitRow.canMoveUp
-                onClicked: habitRow.moveUpClicked()
-            }
+            text: "↑"
+            disabled: !habitRow.canMoveUp
+            onClicked: habitRow.moveUpClicked()
         }
 
-        Rectangle {
+        AppButton {
             width: App.Theme.deleteButtonSize
             height: App.Theme.deleteButtonSize
-            color: App.Theme.bg
-            border.color: App.Theme.fg
-            border.width: App.Theme.buttonBorderWidth
-            opacity: habitRow.canMoveDown ? 1.0 : App.Theme.fadedOpacity
-
-            Text {
-                anchors.centerIn: parent
-                text: "↓"
-                font.pixelSize: App.Theme.buttonFont
-                color: App.Theme.fg
-            }
-
-            MouseArea {
-                anchors.fill: parent
-                enabled: habitRow.canMoveDown
-                onClicked: habitRow.moveDownClicked()
-            }
+            text: "↓"
+            disabled: !habitRow.canMoveDown
+            onClicked: habitRow.moveDownClicked()
         }
     }
 
-    Rectangle {
+    AppButton {
         id: deleteButton
         width: App.Theme.deleteButtonSize
         height: App.Theme.deleteButtonSize
         anchors.verticalCenter: parent.verticalCenter
         visible: habitRow.editing
-        color: App.Theme.bg
-        border.color: App.Theme.fg
-        border.width: App.Theme.buttonBorderWidth
-
-        Text {
-            anchors.centerIn: parent
-            text: "×"
-            font.pixelSize: App.Theme.buttonFont
-            color: App.Theme.fg
-        }
-
-        MouseArea {
-            anchors.fill: parent
-            onClicked: habitRow.removeClicked()
-        }
+        text: "×"
+        onClicked: habitRow.removeClicked()
     }
 
     Item {
@@ -141,49 +100,25 @@ Row {
         }
     }
 
-    Rectangle {
+    AppButton {
         id: negativeButton
         width: App.Theme.deleteButtonSize
         height: App.Theme.deleteButtonSize
         anchors.verticalCenter: parent.verticalCenter
         visible: habitRow.editing
-        color: habitRow.negative ? App.Theme.fg : App.Theme.bg
-        border.color: App.Theme.fg
-        border.width: App.Theme.buttonBorderWidth
-
-        Text {
-            anchors.centerIn: parent
-            text: "−"
-            font.pixelSize: App.Theme.buttonFont
-            color: habitRow.negative ? App.Theme.bg : App.Theme.fg
-        }
-
-        MouseArea {
-            anchors.fill: parent
-            onClicked: habitRow.negativeToggled()
-        }
+        text: "−"
+        active: habitRow.negative
+        onClicked: habitRow.negativeToggled()
     }
 
-    Rectangle {
+    AppButton {
         id: hideFromSleepButton
         width: App.Theme.deleteButtonSize
         height: App.Theme.deleteButtonSize
         anchors.verticalCenter: parent.verticalCenter
         visible: habitRow.editing
-        color: habitRow.hideFromSleep ? App.Theme.bg : App.Theme.fg
-        border.color: App.Theme.fg
-        border.width: App.Theme.buttonBorderWidth
-
-        Text {
-            anchors.centerIn: parent
-            text: "Z"
-            font.pixelSize: App.Theme.buttonFont
-            color: habitRow.hideFromSleep ? App.Theme.fg : App.Theme.bg
-        }
-
-        MouseArea {
-            anchors.fill: parent
-            onClicked: habitRow.hideFromSleepToggled()
-        }
+        text: "Z"
+        active: !habitRow.hideFromSleep
+        onClicked: habitRow.hideFromSleepToggled()
     }
 }

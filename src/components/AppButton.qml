@@ -6,23 +6,25 @@ Rectangle {
 
     property string text: ""
     property int fontSize: App.Theme.buttonFont
-    property real fadeOpacity: 1.0
+    property bool disabled: false
+    property bool active: false
     signal clicked
 
-    color: App.Theme.bg
+    color: active ? App.Theme.fg : App.Theme.bg
     border.color: App.Theme.fg
     border.width: App.Theme.buttonBorderWidth
-    opacity: fadeOpacity
+    opacity: disabled ? App.Theme.fadedOpacity : 1.0
 
     Text {
         anchors.centerIn: parent
         text: button.text
         font.pixelSize: button.fontSize
-        color: App.Theme.fg
+        color: button.active ? App.Theme.bg : App.Theme.fg
     }
 
     MouseArea {
         anchors.fill: parent
+        enabled: !button.disabled
         onClicked: button.clicked()
     }
 }

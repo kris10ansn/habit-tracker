@@ -111,7 +111,7 @@ Rectangle {
 
                 App.SideScrollButton {
                     text: "‹"
-                    fadeOpacity: landscape.scrollX > 0 ? 1.0 : App.Theme.fadedOpacity
+                    disabled: landscape.scrollX <= 0
                     contentHeight: landscape.viewportHeight
                     onClicked: landscape.scrollX = Scroll.scrollByBoxes(landscape.scrollX, -7, landscape.step, landscape.maxScrollX)
                 }
@@ -148,7 +148,7 @@ Rectangle {
 
                 App.SideScrollButton {
                     text: "›"
-                    fadeOpacity: landscape.scrollX < landscape.maxScrollX ? 1.0 : App.Theme.fadedOpacity
+                    disabled: landscape.scrollX >= landscape.maxScrollX
                     contentHeight: landscape.viewportHeight
                     onClicked: landscape.scrollX = Scroll.scrollByBoxes(landscape.scrollX, 7, landscape.step, landscape.maxScrollX)
                 }
@@ -168,7 +168,7 @@ Rectangle {
                         height: (landscape.bodyViewportHeight - App.Theme.rowSpacing) / 2
                         text: "↑"
                         fontSize: App.Theme.scrollFont
-                        fadeOpacity: landscape.scrollY > 0 ? 1.0 : App.Theme.fadedOpacity
+                        disabled: landscape.scrollY <= 0
                         onClicked: landscape.scrollY = Scroll.scrollByBoxes(landscape.scrollY, -landscape.scrollRows, landscape.rowStep, landscape.maxScrollY)
                     }
 
@@ -177,7 +177,7 @@ Rectangle {
                         height: (landscape.bodyViewportHeight - App.Theme.rowSpacing) / 2
                         text: "↓"
                         fontSize: App.Theme.scrollFont
-                        fadeOpacity: landscape.scrollY < landscape.maxScrollY ? 1.0 : App.Theme.fadedOpacity
+                        disabled: landscape.scrollY >= landscape.maxScrollY
                         onClicked: landscape.scrollY = Scroll.scrollByBoxes(landscape.scrollY, landscape.scrollRows, landscape.rowStep, landscape.maxScrollY)
                     }
                 }

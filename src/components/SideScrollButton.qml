@@ -5,7 +5,7 @@ Column {
     id: scrollColumn
 
     property string text: ""
-    property real fadeOpacity: 1.0
+    property bool disabled: false
     property int contentHeight: 0
     signal clicked
 
@@ -21,7 +21,7 @@ Column {
         height: scrollColumn.contentHeight - App.Theme.dayLabelHeight - App.Theme.rowSpacing
         text: scrollColumn.text
         fontSize: App.Theme.scrollFont
-        fadeOpacity: scrollColumn.fadeOpacity
+        disabled: scrollColumn.disabled
         onClicked: scrollColumn.clicked()
     }
 }
