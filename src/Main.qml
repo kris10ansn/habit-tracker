@@ -60,6 +60,8 @@ Rectangle {
         property int maxScrollX: Math.max(0, contentWidth - viewportWidth)
         property int scrollX: 0
 
+        readonly property bool gridReady: gridLoader.status === Loader.Ready
+
         onViewportWidthChanged: scrollX = Scroll.centerOnDay(currentDay, viewportWidth, App.Theme.boxSize, App.Theme.boxSpacing, maxScrollX)
 
         // Vertical scrolling for when the habit rows overflow the available height.
@@ -111,7 +113,7 @@ Rectangle {
 
                 App.SideScrollButton {
                     text: "‹"
-                    disabled: landscape.scrollX <= 0
+                    disabled: !landscape.gridReady || landscape.scrollX <= 0
                     contentHeight: landscape.viewportHeight
                     onClicked: landscape.scrollX = Scroll.scrollByBoxes(landscape.scrollX, -7, landscape.step, landscape.maxScrollX)
                 }
@@ -146,9 +148,21 @@ Rectangle {
                     }
                 }
 
+                // Occupies the grid's exact footprint while the async Loader
+                // builds, so the invisible Loader doesn't collapse the Row and
+                // jam the ‹ / › buttons together.
+                App.AppButton {
+                    width: landscape.viewportWidth
+                    height: landscape.viewportHeight
+                    visible: !landscape.gridReady
+                    text: "Loading…"
+                    fontSize: App.Theme.titleFont
+                    disabled: true
+                }
+
                 App.SideScrollButton {
                     text: "›"
-                    disabled: landscape.scrollX >= landscape.maxScrollX
+                    disabled: !landscape.gridReady || landscape.scrollX >= landscape.maxScrollX
                     contentHeight: landscape.viewportHeight
                     onClicked: landscape.scrollX = Scroll.scrollByBoxes(landscape.scrollX, 7, landscape.step, landscape.maxScrollX)
                 }
