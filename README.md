@@ -1,6 +1,6 @@
 # reMarkable habit tracker
 
-A small habit tracker for the **reMarkable 1** e-ink tablet. The reMarkable has no app ecosystem and no official way to run third-party software, but a community modding stack ([XOVI](https://github.com/asivery/xovi) + [rm-appload](https://github.com/asivery/rm-appload)) lets you load custom QML scenes inside the stock UI process. This is one such scene — a calendar grid of habits × days of the current month, persisted to disk, with a twist: it also overwrites the tablet's **sleep screen** with today's grid, so the habits are the first thing you see when you wake the device.
+A small habit tracker for the **reMarkable 1** e-ink tablet. The reMarkable has no app ecosystem and no official way to run third-party software, but a community modding stack ([XOVI](https://github.com/asivery/xovi) + [rm-appload](https://github.com/asivery/rm-appload)) lets you load custom QML scenes inside the stock UI process. This is one such scene — a calendar grid of habits × days of the current month, persisted to disk, with a twist: it also overwrites the tablet's **suspend image** (the full-screen image shown while the device sleeps) with today's grid, so the habits are the first thing you see when you wake the device.
 
 No accounts, no syncing, no telemetry, no backend. Just a QML scene drawn by the same Qt process that already runs the device's UI.
 
@@ -26,8 +26,8 @@ Journal                 ▢ ▢ ▢ ▢ ▣ ▢ ▢ ▢ ▢ ▢ …
 - **Two habit modes.**
     - _Positive_ habits cycle empty → X → O → empty. X = done, O = explicitly not done.
     - _Negative_ habits invert it: every day is implicitly X ("didn't slip up today"), tap to flip to O when you do slip. Future days render muted and the name carries a `(−)` suffix.
-- **Sleep-screen overlay.** When the tablet suspends, the latest habit grid is the lock-screen wallpaper. The original `suspended.png` is backed up before the first overwrite, and per-habit `Z` toggles can hide individual rows from the sleep image (they still show in the app).
-- **In-app editing.** Reorder, rename, delete, toggle positive/negative, toggle sleep-screen visibility, add new habits — all from the device. No editing JSON by SSH.
+- **Suspend-image overlay.** When the tablet suspends, the latest habit grid is the suspend image. The original `suspended.png` is backed up before the first overwrite, and per-habit `Z` toggles can hide individual rows from the suspend image (they still show in the app).
+- **In-app editing.** Reorder, rename, delete, toggle positive/negative, toggle suspend visibility, add new habits — all from the device. No editing JSON by SSH.
 - **Local persistence.** A single `habits.json` on the device. Delete it to reset to defaults.
 
 ## Install
@@ -51,7 +51,7 @@ On the tablet, hold the middle button for ~3 seconds to open apploader, then tap
 ## Daily use
 
 - **Tap a cell** to cycle its state.
-- **Edit** (bottom-left) enters edit mode. Each row gains `↑` / `↓` (reorder), `×` (delete with confirmation), `−` (toggle negative), `Z` (toggle sleep-screen visibility), and the name becomes a text input. An empty row at the bottom of the list takes a new habit name; tap `+` or press Enter to add.
+- **Edit** (bottom-left) enters edit mode. Each row gains `↑` / `↓` (reorder), `×` (delete with confirmation), `−` (toggle negative), `Z` (toggle suspend visibility), and the name becomes a text input. An empty row at the bottom of the list takes a new habit name; tap `+` or press Enter to add.
 - **Done** leaves edit mode.
 - **Quit** (bottom-right) unloads the app and restores the normal xochitl UI.
 
@@ -78,9 +78,9 @@ This app is the QML scene. It's packaged as a Qt binary resource (`.rcc`) plus a
 
 ### Interesting bits
 
-**Sleep-screen rendering.** xochitl displays `/usr/share/remarkable/suspended.png` while the device sleeps. The app draws today's grid to a hidden Qt `Canvas`, exports it to PNG, and overwrites that file. On first launch the original is backed up to `suspended.png.bak` (uninstalling does not restore it — copy it back manually if you want the stock image). The result: glance at a sleeping tablet and the habits are right there.
+**Suspend-image rendering.** xochitl displays `/usr/share/remarkable/suspended.png` while the device sleeps. The app draws today's grid to a hidden Qt `Canvas`, exports it to PNG, and overwrites that file. On first launch the original is backed up to `suspended.png.bak` (uninstalling does not restore it — copy it back manually if you want the stock image). The result: glance at a sleeping tablet and the habits are right there.
 
-**Cheap re-renders.** Saving a 1404×1872 PNG and refreshing the lock screen is wasteful for trivial edits, so renders are _debounced_ (a 3-second timer restarts after each change while editing) and _deduplicated_ via a content signature persisted alongside the PNG — if nothing visible changed, nothing is written. A small status line ("Saving sleep image in 3s…" → "Sleep image saved") makes the pipeline visible. On quit, the latest state is flushed synchronously so the sleep screen never lags a tap behind.
+**Cheap re-renders.** Saving a 1404×1872 PNG for every trivial edit is wasteful, so renders are _debounced_ (a 3-second timer restarts after each change while editing) and _deduplicated_ via a content signature persisted alongside the PNG — if nothing visible changed, nothing is written. A small status line ("Saving sleep image in 3s…" → "Sleep image saved") makes the pipeline visible. On quit, the latest state is flushed synchronously so the suspend image never lags a tap behind.
 
 **Pure QML + plain JS, no backend.** State lives in a single QML store (`HabitsStore.qml`) backed by a JSON file. Components forward signals upward; only the store mutates state. Updates are immutable (array spread, `Object.assign`) — the V4 engine handles re-bindings from there.
 
@@ -120,7 +120,7 @@ make clean      # nukes local build/
 │   ├── Theme.qml        # singleton: sizes, fonts, colors
 │   ├── HabitsStore.qml  # JSON-backed habit store, sole source of mutation
 │   ├── components/      # reusable QML pieces (AppButton, HabitsGrid, SuspendCanvas, …)
-│   └── js/              # plain JS modules (date helpers, scroll math, sleep-image draw)
+│   └── js/              # plain JS modules (date helpers, scroll math, suspend-image draw)
 └── build/               # rcc output + deploy staging (gitignored)
 ```
 

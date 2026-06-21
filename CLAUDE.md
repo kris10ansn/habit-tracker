@@ -10,6 +10,8 @@ Update CLAUDE.md as you learn the user's preferences for code style, workflow, o
 
 A pure-QML **habit tracker** for **reMarkable 1**, launched via **apploader** — specifically the XOVI extension `asivery/rm-appload`. apploader's frontend runtime is QML, loaded inside xochitl's process. No backend. Renders a landscape grid of habits × days-of-the-current-month with the current day highlighted.
 
+**Domain docs.** `CONTEXT.md` (repo root) is the canonical glossary — use those terms (Habit, Entry, X/O mark, **suspend image**, etc.) in code, comments, and docs. `docs/adr/` records deliberate decisions you must not silently undo (overwriting the system suspend image, corrupt-file safety, debounce/signature dedup, deferred grid, ListModel store). Read both before changing domain behaviour, and keep them current when it changes.
+
 ## Hard rule: never SSH to the device
 
 Under no circumstance may the agent run `ssh`, `scp`, `rsync`, `make deploy`, `make remove`, or any other command that touches the reMarkable. That includes "read-only" probes like `ssh remarkable journalctl …` or `ssh remarkable ls …`. The user runs all device-side commands and pastes back the output. If a step requires device interaction, describe what to run and wait — do not execute it.
