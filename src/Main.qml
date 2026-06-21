@@ -60,6 +60,8 @@ Rectangle {
         property int maxScrollX: Math.max(0, contentWidth - viewportWidth)
         property int scrollX: 0
 
+        readonly property bool gridReady: gridLoader.status === Loader.Ready
+
         onViewportWidthChanged: scrollX = Scroll.centerOnDay(currentDay, viewportWidth, App.Theme.boxSize, App.Theme.boxSpacing, maxScrollX)
 
         // Vertical scrolling for when the habit rows overflow the available height.
@@ -111,7 +113,8 @@ Rectangle {
 
                 App.SideScrollButton {
                     text: "‹"
-                    fadeOpacity: landscape.scrollX > 0 ? 1.0 : App.Theme.fadedOpacity
+                    enabled: landscape.gridReady
+                    fadeOpacity: landscape.gridReady && landscape.scrollX > 0 ? 1.0 : App.Theme.fadedOpacity
                     contentHeight: landscape.viewportHeight
                     onClicked: landscape.scrollX = Scroll.scrollByBoxes(landscape.scrollX, -7, landscape.step, landscape.maxScrollX)
                 }
@@ -146,9 +149,30 @@ Rectangle {
                     }
                 }
 
+                // Occupies the grid's exact footprint while the async Loader
+                // builds, so the invisible Loader doesn't collapse the Row and
+                // jam the ‹ / › buttons together.
+                Rectangle {
+                    width: landscape.viewportWidth
+                    height: landscape.viewportHeight
+                    visible: !landscape.gridReady
+                    opacity: App.Theme.fadedOpacity
+                    color: App.Theme.bg
+                    border.color: App.Theme.fg
+                    border.width: App.Theme.buttonBorderWidth
+
+                    Text {
+                        anchors.centerIn: parent
+                        text: "Loading…"
+                        font.pixelSize: App.Theme.titleFont
+                        color: App.Theme.fg
+                    }
+                }
+
                 App.SideScrollButton {
                     text: "›"
-                    fadeOpacity: landscape.scrollX < landscape.maxScrollX ? 1.0 : App.Theme.fadedOpacity
+                    enabled: landscape.gridReady
+                    fadeOpacity: landscape.gridReady && landscape.scrollX < landscape.maxScrollX ? 1.0 : App.Theme.fadedOpacity
                     contentHeight: landscape.viewportHeight
                     onClicked: landscape.scrollX = Scroll.scrollByBoxes(landscape.scrollX, 7, landscape.step, landscape.maxScrollX)
                 }
