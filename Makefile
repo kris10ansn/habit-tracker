@@ -5,7 +5,7 @@ RCC ?= rcc-qt5
 QMLLINT ?= qmllint-qt5
 QML_IMPORT_PATH ?= /usr/lib/qt/qml
 BUILD_DIR := build
-QML_FILES := $(shell find ui -name '*.qml')
+QML_FILES := $(shell find src -name '*.qml')
 
 .PHONY: build inject-pragma deploy remove clean lint
 
@@ -26,7 +26,7 @@ inject-pragma:
 	done
 
 lint:
-	@command -v qmllint-qt5 >/dev/null 2>&1 && qmllint-qt5 src/*.qml src/components/*.qml || echo "qmllint-qt5 not installed; skipping"
+	@command -v $(QMLLINT) >/dev/null 2>&1 && $(QMLLINT) -I $(QML_IMPORT_PATH) $(QML_FILES) || echo "$(QMLLINT) not installed; skipping"
 
 deploy: build
 	ssh $(REMARKABLE_HOST) "mkdir -p $(REMOTE_DIR)"
@@ -37,6 +37,3 @@ remove:
 
 clean:
 	rm -rf $(BUILD_DIR)
-
-lint:
-	$(QMLLINT) -I $(QML_IMPORT_PATH) $(QML_FILES)
