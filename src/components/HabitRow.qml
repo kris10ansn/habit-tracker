@@ -8,6 +8,7 @@ Row {
     property bool negative: false
     property bool hideFromSleep: false
     property bool editing: false
+    property bool suspendImageEnabled: false
     property bool canMoveUp: false
     property bool canMoveDown: false
     signal removeClicked
@@ -57,7 +58,10 @@ Row {
 
     Item {
         id: nameSlot
-        width: habitRow.width - (habitRow.editing ? 5 * (App.Theme.deleteButtonSize + habitRow.spacing) : 0)
+        // Edit controls flanking the name: ↑ ↓ × −, plus Z only when the
+        // suspend image is being written.
+        readonly property int editControls: habitRow.suspendImageEnabled ? 5 : 4
+        width: habitRow.width - (habitRow.editing ? editControls * (App.Theme.deleteButtonSize + habitRow.spacing) : 0)
         height: habitRow.height
 
         Text {
@@ -116,7 +120,7 @@ Row {
         width: App.Theme.deleteButtonSize
         height: App.Theme.deleteButtonSize
         anchors.verticalCenter: parent.verticalCenter
-        visible: habitRow.editing
+        visible: habitRow.editing && habitRow.suspendImageEnabled
         text: "Z"
         active: !habitRow.hideFromSleep
         onClicked: habitRow.hideFromSleepToggled()

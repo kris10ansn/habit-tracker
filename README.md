@@ -1,6 +1,6 @@
 # reMarkable habit tracker
 
-A small habit tracker for the **reMarkable 1** e-ink tablet. The reMarkable has no app ecosystem and no official way to run third-party software, but a community modding stack ([XOVI](https://github.com/asivery/xovi) + [rm-appload](https://github.com/asivery/rm-appload)) lets you load custom QML scenes inside the stock UI process. This is one such scene — a calendar grid of habits × days of the current month, persisted to disk, with a twist: it also overwrites the tablet's **suspend image** (the full-screen image shown while the device sleeps) with today's grid, so the habits are the first thing you see when you wake the device.
+A small habit tracker for the **reMarkable 1** e-ink tablet. The reMarkable has no app ecosystem and no official way to run third-party software, but a community modding stack ([XOVI](https://github.com/asivery/xovi) + [rm-appload](https://github.com/asivery/rm-appload)) lets you load custom QML scenes inside the stock UI process. This is one such scene — a calendar grid of habits × days of the current month, persisted to disk, with a twist: it can overwrite the tablet's **suspend image** (the full-screen image shown while the device sleeps) with today's grid, so the habits are the first thing you see when you wake the device. That overwrite is opt-in — you turn it on in **Settings**.
 
 No accounts, no syncing, no telemetry, no backend. Just a QML scene drawn by the same Qt process that already runs the device's UI.
 
@@ -17,7 +17,7 @@ Meditate                ▢ ▢ ▢ ▢ ▣ ▢ ▢ ▢ ▢ ▢ …
 No screens after 22:00  ▢ ▢ ▢ ▢ ▣ ▢ ▢ ▢ ▢ ▢ …
 Journal                 ▢ ▢ ▢ ▢ ▣ ▢ ▢ ▢ ▢ ▢ …
 
-[ Edit ]                                            [ Quit ]
+[ Edit ]                            [ Settings ] [ Quit ]
 ```
 
 ## Features
@@ -26,9 +26,10 @@ Journal                 ▢ ▢ ▢ ▢ ▣ ▢ ▢ ▢ ▢ ▢ …
 - **Two habit modes.**
     - _Positive_ habits cycle empty → X → O → empty. X = done, O = explicitly not done.
     - _Negative_ habits invert it: every day is implicitly X ("didn't slip up today"), tap to flip to O when you do slip. Future days render muted and the name carries a `(−)` suffix.
-- **Suspend-image overlay.** When the tablet suspends, the latest habit grid is the suspend image. The original `suspended.png` is backed up before the first overwrite, and per-habit `Z` toggles can hide individual rows from the suspend image (they still show in the app).
+- **Suspend-image overlay (opt-in).** Off by default; enable it on the **Settings** page. While on, the latest habit grid is the suspend image. Enabling backs up the original `suspended.png` first; disabling restores it. Per-habit `Z` toggles (shown in edit mode while the feature is on) hide individual rows from the suspend image (they still show in the app).
+- **Settings.** A small settings page (button next to **Quit**) with a single `On` / `Off` toggle for suspend-image writing. Changes are staged and applied on **Done**, which returns to the grid and runs the backup/restore — its progress shows in the grid's status line. **Back** discards staged changes (with a confirmation if you've toggled it).
 - **In-app editing.** Reorder, rename, delete, toggle positive/negative, toggle suspend visibility, add new habits — all from the device. No editing JSON by SSH.
-- **Local persistence.** A single `habits.json` on the device. Delete it to reset to defaults.
+- **Local persistence.** `habits.json` (habits) and `settings.json` (preferences) on the device. Delete them to reset to defaults.
 
 ## Install
 
@@ -51,8 +52,9 @@ On the tablet, hold the middle button for ~3 seconds to open apploader, then tap
 ## Daily use
 
 - **Tap a cell** to cycle its state.
-- **Edit** (bottom-left) enters edit mode. Each row gains `↑` / `↓` (reorder), `×` (delete with confirmation), `−` (toggle negative), `Z` (toggle suspend visibility), and the name becomes a text input. An empty row at the bottom of the list takes a new habit name; tap `+` or press Enter to add.
+- **Edit** (bottom-left) enters edit mode. Each row gains `↑` / `↓` (reorder), `×` (delete with confirmation), `−` (toggle negative), `Z` (toggle suspend visibility — only shown while suspend-image writing is on), and the name becomes a text input. An empty row at the bottom of the list takes a new habit name; tap `+` or press Enter to add.
 - **Done** leaves edit mode.
+- **Settings** (bottom-right, left of Quit) opens the settings page. Toggle suspend-image writing `On` / `Off`, then **Done** to apply and return to the grid — enabling backs up your current suspend image and starts drawing the grid there; disabling restores the backup. Backup/restore progress shows in the grid's status line. **Back** returns without applying.
 - **Quit** (bottom-right) unloads the app and restores the normal xochitl UI.
 
 State is saved to `/home/root/xovi/exthome/appload/habit-tracker/habits.json`. First launch seeds it from the defaults in `src/js/habits.js`. To reset, delete the file and relaunch.
@@ -78,11 +80,11 @@ This app is the QML scene. It's packaged as a Qt binary resource (`.rcc`) plus a
 
 ### Interesting bits
 
-**Suspend-image rendering.** xochitl displays `/usr/share/remarkable/suspended.png` while the device sleeps. The app draws today's grid to a hidden Qt `Canvas`, exports it to PNG, and overwrites that file. On first launch the original is backed up to `suspended.png.bak` (uninstalling does not restore it — copy it back manually if you want the stock image). The result: glance at a sleeping tablet and the habits are right there.
+**Suspend-image rendering.** xochitl displays `/usr/share/remarkable/suspended.png` while the device sleeps. The app draws today's grid to a hidden Qt `Canvas`, exports it to PNG, and overwrites that file — but only while the opt-in feature is on. Enabling it (Settings → Done) backs the original up to `suspended.png.bak` first; disabling restores the backup. (Uninstalling does not restore it — toggle the feature off first, or copy `suspended.png.bak` back manually.) The result: glance at a sleeping tablet and the habits are right there.
 
-**Cheap re-renders.** Saving a 1404×1872 PNG for every trivial edit is wasteful, so renders are _debounced_ (a 3-second timer restarts after each change while editing) and _deduplicated_ via a content signature persisted alongside the PNG — if nothing visible changed, nothing is written. A small status line ("Saving sleep image in 3s…" → "Sleep image saved") makes the pipeline visible. On quit, the latest state is flushed synchronously so the suspend image never lags a tap behind.
+**Cheap re-renders.** Saving a 1404×1872 PNG for every trivial edit is wasteful, so renders are _debounced_ (a 3-second timer restarts after each change while editing) and _deduplicated_ via a content signature persisted alongside the PNG — if nothing visible changed, nothing is written. A small status line on the grid ("Saving suspend image in 3s…" → "Suspend image saved", and the backup/restore phases) makes the pipeline visible. On quit, the latest state is flushed synchronously so the suspend image never lags a tap behind.
 
-**Pure QML + plain JS, no backend.** State lives in a single QML store (`HabitsStore.qml`) backed by a JSON file. Components forward signals upward; only the store mutates state. Updates are immutable (array spread, `Object.assign`) — the V4 engine handles re-bindings from there.
+**Pure QML + plain JS, no backend.** State lives in JSON-backed QML stores (`HabitsStore.qml`, `SettingsStore.qml`) sharing a `JsonStore.qml` base for the load/debounced-save plumbing. Components forward signals upward; only the store mutates state. Updates are immutable (array spread, `Object.assign`) — the V4 engine handles re-bindings from there.
 
 **Platform constraints shape the code.**
 
@@ -118,8 +120,10 @@ make clean      # nukes local build/
 ├── src/
 │   ├── Main.qml         # entry; root declares signal close + unloading()
 │   ├── Theme.qml        # singleton: sizes, fonts, colors
+│   ├── JsonStore.qml    # base: deferred load + debounced save for the stores
 │   ├── HabitsStore.qml  # JSON-backed habit store, sole source of mutation
-│   ├── components/      # reusable QML pieces (AppButton, HabitsGrid, SuspendCanvas, …)
+│   ├── SettingsStore.qml# JSON-backed app settings (suspend-image on/off)
+│   ├── components/      # reusable QML pieces (AppButton, HabitsGrid, SuspendCanvas, SettingsPage, …)
 │   └── js/              # plain JS modules (date helpers, scroll math, suspend-image draw)
 └── build/               # rcc output + deploy staging (gitignored)
 ```

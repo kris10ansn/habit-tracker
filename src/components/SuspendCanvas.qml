@@ -9,7 +9,6 @@ Canvas {
 
     readonly property string targetPath: "/usr/share/remarkable/suspended.png"
     readonly property string backupPath: "/usr/share/remarkable/suspended.png.bak"
-    readonly property string markerPath: "/home/root/xovi/exthome/appload/habit-tracker/.backup-done"
     readonly property string signaturePath: "/home/root/xovi/exthome/appload/habit-tracker/.sleep-sig"
 
     property var habits: []
@@ -19,19 +18,6 @@ Canvas {
     property string phase: ""
     property int remainingSeconds: 0
     property string lastRenderedSignature: ""
-
-    readonly property string statusText: {
-        switch (canvas.phase) {
-        case "pending":
-            return canvas.remainingSeconds > 0 ? "Saving sleep image in " + canvas.remainingSeconds + "s" : "Saving sleep image...";
-        case "saving":
-            return "Saving sleep image...";
-        case "saved":
-            return "Sleep image saved";
-        default:
-            return "";
-        }
-    }
 
     readonly property var drawConfig: ({
             margin: App.Theme.margin,
@@ -57,10 +43,7 @@ Canvas {
     renderStrategy: Canvas.Cooperative
     renderTarget: Canvas.Image
 
-    Component.onCompleted: {
-        SuspendRender.ensureBackup(canvas.targetPath, canvas.backupPath, canvas.markerPath);
-        canvas.lastRenderedSignature = SuspendRender.readSignature(canvas.signaturePath);
-    }
+    Component.onCompleted: canvas.lastRenderedSignature = SuspendRender.readSignature(canvas.signaturePath)
 
     Timer {
         id: debounceTimer
@@ -112,6 +95,28 @@ Canvas {
         _draw();
         canvas.saveQueued = false;
         _save();
+    }
+
+    function backup() {
+        canvas.phase = "backing-up";
+        const ok = SuspendRender.copyFile(canvas.targetPath, canvas.backupPath);
+        canvas.phase = ok ? "backed-up" : "backup-failed";
+        return ok;
+    }
+
+    function restore() {
+        canvas.phase = "restoring";
+        const ok = SuspendRender.copyFile(canvas.backupPath, canvas.targetPath);
+        canvas.phase = ok ? "restored" : "restore-failed";
+        return ok;
+    }
+
+    // Force the next render to write even if nothing visible changed: restoring
+    // the stock image leaves the persisted signature describing a grid that is
+    // no longer on screen, which would otherwise dedup the re-enable render away.
+    function invalidateSignature() {
+        canvas.lastRenderedSignature = "";
+        SuspendRender.writeSignature(canvas.signaturePath, "");
     }
 
     function _upToDate() {

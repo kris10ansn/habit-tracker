@@ -6,6 +6,7 @@ Item {
 
     property var habits: []
     property bool editing: false
+    property bool suspendImageEnabled: false
     property int rowWidth: App.Theme.habitsWidth
     property int scrollY: 0
     property real viewportHeight: 0
@@ -48,6 +49,7 @@ Item {
                     negative: model.negative
                     hideFromSleep: !!model.hideFromSleep
                     editing: habitsColumn.editing
+                    suspendImageEnabled: habitsColumn.suspendImageEnabled
                     canMoveUp: index > 0
                     canMoveDown: index < habitsColumn.habits.count - 1
                     onRemoveClicked: habitsColumn.removeRequested(index)

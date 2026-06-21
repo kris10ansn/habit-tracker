@@ -3,43 +3,28 @@ import "js/Storage.js" as Storage
 import "js/habits.js" as DefaultHabits
 import "js/HabitsModel.js" as HabitsModel
 
-QtObject {
+JsonStore {
     id: store
 
-    property string filePath: "/home/root/xovi/exthome/appload/habit-tracker/habits.json"
+    filePath: "/home/root/xovi/exthome/appload/habit-tracker/habits.json"
 
     property ListModel habits: ListModel {
         dynamicRoles: true
     }
 
-    property Timer _saveTimer: Timer {
-        interval: 200
-        repeat: false
-        onTriggered: store._doSave()
+    serialize: function () {
+        return HabitsModel.toArray(store.habits);
     }
 
-    signal saved
-
-    property bool isLoaded: false
-
-    // Defer past first paint.
-    Component.onCompleted: Qt.callLater(_initialLoad)
-
-    function _initialLoad() {
-        load();
-        isLoaded = true;
-    }
-
-    function load() {
-        const data = Storage.readJson(filePath);
+    applyLoaded: function (data) {
         const hasData = Array.isArray(data);
         const items = hasData ? data : DefaultHabits.habits;
 
         // Bulk append — one rowsInserted vs N avoids per-row e-ink flash.
-        habits.clear();
+        store.habits.clear();
 
         if (items.length > 0) {
-            habits.append(items);
+            store.habits.append(items);
         }
 
         if (hasData) {
@@ -47,29 +32,11 @@ QtObject {
         }
 
         if (Storage.isCorrupt(data)) {
-            console.warn("HabitsStore: refusing to overwrite corrupt file at", filePath, "- using defaults in memory only");
+            console.warn("HabitsStore: refusing to overwrite corrupt file at", store.filePath, "- using defaults in memory only");
             return;
         }
 
-        _doSave();
-    }
-
-    function flushPendingSave() {
-        if (!_saveTimer.running) {
-            return;
-        }
-
-        _saveTimer.stop();
-        _doSave();
-    }
-
-    function _doSave() {
-        Storage.writeJson(filePath, HabitsModel.toArray(habits));
-        saved();
-    }
-
-    function _scheduleSave() {
-        _saveTimer.restart();
+        store._doSave();
     }
 
     function _inBounds(i) {
@@ -88,7 +55,7 @@ QtObject {
             entries: {}
         });
 
-        _scheduleSave();
+        scheduleSave();
     }
 
     function move(from, to) {
@@ -97,7 +64,7 @@ QtObject {
         }
 
         habits.move(from, to, 1);
-        _scheduleSave();
+        scheduleSave();
     }
 
     function remove(index) {
@@ -105,7 +72,7 @@ QtObject {
             return;
         }
         habits.remove(index);
-        _scheduleSave();
+        scheduleSave();
     }
 
     function setNegative(index, negative) {
@@ -113,7 +80,7 @@ QtObject {
             return;
         }
         habits.setProperty(index, "negative", !!negative);
-        _scheduleSave();
+        scheduleSave();
     }
 
     function setHideFromSleep(index, hidden) {
@@ -121,7 +88,7 @@ QtObject {
             return;
         }
         habits.setProperty(index, "hideFromSleep", !!hidden);
-        _scheduleSave();
+        scheduleSave();
     }
 
     function setName(index, name) {
@@ -130,7 +97,7 @@ QtObject {
             return;
         }
         habits.setProperty(index, "name", trimmed);
-        _scheduleSave();
+        scheduleSave();
     }
 
     function toggleEntry(index, dateKey) {
@@ -153,6 +120,6 @@ QtObject {
         }
 
         habits.setProperty(index, "entries", entries);
-        _scheduleSave();
+        scheduleSave();
     }
 }

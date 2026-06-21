@@ -65,6 +65,11 @@ Append to `<qresource>` in `application.qrc` **and** register the type in the di
 
 `Main.qml` does `import "." as App` and `import "components" as App`, so both `Theme` (in `src/`) and components (in `src/components/`) are reached via the `App.` prefix. **Files inside `src/components/` use `import ".." as App` — that prefix points at `src/`, NOT at `src/components/`.** From a component file, reference sibling components bare (`AppButton`, not `App.AppButton`); use `App.Theme` for the singleton. Getting this wrong fails at load with `Type App.X unavailable / No such file or directory` pointing at `src/X.qml`.
 
+## Stores and navigation
+
+- **Persisted state extends `JsonStore.qml`.** That base owns the deferred initial load, the 200 ms debounced save, the `saved` signal, and `flushPendingSave`. A concrete store (`HabitsStore`, `SettingsStore`) sets `filePath` and assigns two function-property hooks: `serialize` (→ the value to write) and `applyLoaded(data)` (← fold a just-read value, handling the `Storage` MISSING/CORRUPT sentinels). Don't re-implement file I/O or the save timer per store. These `src/` stores resolve as `App.<Name>` without a `src/qmldir` entry (file-based resolution), same as `HabitsStore`.
+- **Full-screen views switch via `landscape.currentView`** (`"grid"` | `"settings"`) in `Main.qml` — each view is an `Item` gated by `visible`. No StackView/router; add a view as a sibling `Item` plus a `currentView` value. Pages forward signals up to `Main`, which owns the stores and orchestrates side effects (e.g. suspend-image backup/restore on the settings commit).
+
 ## Code style
 
 - **Container components forward signals; they don't reach into stores.** Components expose signals up to the page that owns the store, which wires them to store methods. Keeps components reusable and dependencies one-way.

@@ -69,8 +69,3 @@ function writeBinary(path, buffer) {
         return false;
     }
 }
-
-function fileExists(path) {
-    const buf = readBinary(path);
-    return buf !== null && buf.byteLength > 0;
-}

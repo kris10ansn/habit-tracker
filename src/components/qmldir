@@ -9,3 +9,6 @@ SideScrollButton 1.0 SideScrollButton.qml
 HabitsColumn 1.0 HabitsColumn.qml
 HabitsGrid 1.0 HabitsGrid.qml
 SuspendCanvas 1.0 SuspendCanvas.qml
+StatusText 1.0 StatusText.qml
+SegmentedToggle 1.0 SegmentedToggle.qml
+SettingsPage 1.0 SettingsPage.qml

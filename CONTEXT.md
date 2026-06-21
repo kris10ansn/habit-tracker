@@ -52,6 +52,23 @@ Per-habit toggle (the `Z` control) controlling whether a habit's row appears in 
 image. A hidden habit still shows in the app.
 _Avoid_: hideFromSleep (code field name), sleep-screen visibility.
 
+**Suspend-image writing**:
+The app-wide setting for whether the app overwrites the suspend image at all. Opt-in: off by
+default, toggled on the Settings page. Enabling takes a suspend-image backup then starts
+drawing the grid; disabling restores the backup. While off, the `Z` controls are hidden.
+_Avoid_: sleep-screen toggle, suspend mode.
+
+**Suspend-image backup**:
+The copy of the original suspend image (`suspended.png.bak`) taken when the user enables
+suspend-image writing, and copied back when they disable it. The user's recovery path to the
+stock image.
+_Avoid_: marker, restore point.
+
+**Settings**:
+The app-wide preferences page, reached from the Settings button and left via Back/Done.
+Currently holds the single suspend-image writing toggle. Changes are staged and applied on Done.
+_Avoid_: options, preferences pane, config screen.
+
 **Edit mode**:
 The state, toggled by Edit/Done, in which rows become editable — reorder, rename, delete,
 toggle polarity, toggle suspend visibility — and an empty add-row appears at the bottom.

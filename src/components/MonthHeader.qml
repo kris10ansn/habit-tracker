@@ -25,7 +25,7 @@ Column {
 
     Text {
         visible: header.warn
-        text: "(!) sleep image render failed"
+        text: "(!) suspend image render failed"
         font.pixelSize: App.Theme.subtitleFont * 0.7
         color: App.Theme.fg
     }
