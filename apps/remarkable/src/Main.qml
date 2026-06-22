@@ -101,6 +101,7 @@ Rectangle {
         property int scrollX: 0
 
         readonly property bool gridReady: gridLoader.status === Loader.Ready
+        readonly property bool loading: !gridReady
 
         onViewportWidthChanged: scrollX = Scroll.centerOnDay(currentDay, viewportWidth, App.Theme.boxSize, App.Theme.boxSpacing, maxScrollX)
 
@@ -159,7 +160,7 @@ Rectangle {
 
                     App.SideScrollButton {
                         text: "‹"
-                        disabled: !landscape.gridReady || landscape.scrollX <= 0
+                        disabled: landscape.loading || landscape.scrollX <= 0
                         contentHeight: landscape.viewportHeight
                         onClicked: landscape.scrollX = Scroll.scrollByBoxes(landscape.scrollX, -7, landscape.step, landscape.maxScrollX)
                     }
@@ -209,7 +210,7 @@ Rectangle {
 
                     App.SideScrollButton {
                         text: "›"
-                        disabled: !landscape.gridReady || landscape.scrollX >= landscape.maxScrollX
+                        disabled: landscape.loading || landscape.scrollX >= landscape.maxScrollX
                         contentHeight: landscape.viewportHeight
                         onClicked: landscape.scrollX = Scroll.scrollByBoxes(landscape.scrollX, 7, landscape.step, landscape.maxScrollX)
                     }
@@ -229,7 +230,7 @@ Rectangle {
                             height: (landscape.bodyViewportHeight - App.Theme.rowSpacing) / 2
                             text: "↑"
                             fontSize: App.Theme.scrollFont
-                            disabled: landscape.scrollY <= 0
+                            disabled: landscape.loading || landscape.scrollY <= 0
                             onClicked: landscape.scrollY = Scroll.scrollByBoxes(landscape.scrollY, -landscape.scrollRows, landscape.rowStep, landscape.maxScrollY)
                         }
 
@@ -238,7 +239,7 @@ Rectangle {
                             height: (landscape.bodyViewportHeight - App.Theme.rowSpacing) / 2
                             text: "↓"
                             fontSize: App.Theme.scrollFont
-                            disabled: landscape.scrollY >= landscape.maxScrollY
+                            disabled: landscape.loading || landscape.scrollY >= landscape.maxScrollY
                             onClicked: landscape.scrollY = Scroll.scrollByBoxes(landscape.scrollY, landscape.scrollRows, landscape.rowStep, landscape.maxScrollY)
                         }
                     }
@@ -265,6 +266,7 @@ Rectangle {
                 width: App.Theme.quitButtonWidth
                 height: App.Theme.quitButtonHeight
                 text: "Settings"
+                disabled: landscape.loading
                 onClicked: landscape.currentView = "settings"
             }
 
@@ -276,6 +278,7 @@ Rectangle {
                 width: App.Theme.quitButtonWidth
                 height: App.Theme.quitButtonHeight
                 text: landscape.editing ? "Done" : "Edit"
+                disabled: landscape.loading
                 onClicked: landscape.editing = !landscape.editing
             }
 
