@@ -1,56 +1,76 @@
-# Welcome to your Expo app 👋
+# Habit Tracker — mobile
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+> Part of the **habit-tracker** monorepo — this is the `apps/mobile/` client. The sibling reMarkable
+> client lives in `apps/remarkable/`. Shared habit vocabulary is in the
+> [root `CONTEXT.md`](../../CONTEXT.md).
 
-## Get started
+The mobile client of the habit tracker: an [Expo](https://expo.dev) (SDK 56) app built with
+expo-router and TypeScript, styled with [NativeWind](https://www.nativewind.dev) (Tailwind for
+React Native).
 
-1. Install dependencies
+It renders the same Habit × Entry model as the reMarkable client, **transposed** for portrait: days
+are rows (vertical scroll), habits are columns, today's row highlighted.
 
-   ```bash
-   npm install
-   ```
+```
+June 2026
+30 days · today is the 5th.
 
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+      Read   Exer  Medi  No-screens  Journal
+  1    X      X            O           X
+  2    X            O      X
+  3    O      X
+  4
+ [5]  ← today's row highlighted
+  …
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Status
 
-### Other setup steps
+Barebones on purpose — **functionality first, visual design later**. Today it's a single **static,
+read-only grid** rendered from sample data ([`src/domain/habits.ts`](./src/domain/habits.ts)); there
+is no persistence and no editing yet. The plan is to back it with a shared backend that owns the
+canonical habits and syncs them to both clients.
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+## Run it
 
-## Learn more
+Install workspace deps once from the monorepo root (`pnpm install`), then from the root:
 
-To learn more about developing your project with Expo, look at the following resources:
+```sh
+pnpm mobile:start      # start the expo dev server
+pnpm mobile:android    # open on an Android emulator/device
+pnpm mobile:ios        # open on an iOS simulator/device
+pnpm mobile:web        # open in the browser
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+Or run scripts directly from this directory with `pnpm start` / `pnpm android` / `pnpm ios` /
+`pnpm web`. The dev server prints options to open the app in a development build, a simulator, or
+[Expo Go](https://expo.dev/go).
 
-## Join the community
+Checks:
 
-Join our community of developers creating universal apps.
+```sh
+pnpm typecheck    # tsc --noEmit
+pnpm lint         # expo lint
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Layout
+
+```
+src/
+├── app/          expo-router routes (file-based). index.tsx is the grid screen;
+│                 _layout.tsx is a headerless Stack and imports global.css.
+├── components/   UI (habit-grid.tsx)
+└── domain/       model + date helpers, no UI (types.ts, dates.ts, habits.ts)
+```
+
+- `@/*` is a path alias for `src/*` (see `tsconfig.json`).
+- The domain types mirror the reMarkable client's shape — same `YYYY-MM-DD` date keys and X/O entry
+  semantics — so a future backend speaks one shape across clients.
+
+## Styling
+
+NativeWind only: style with `className` and Tailwind utilities, not `StyleSheet.create` or inline
+`style`. Config lives at the app root (`tailwind.config.js`, `global.css`, `metro.config.js`,
+`babel.config.js`, `nativewind-env.d.ts`). Third-party components need
+`cssInterop(Component, { className: 'style' })` before they accept `className` (see
+`src/app/index.tsx`); core RN components work out of the box.
