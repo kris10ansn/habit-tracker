@@ -14,8 +14,10 @@ QtObject {
 
     // serialize() -> the value to write. applyLoaded(data) folds a just-read
     // value (or a Storage MISSING/CORRUPT sentinel) into in-memory state.
+    // serialize has no safe default: writing its fallback would clobber the
+    // file, so the base throws until a subclass assigns the hook.
     property var serialize: (function () {
-            return null;
+            throw new Error("JsonStore: subclass must assign serialize before saving");
         })
     property var applyLoaded: (function (data) {})
 
