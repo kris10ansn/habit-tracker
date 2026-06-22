@@ -1,3 +1,12 @@
 node_modules/
+
+# reMarkable app
 build/
 .backup/
+
+# expo / mobile
+.expo/
+dist/
+web-build/
+*.tsbuildinfo
+.metro-health-check*

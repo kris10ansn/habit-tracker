@@ -1,5 +1,21 @@
 {
-    "dependencies": {
+    "name": "habit-tracker",
+    "private": true,
+    "packageManager": "pnpm@10.33.4",
+    "scripts": {
+        "format": "prettier --write .",
+        "lint": "pnpm -r run lint",
+        "typecheck": "pnpm -r run typecheck",
+        "mobile:start": "pnpm --filter @habit-tracker/mobile run start",
+        "mobile:android": "pnpm --filter @habit-tracker/mobile run android",
+        "mobile:ios": "pnpm --filter @habit-tracker/mobile run ios",
+        "mobile:web": "pnpm --filter @habit-tracker/mobile run web",
+        "remarkable:build": "pnpm --filter @habit-tracker/remarkable run build",
+        "remarkable:clean": "pnpm --filter @habit-tracker/remarkable run clean",
+        "remarkable:deploy": "pnpm --filter @habit-tracker/remarkable run deploy",
+        "remarkable:remove": "pnpm --filter @habit-tracker/remarkable run remove"
+    },
+    "devDependencies": {
         "prettier": "^3.8.3"
     }
 }
