@@ -1,0 +1,20 @@
+services:
+    db:
+        image: postgres:17
+        container_name: habit-tracker-db
+        environment:
+            POSTGRES_USER: habittracker
+            POSTGRES_PASSWORD: habittracker
+            POSTGRES_DB: habittracker
+        ports:
+            - "5432:5432"
+        volumes:
+            - habit-tracker-pgdata:/var/lib/postgresql/data
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U habittracker -d habittracker"]
+            interval: 5s
+            timeout: 5s
+            retries: 5
+
+volumes:
+    habit-tracker-pgdata:

@@ -12,6 +12,8 @@ importers:
         specifier: ^3.8.3
         version: 3.8.4
 
+  apps/backend: {}
+
   apps/mobile:
     dependencies:
       '@expo/ui':

@@ -1,0 +1,17 @@
+{
+    "name": "@habit-tracker/backend",
+    "version": "0.0.0",
+    "private": true,
+    "description": "Thin wrapper: this app is built with the .NET SDK, not node. Scripts shell out to dotnet/docker.",
+    "scripts": {
+        "build": "dotnet build",
+        "start": "dotnet run --project src/HabitTracker.Api",
+        "test": "dotnet test",
+        "typecheck": "dotnet build --nologo",
+        "format": "dotnet format",
+        "lint": "dotnet format --verify-no-changes",
+        "db:up": "docker compose up -d",
+        "db:down": "docker compose down",
+        "migrate": "dotnet tool restore && dotnet ef database update --project src/HabitTracker.Api"
+    }
+}

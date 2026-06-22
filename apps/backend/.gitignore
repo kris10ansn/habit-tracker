@@ -1,0 +1,7 @@
+# .NET build output
+bin/
+obj/
+
+# User-specific / local overrides
+*.user
+appsettings.*.local.json

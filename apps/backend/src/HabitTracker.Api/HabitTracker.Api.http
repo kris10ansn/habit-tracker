@@ -1,0 +1,32 @@
+@HabitTracker.Api_HostAddress = http://localhost:5137
+
+### List the current user's habits (ordered by Position)
+GET {{HabitTracker.Api_HostAddress}}/api/habits
+Accept: application/json
+
+### Create a habit
+# @name createHabit
+POST {{HabitTracker.Api_HostAddress}}/api/habits
+Content-Type: application/json
+
+{
+  "name": "Read",
+  "polarity": "Positive"
+}
+
+### Get a single habit (paste an id from a create/list response)
+GET {{HabitTracker.Api_HostAddress}}/api/habits/{{createHabit.response.body.$.id}}
+Accept: application/json
+
+### Update a habit
+PUT {{HabitTracker.Api_HostAddress}}/api/habits/{{createHabit.response.body.$.id}}
+Content-Type: application/json
+
+{
+  "name": "Read more",
+  "polarity": "Positive",
+  "position": 0
+}
+
+### Delete a habit
+DELETE {{HabitTracker.Api_HostAddress}}/api/habits/{{createHabit.response.body.$.id}}
