@@ -40,11 +40,9 @@ make deploy         # scps to the tablet
 
 ### Mobile app (`apps/mobile/`)
 
-An expo app. From the root:
+Currently just a dummy expo app with no functionality. To run, from the root:
 
 ```sh
 pnpm --filter @habit-tracker/mobile start    # start the expo dev server
 ```
 
-Currently a static, read-only grid — no persistence yet. The plan is to back both clients with a
-shared backend.
