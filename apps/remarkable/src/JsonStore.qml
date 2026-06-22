@@ -14,7 +14,9 @@ QtObject {
 
     // serialize() -> the value to write. applyLoaded(data) folds a just-read
     // value (or a Storage MISSING/CORRUPT sentinel) into in-memory state.
-    property var serialize: (function () { return null; })
+    property var serialize: (function () {
+            return null;
+        })
     property var applyLoaded: (function (data) {})
 
     property Timer _saveTimer: Timer {

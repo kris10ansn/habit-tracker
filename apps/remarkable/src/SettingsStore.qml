@@ -10,7 +10,9 @@ JsonStore {
     property bool suspendImageEnabled: false
 
     serialize: function () {
-        return { suspendImageEnabled: settingsStore.suspendImageEnabled };
+        return {
+            suspendImageEnabled: settingsStore.suspendImageEnabled
+        };
     }
 
     applyLoaded: function (data) {
