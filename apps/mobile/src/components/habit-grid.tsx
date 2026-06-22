@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, Text, View } from 'react-native';
 
 import { dateKey, type MonthGrid } from '@/domain/dates';
 import type { Habit } from '@/domain/types';
@@ -33,31 +33,42 @@ export function HabitGrid({ habits, grid }: Props) {
   const days = Array.from({ length: grid.daysInMonth }, (_, i) => i + 1);
 
   return (
-    <View style={styles.container}>
-      <View style={[styles.row, styles.headerRow]}>
-        <View style={[styles.dayCell, styles.headerCell]} />
+    <View className="flex-1">
+      <View className="flex-row items-stretch border-b border-black">
+        <View className="w-11 items-center justify-end border-r border-neutral-300 px-1 py-2" />
         {habits.map((habit) => (
-          <View key={habit.name} style={[styles.cell, styles.headerCell]}>
-            <Text numberOfLines={1} style={styles.headerText}>
+          <View
+            key={habit.name}
+            className="flex-1 items-center justify-end border-r border-neutral-200 px-1 py-2"
+          >
+            <Text numberOfLines={1} className="text-[11px] font-semibold text-black">
               {habit.negative ? `${habit.name} (−)` : habit.name}
             </Text>
           </View>
         ))}
       </View>
 
-      <ScrollView contentContainerStyle={styles.body}>
+      <ScrollView contentContainerClassName="pb-6">
         {days.map((day) => {
           const isToday = day === grid.today;
           return (
-            <View key={day} style={[styles.row, isToday && styles.todayRow]}>
-              <View style={styles.dayCell}>
-                <Text style={[styles.dayText, isToday && styles.todayText]}>{day}</Text>
+            <View
+              key={day}
+              className={`flex-row items-stretch border-b border-neutral-300 ${
+                isToday ? 'bg-neutral-200' : ''
+              }`}
+            >
+              <View className="w-11 items-center justify-center border-r border-neutral-300 py-2">
+                <Text className={`text-sm text-black ${isToday ? 'font-bold' : ''}`}>{day}</Text>
               </View>
               {habits.map((habit) => {
                 const mark = markFor(habit, dateKey(grid.year, grid.month, day), day, grid.today);
                 return (
-                  <View key={habit.name} style={styles.cell}>
-                    <Text style={[styles.markText, mark.muted && styles.mutedText]}>
+                  <View
+                    key={habit.name}
+                    className="flex-1 items-center justify-center border-r border-neutral-200 py-2"
+                  >
+                    <Text className={`text-base ${mark.muted ? 'text-neutral-400' : 'text-black'}`}>
                       {mark.text}
                     </Text>
                   </View>
@@ -70,67 +81,3 @@ export function HabitGrid({ habits, grid }: Props) {
     </View>
   );
 }
-
-const HAIRLINE = StyleSheet.hairlineWidth;
-const DAY_COL_WIDTH = 44;
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  body: {
-    paddingBottom: 24,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    borderBottomWidth: HAIRLINE,
-    borderBottomColor: '#ccc',
-  },
-  headerRow: {
-    borderBottomWidth: 1,
-    borderBottomColor: '#000',
-  },
-  todayRow: {
-    backgroundColor: '#eee',
-  },
-  dayCell: {
-    width: DAY_COL_WIDTH,
-    paddingVertical: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRightWidth: HAIRLINE,
-    borderRightColor: '#ccc',
-  },
-  cell: {
-    flex: 1,
-    paddingVertical: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderRightWidth: HAIRLINE,
-    borderRightColor: '#eee',
-  },
-  headerCell: {
-    paddingHorizontal: 4,
-    justifyContent: 'flex-end',
-  },
-  headerText: {
-    fontSize: 11,
-    fontWeight: '600',
-    color: '#000',
-  },
-  dayText: {
-    fontSize: 14,
-    color: '#000',
-  },
-  todayText: {
-    fontWeight: '700',
-  },
-  markText: {
-    fontSize: 16,
-    color: '#000',
-  },
-  mutedText: {
-    color: '#bbb',
-  },
-});
