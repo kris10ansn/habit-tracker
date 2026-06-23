@@ -308,5 +308,14 @@ Rectangle {
             onApplyRequested: root.applySuspendSetting(value)
             onBackRequested: landscape.currentView = "grid"
         }
+
+        App.ConfirmDialog {
+            visible: habitsStore.saveError !== ""
+            acknowledgeOnly: true
+            confirmText: "Dismiss"
+            message: "Couldn’t save to storage — your changes are only in memory. Check that the data/ folder exists on the device."
+            onConfirmed: habitsStore.clearSaveError()
+            onCancelled: habitsStore.clearSaveError()
+        }
     }
 }

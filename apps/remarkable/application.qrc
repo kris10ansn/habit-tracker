@@ -24,6 +24,7 @@
         <file>src/js/DateUtils.js</file>
         <file>src/js/habits.js</file>
         <file>src/js/HabitsModel.js</file>
+        <file>src/js/Ids.js</file>
         <file>src/js/Storage.js</file>
         <file>src/js/SuspendRender.js</file>
         <file>src/js/SuspendDraw.js</file>

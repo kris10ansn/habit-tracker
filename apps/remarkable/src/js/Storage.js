@@ -23,20 +23,32 @@ function readJson(path) {
     }
 }
 
-function isMissing(result) { return result === MISSING; }
-function isCorrupt(result) { return result === CORRUPT; }
+function isMissing(result) {
+    return result === MISSING;
+}
+function isCorrupt(result) {
+    return result === CORRUPT;
+}
 
+// Throws on failure rather than swallowing it: a silent failed save (e.g. the
+// data/ directory missing) would lose data invisibly. Callers that genuinely
+// want best-effort writes must catch. The PUT is synchronous so xhr.status is
+// meaningful by the time send() returns.
 function writeJson(path, value) {
+    const xhr = new XMLHttpRequest();
+    xhr.open("PUT", `file://${path}`, false);
+
     try {
-        const xhr = new XMLHttpRequest();
-
-        xhr.open("PUT", `file://${path}`);
         xhr.send(JSON.stringify(value));
-
-        return true;
     } catch (e) {
-        console.log("Storage: could not write", path, "-", e);
-        return false;
+        throw new Error(`Storage: write failed for ${path} - ${e}`);
+    }
+
+    const ok = xhr.status === 200 || xhr.status === 0;
+    if (!ok) {
+        throw new Error(
+            `Storage: write failed (status ${xhr.status}) for ${path}`,
+        );
     }
 }
 

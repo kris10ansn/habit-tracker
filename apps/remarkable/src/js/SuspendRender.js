@@ -21,5 +21,11 @@ function readSignature(path) {
 }
 
 function writeSignature(path, signature) {
-    return Storage.writeJson(path, signature);
+    try {
+        Storage.writeJson(path, signature);
+        return true;
+    } catch (e) {
+        console.warn("SuspendRender: could not write signature", path, "-", e);
+        return false;
+    }
 }

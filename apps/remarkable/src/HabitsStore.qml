@@ -2,41 +2,122 @@ import QtQuick 2.15
 import "js/Storage.js" as Storage
 import "js/habits.js" as DefaultHabits
 import "js/HabitsModel.js" as HabitsModel
+import "js/DateUtils.js" as DateUtils
+import "js/Ids.js" as Ids
 
-JsonStore {
+// Facade over month-partitioned persistence. Keeps the public store API
+// (habits, isLoaded, the mutators) but splits storage across two files: a
+// roster (identity + config) and the current month's entries. The ListModel is
+// the single in-memory source of truth; each child store serializes a
+// projection of it (see HabitsModel). Config edits save the roster; entry
+// toggles save the month.
+QtObject {
     id: store
 
-    filePath: "/home/root/xovi/exthome/appload/habit-tracker/habits.json"
+    readonly property string dataDir: "/home/root/xovi/exthome/appload/habit-tracker/data"
+    property date today: new Date()
+    readonly property string monthKey: DateUtils.monthKey(today.getFullYear(), today.getMonth())
 
     property ListModel habits: ListModel {
         dynamicRoles: true
     }
 
-    serialize: function () {
-        return HabitsModel.toArray(store.habits);
+    readonly property bool isLoaded: _roster.isLoaded && _month.isLoaded
+    signal saved
+
+    property string saveError: ""
+    function clearSaveError() {
+        store.saveError = "";
     }
 
-    applyLoaded: function (data) {
-        const hasData = Array.isArray(data);
-        const items = hasData ? data : DefaultHabits.habits;
+    // Load is parallel; the month entries are folded onto habits by id once both
+    // files have resolved, in whichever order they arrive.
+    property bool _rosterApplied: false
+    property bool _monthApplied: false
+    property var _pendingMonthEntries: ({})
+
+    property JsonStore _roster: JsonStore {
+        filePath: store.dataDir + "/roster.json"
+        serialize: function () {
+            return {
+                habits: HabitsModel.toRoster(store.habits)
+            };
+        }
+        applyLoaded: function (data) {
+            store._applyRoster(data);
+        }
+        onSaved: store.saved()
+        onSaveFailed: store.saveError = message
+    }
+
+    property JsonStore _month: JsonStore {
+        filePath: store.dataDir + "/" + store.monthKey + ".json"
+        serialize: function () {
+            return {
+                month: store.monthKey,
+                entries: HabitsModel.toMonthEntries(store.habits)
+            };
+        }
+        applyLoaded: function (data) {
+            store._applyMonth(data);
+        }
+        onSaved: store.saved()
+        onSaveFailed: store.saveError = message
+    }
+
+    function _modelItem(habit) {
+        return {
+            id: habit.id || Ids.newId(),
+            name: habit.name,
+            negative: !!habit.negative,
+            hideFromSleep: !!habit.hideFromSleep,
+            entries: {}
+        };
+    }
+
+    function _applyRoster(data) {
+        const hasRoster = data && Array.isArray(data.habits);
+        const items = (hasRoster ? data.habits : DefaultHabits.habits).map(h => store._modelItem(h));
 
         // Bulk append — one rowsInserted vs N avoids per-row e-ink flash.
         store.habits.clear();
-
         if (items.length > 0) {
             store.habits.append(items);
         }
 
-        if (hasData) {
+        store._rosterApplied = true;
+        store._fold();
+
+        if (hasRoster) {
             return;
         }
 
         if (Storage.isCorrupt(data)) {
-            console.warn("HabitsStore: refusing to overwrite corrupt file at", store.filePath, "- using defaults in memory only");
+            console.warn("HabitsStore: refusing to overwrite corrupt roster at", store._roster.filePath, "- using defaults in memory only");
             return;
         }
 
-        store._doSave();
+        store._roster._doSave();
+    }
+
+    function _applyMonth(data) {
+        const entries = (data && data.entries && typeof data.entries === "object") ? data.entries : ({});
+
+        store._pendingMonthEntries = entries;
+        store._monthApplied = true;
+        store._fold();
+    }
+
+    function _fold() {
+        if (!store._rosterApplied || !store._monthApplied) {
+            return;
+        }
+
+        const entries = store._pendingMonthEntries || {};
+        for (let i = 0; i < store.habits.count; i++) {
+            const id = store.habits.get(i).id;
+            store.habits.setProperty(i, "entries", entries[id] || ({}));
+        }
     }
 
     function _inBounds(i) {
@@ -50,12 +131,14 @@ JsonStore {
         }
 
         habits.append({
+            id: Ids.newId(),
             name: trimmed,
             negative: !!negative,
+            hideFromSleep: false,
             entries: {}
         });
 
-        scheduleSave();
+        _roster.scheduleSave();
     }
 
     function move(from, to) {
@@ -64,7 +147,7 @@ JsonStore {
         }
 
         habits.move(from, to, 1);
-        scheduleSave();
+        _roster.scheduleSave();
     }
 
     function remove(index) {
@@ -72,7 +155,7 @@ JsonStore {
             return;
         }
         habits.remove(index);
-        scheduleSave();
+        _roster.scheduleSave();
     }
 
     function setNegative(index, negative) {
@@ -80,7 +163,7 @@ JsonStore {
             return;
         }
         habits.setProperty(index, "negative", !!negative);
-        scheduleSave();
+        _roster.scheduleSave();
     }
 
     function setHideFromSleep(index, hidden) {
@@ -88,7 +171,7 @@ JsonStore {
             return;
         }
         habits.setProperty(index, "hideFromSleep", !!hidden);
-        scheduleSave();
+        _roster.scheduleSave();
     }
 
     function setName(index, name) {
@@ -97,7 +180,7 @@ JsonStore {
             return;
         }
         habits.setProperty(index, "name", trimmed);
-        scheduleSave();
+        _roster.scheduleSave();
     }
 
     function toggleEntry(index, dateKey) {
@@ -120,6 +203,11 @@ JsonStore {
         }
 
         habits.setProperty(index, "entries", entries);
-        scheduleSave();
+        _month.scheduleSave();
+    }
+
+    function flushPendingSave() {
+        _roster.flushPendingSave();
+        _month.flushPendingSave();
     }
 }

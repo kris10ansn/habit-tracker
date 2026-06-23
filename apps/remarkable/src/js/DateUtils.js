@@ -12,6 +12,10 @@ function dateKey(year, month, day) {
     return `${year}-${pad2(month + 1)}-${pad2(day)}`;
 }
 
+function monthKey(year, month) {
+    return `${year}-${pad2(month + 1)}`;
+}
+
 function ordinal(n) {
     const mod10 = n % 10;
     const mod100 = n % 100;

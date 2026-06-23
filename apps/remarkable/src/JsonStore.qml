@@ -11,6 +11,7 @@ QtObject {
     property bool isLoaded: false
 
     signal saved
+    signal saveFailed(string message)
 
     // serialize() -> the value to write. applyLoaded(data) folds a just-read
     // value (or a Storage MISSING/CORRUPT sentinel) into in-memory state.
@@ -49,7 +50,14 @@ QtObject {
     }
 
     function _doSave() {
-        Storage.writeJson(jsonStore.filePath, jsonStore.serialize());
+        try {
+            Storage.writeJson(jsonStore.filePath, jsonStore.serialize());
+        } catch (e) {
+            console.warn("JsonStore: save failed for", jsonStore.filePath, "-", e);
+            jsonStore.saveFailed(String(e));
+            return;
+        }
+
         jsonStore.saved();
     }
 }

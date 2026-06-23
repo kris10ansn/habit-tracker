@@ -42,3 +42,25 @@ _Avoid_: options, preferences pane, config screen.
 **Edit mode**:
 The state, toggled by Edit/Done, in which rows become editable — reorder, rename, delete,
 toggle polarity, toggle suspend visibility — and an empty add-row appears at the bottom.
+
+### Storage
+
+**Data directory**:
+The `data/` subdirectory of the app dir holding all habit persistence (the roster file and the
+month files). The deploy creates it; the app cannot, so a missing data directory surfaces as a
+visible save failure, never silent loss.
+_Avoid_: data folder, storage dir.
+
+**Roster**:
+The ordered list of habits with their config — id, name, polarity, suspend visibility — and
+nothing about their entries. Array order is display order.
+_Avoid_: habit list, config.
+
+**Roster file**:
+`data/roster.json`, the `{ "habits": [...] }` envelope that persists the roster.
+_Avoid_: habits.json (the legacy single-file name).
+
+**Month file**:
+`data/YYYY-MM.json`, persisting one calendar month's entries keyed by habit id. Only the current
+month's file is loaded.
+_Avoid_: entries file, day file.

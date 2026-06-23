@@ -32,7 +32,7 @@ Journal                 ▢ ▢ ▢ ▢ ▣ ▢ ▢ ▢ ▢ ▢ …
 - **Suspend-image overlay (opt-in).** Off by default; enable it on the **Settings** page. While on, the latest habit grid is the suspend image. Enabling backs up the original `suspended.png` first; disabling restores it. Per-habit `Z` toggles (shown in edit mode while the feature is on) hide individual rows from the suspend image (they still show in the app).
 - **Settings.** A small settings page (button next to **Quit**) with a single `On` / `Off` toggle for suspend-image writing. Changes are staged and applied on **Done**, which returns to the grid and runs the backup/restore — its progress shows in the grid's status line. **Back** discards staged changes (with a confirmation if you've toggled it).
 - **In-app editing.** Reorder, rename, delete, toggle positive/negative, toggle suspend visibility, add new habits — all from the device. No editing JSON by SSH.
-- **Local persistence.** `habits.json` (habits) and `settings.json` (preferences) on the device. Delete them to reset to defaults.
+- **Local persistence.** Habit data lives under a `data/` folder on the device: `roster.json` (the habit list + config) plus one `YYYY-MM.json` per month (that month's entries). App preferences stay in `settings.json`. A single tap rewrites only the current month, not all of history. Saves fail loudly — if `data/` is missing, a dialog says so rather than dropping your entries silently.
 
 ## Install
 
@@ -60,7 +60,7 @@ On the tablet, hold the middle button for ~3 seconds to open apploader, then tap
 - **Settings** (bottom-right, left of Quit) opens the settings page. Toggle suspend-image writing `On` / `Off`, then **Done** to apply and return to the grid — enabling backs up your current suspend image and starts drawing the grid there; disabling restores the backup. Backup/restore progress shows in the grid's status line. **Back** returns without applying.
 - **Quit** (bottom-right) unloads the app and restores the normal xochitl UI.
 
-State is saved to `/home/root/xovi/exthome/appload/habit-tracker/habits.json`. First launch seeds it from the defaults in `src/js/habits.js`. To reset, delete the file and relaunch.
+State is saved under `/home/root/xovi/exthome/appload/habit-tracker/data/` — `roster.json` plus a `YYYY-MM.json` per month. First launch seeds the roster from the defaults in `src/js/habits.js`. The `data/` folder must exist (the deploy creates it); if it's missing, saves surface a visible error instead of failing silently. To reset, delete the files and relaunch.
 
 ## How it's built
 
@@ -87,7 +87,7 @@ This app is the QML scene. It's packaged as a Qt binary resource (`.rcc`) plus a
 
 **Cheap re-renders.** Saving a 1404×1872 PNG for every trivial edit is wasteful, so renders are _debounced_ (a 3-second timer restarts after each change while editing) and _deduplicated_ via a content signature persisted alongside the PNG — if nothing visible changed, nothing is written. A small status line on the grid ("Saving suspend image in 3s…" → "Suspend image saved", and the backup/restore phases) makes the pipeline visible. On quit, the latest state is flushed synchronously so the suspend image never lags a tap behind.
 
-**Pure QML + plain JS, no backend.** State lives in JSON-backed QML stores (`HabitsStore.qml`, `SettingsStore.qml`) sharing a `JsonStore.qml` base for the load/debounced-save plumbing. Components forward signals upward; only the store mutates state. Updates are immutable (array spread, `Object.assign`) — the V4 engine handles re-bindings from there.
+**Pure QML + plain JS, no backend.** State lives in JSON-backed QML stores sharing a `JsonStore.qml` base for the load/debounced-save plumbing. `HabitsStore.qml` is a facade that splits persistence across two files — a `roster.json` (identity + config) and a per-month entries file keyed by a stable habit id — so a single toggle rewrites only the current month, not all history, and corruption is isolated to one month. Components forward signals upward; only the store mutates state. Updates are immutable (array spread, `Object.assign`) — the V4 engine handles re-bindings from there.
 
 **Platform constraints shape the code.**
 
@@ -124,7 +124,7 @@ make clean      # nukes local build/
 │   ├── Main.qml         # entry; root declares signal close + unloading()
 │   ├── Theme.qml        # singleton: sizes, fonts, colors
 │   ├── JsonStore.qml    # base: deferred load + debounced save for the stores
-│   ├── HabitsStore.qml  # JSON-backed habit store, sole source of mutation
+│   ├── HabitsStore.qml  # facade: roster + per-month entry files, sole source of mutation
 │   ├── SettingsStore.qml# JSON-backed app settings (suspend-image on/off)
 │   ├── components/      # reusable QML pieces (AppButton, HabitsGrid, SuspendCanvas, SettingsPage, …)
 │   └── js/              # plain JS modules (date helpers, scroll math, suspend-image draw)
