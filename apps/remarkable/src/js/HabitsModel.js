@@ -1,8 +1,10 @@
-// Projections of the in-memory habits ListModel onto serializable shapes.
-// The model is the single source of truth; each store serializes its own slice.
+// Projections of the in-memory habits ListModel onto serializable shapes. The model is the
+// single source of truth; each store serializes its own slice. Since sync, entries are inline
+// { s: state, t: editedAtMs } objects and habits carry an updatedAt edit-time (ADR 0003).
 
-// Full projection (config + entries) — used by the suspend canvas for drawing
-// and signature comparison, not for persistence.
+// Suspend-canvas projection: entries flattened to date -> state string. Drawing and the dedup
+// signature only care about the visible state, never timestamps — so this keeps SuspendDraw
+// unchanged and naturally drops cleared (s: "") tombstone markers.
 function toArray(model) {
     if (!model || typeof model.count !== "number") return [];
 
@@ -13,13 +15,22 @@ function toArray(model) {
             name: h.name,
             negative: !!h.negative,
             hideFromSleep: !!h.hideFromSleep,
-            entries: h.entries || {},
+            entries: statesOf(h.entries),
         });
     }
     return out;
 }
 
-// Roster projection: identity + config, no entries. Array order is display order.
+const statesOf = (entries) => {
+    const src = entries || {};
+    return Object.keys(src).reduce((out, date) => {
+        const state = src[date] && src[date].s ? src[date].s : "";
+        if (state) out[date] = state;
+        return out;
+    }, {});
+};
+
+// Roster projection: identity + config + edit-time, no entries. Array order is display order.
 function toRoster(model) {
     if (!model || typeof model.count !== "number") return [];
 
@@ -31,14 +42,14 @@ function toRoster(model) {
             name: h.name,
             negative: !!h.negative,
             hideFromSleep: !!h.hideFromSleep,
+            updatedAt: h.updatedAt,
         });
     }
     return out;
 }
 
-// Month projection: { habitId: { dateKey: state } }, habits without entries
-// omitted. Memory only ever holds the current month, so the entries map is
-// already scoped to one month.
+// Month projection: { habitId: { dateKey: { s: state, t: editedAtMs } } }. Cleared cells
+// (s: "") are kept as tombstone markers for sync; habits with no cells are omitted.
 function toMonthEntries(model) {
     if (!model || typeof model.count !== "number") return {};
 

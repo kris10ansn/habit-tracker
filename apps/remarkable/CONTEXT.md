@@ -64,3 +64,18 @@ _Avoid_: habits.json (the legacy single-file name).
 `data/YYYY-MM.json`, persisting one calendar month's entries keyed by habit id. Only the current
 month's file is loaded.
 _Avoid_: entries file, day file.
+
+### Sync
+
+**Server URL**:
+The user-entered address of the backend this client syncs with, set on the Settings page and stored
+in `settings.json`. Empty means **standalone** — the app runs fully local and makes no sync attempts.
+The shared Sync / Tombstone / Edit-time vocabulary lives in the
+[backend glossary](../../apps/backend/CONTEXT.md).
+_Avoid_: host, endpoint, API URL, server address.
+
+**Sync status**:
+The ambient status line shown beneath the suspend status, reporting last-sync / offline state. Quiet
+by design: normal offline is silent here, and only genuine misconfiguration (malformed Server URL,
+server rejection) is raised loudly as a modal.
+_Avoid_: connection indicator, sync banner, online status.

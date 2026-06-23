@@ -17,6 +17,16 @@ public class Habit : ITimestamped
     /// <summary>Explicit sort order within the owner's list — shared intent, meant to sync.</summary>
     public int Position { get; set; }
 
+    /// <summary>
+    /// The client's edit-time (UTC) for this row's current state — the last-write-wins merge key
+    /// for sync. Stored verbatim from the editing client, so it lives in a different clock domain
+    /// from the server-stamped <see cref="UpdatedAt"/> audit field. See ADR 0003.
+    /// </summary>
+    public DateTimeOffset EditedAt { get; set; }
+
+    /// <summary>Tombstone: non-null once soft-deleted, holding the delete's edit-time.</summary>
+    public DateTimeOffset? DeletedAt { get; set; }
+
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
 

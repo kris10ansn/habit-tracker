@@ -21,6 +21,7 @@ builder.Services.AddDbContext<HabitTrackerDbContext>(options =>
 // Auth is deferred: every request acts as the seeded stub user (see CurrentUser).
 builder.Services.AddScoped<CurrentUser>();
 builder.Services.AddScoped<HabitService>();
+builder.Services.AddScoped<SyncService>();
 
 var app = builder.Build();
 

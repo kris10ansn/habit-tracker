@@ -16,9 +16,12 @@ all speak lives at the root.
 - **Shared → reMarkable / mobile**: both clients render the same Habit × Entry data. The reMarkable
   lays habits as rows × days as columns (landscape); the mobile client transposes — days as rows ×
   habits as columns (portrait). Orientation is presentation, not domain.
-- **Backend → clients**: will own the canonical Habit/Entry records and sync them to both clients.
-  Until clients are wired up, each carries its own default-habits seed and (for reMarkable) local
-  persistence; the backend does not seed defaults yet (new Users start empty).
+- **Backend → clients**: owns the canonical Habit/Entry records and syncs them to clients. The
+  **reMarkable is the first wired client** — state-based last-write-wins Sync over a single endpoint,
+  per-entity Edit-time as the merge key, Tombstones for deletes (see
+  [`docs/adr/0003`](./docs/adr/0003-offline-first-sync.md)). It stays standalone/offline when no
+  Server URL is set. Mobile is still unwired and carries its own default-habits seed; the backend
+  does not seed defaults (new Users start empty).
 - **Shared ↔ Backend**: the backend stores the same data but reframes it for a relational API — it
   speaks **Outcome** (Success/Failure) rather than the clients' X/O marks, normalizes Entry into
   rows keyed by `(habit, date)` rather than a per-habit date→mark map, and adds ownership (User)

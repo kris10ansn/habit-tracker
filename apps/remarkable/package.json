@@ -6,6 +6,7 @@
     "scripts": {
         "build": "make build",
         "lint": "make lint",
+        "migrate:sync": "node scripts/migrate-habits-sync.mjs",
         "clean": "make clean",
         "deploy": "make deploy",
         "remove": "make remove"

@@ -25,3 +25,22 @@ _Avoid_: mark, x/o, state, status.
 A habit's explicit sort order within its User's list. Shared user intent — a reorder is meant to
 sync across devices — not per-client presentation (unlike grid orientation).
 _Avoid_: index, rank, sortKey (an implementation detail of how Position is encoded).
+
+## Sync
+
+**Sync**:
+The reconciliation that merges a client's submitted state with the canonical store and returns the
+authoritative merged result. State-based and last-write-wins, resolved per row. See
+[`docs/adr/0003`](../../docs/adr/0003-offline-first-sync.md).
+_Avoid_: push, pull (those name directions within one Sync), replication, backup.
+
+**Edit-time**:
+The UTC instant a client last changed a Habit or Entry, stamped by that client and stored verbatim
+as the row's last-write-wins merge key. Distinct from the server-stamped `UpdatedAt` audit field —
+the two are different clock domains, and Edit-time is the only one a Sync compares.
+_Avoid_: updatedAt (the audit column), modified, timestamp.
+
+**Tombstone**:
+A timestamped soft-delete marker (a `DeletedAt`) kept so a deletion can win or lose against a dated
+edit during a Sync, rather than a row simply vanishing and risking resurrection.
+_Avoid_: hard delete, removal flag, archived.

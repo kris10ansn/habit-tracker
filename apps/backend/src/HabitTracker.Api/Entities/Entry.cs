@@ -13,6 +13,16 @@ public class Entry : ITimestamped
     public DateOnly Date { get; set; }
     public Outcome Outcome { get; set; }
 
+    /// <summary>
+    /// The client's edit-time (UTC) for this entry's current state — the last-write-wins merge key
+    /// for sync, stored verbatim and distinct from the server-stamped <see cref="UpdatedAt"/>. See
+    /// ADR 0003.
+    /// </summary>
+    public DateTimeOffset EditedAt { get; set; }
+
+    /// <summary>Tombstone: non-null once cleared/soft-deleted, holding the clear's edit-time.</summary>
+    public DateTimeOffset? DeletedAt { get; set; }
+
     public DateTimeOffset CreatedAt { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
 }

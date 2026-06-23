@@ -25,6 +25,9 @@ QtObject {
     readonly property bool isLoaded: _roster.isLoaded && _month.isLoaded
     signal saved
 
+    // Emitted before a habit leaves the roster so the sync layer can keep a tombstone (ADR 0003).
+    signal habitRemoved(string id)
+
     property string saveError: ""
     function clearSaveError() {
         store.saveError = "";
@@ -71,6 +74,7 @@ QtObject {
             name: habit.name,
             negative: !!habit.negative,
             hideFromSleep: !!habit.hideFromSleep,
+            updatedAt: habit.updatedAt || Date.now(),
             entries: {}
         };
     }
@@ -135,6 +139,7 @@ QtObject {
             name: trimmed,
             negative: !!negative,
             hideFromSleep: false,
+            updatedAt: Date.now(),
             entries: {}
         });
 
@@ -147,6 +152,14 @@ QtObject {
         }
 
         habits.move(from, to, 1);
+
+        // Position is the array index at sync time, so every habit whose index shifted needs a
+        // fresh edit-time for the reorder to win last-write-wins (ADR 0003).
+        const now = Date.now();
+        for (let i = Math.min(from, to); i <= Math.max(from, to); i++) {
+            habits.setProperty(i, "updatedAt", now);
+        }
+
         _roster.scheduleSave();
     }
 
@@ -154,6 +167,7 @@ QtObject {
         if (!_inBounds(index)) {
             return;
         }
+        store.habitRemoved(habits.get(index).id);
         habits.remove(index);
         _roster.scheduleSave();
     }
@@ -163,6 +177,7 @@ QtObject {
             return;
         }
         habits.setProperty(index, "negative", !!negative);
+        habits.setProperty(index, "updatedAt", Date.now());
         _roster.scheduleSave();
     }
 
@@ -180,6 +195,7 @@ QtObject {
             return;
         }
         habits.setProperty(index, "name", trimmed);
+        habits.setProperty(index, "updatedAt", Date.now());
         _roster.scheduleSave();
     }
 
@@ -190,17 +206,16 @@ QtObject {
 
         const habit = habits.get(index);
         const currentEntries = habit.entries || {};
-        const current = currentEntries[dateKey] || "";
+        const cell = currentEntries[dateKey];
+        const current = cell && cell.s ? cell.s : "";
         // positive: empty -> x -> o -> empty
         // negative: empty(displayed X) -> o -> empty
         const next = habit.negative ? (current === "o" ? "" : "o") : (current === "" ? "x" : current === "x" ? "o" : "");
 
+        // A cleared cell stays inline as { s: "", t } — a tombstone the next sync sends, not a
+        // deleted key (ADR 0003). It renders as Unmarked and is pruned when sync overwrites.
         const entries = Object.assign({}, currentEntries);
-        if (next) {
-            entries[dateKey] = next;
-        } else {
-            delete entries[dateKey];
-        }
+        entries[dateKey] = { s: next, t: Date.now() };
 
         habits.setProperty(index, "entries", entries);
         _month.scheduleSave();

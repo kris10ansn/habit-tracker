@@ -63,6 +63,7 @@ public class HabitService
             Name = request.Name,
             Polarity = request.Polarity,
             Position = (maxPosition ?? -1) + 1,
+            EditedAt = DateTimeOffset.UtcNow,
         };
 
         _db.Habits.Add(habit);
@@ -86,6 +87,7 @@ public class HabitService
         habit.Name = request.Name;
         habit.Polarity = request.Polarity;
         habit.Position = request.Position;
+        habit.EditedAt = DateTimeOffset.UtcNow;
         await _db.SaveChangesAsync(cancellationToken);
 
         return ToResponse(habit);
@@ -102,14 +104,18 @@ public class HabitService
             return false;
         }
 
-        _db.Habits.Remove(habit);
+        // Soft-delete: a tombstone the next sync can propagate, not a hard delete that would
+        // let another device resurrect the habit (see ADR 0003).
+        var now = DateTimeOffset.UtcNow;
+        habit.EditedAt = now;
+        habit.DeletedAt = now;
         await _db.SaveChangesAsync(cancellationToken);
 
         return true;
     }
 
     private IQueryable<Habit> OwnedHabits() =>
-        _db.Habits.Where(h => h.UserId == _currentUser.UserId);
+        _db.Habits.Where(h => h.UserId == _currentUser.UserId && h.DeletedAt == null);
 
     private Task<Habit?> FindOwnedAsync(Guid id, CancellationToken cancellationToken) =>
         OwnedHabits().FirstOrDefaultAsync(h => h.Id == id, cancellationToken);

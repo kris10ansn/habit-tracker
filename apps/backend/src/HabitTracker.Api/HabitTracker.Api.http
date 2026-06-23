@@ -30,3 +30,35 @@ Content-Type: application/json
 
 ### Delete a habit
 DELETE {{HabitTracker.Api_HostAddress}}/api/habits/{{createHabit.response.body.$.id}}
+
+### Sync: merge the client's roster + month(s) and get the authoritative alive state back.
+# Timestamps are epoch milliseconds UTC; `deleted: true` rows are tombstones (ADR 0003).
+POST {{HabitTracker.Api_HostAddress}}/api/sync
+Content-Type: application/json
+
+{
+  "habits": [
+    {
+      "id": "11111111-1111-1111-1111-111111111111",
+      "name": "Read",
+      "polarity": "Positive",
+      "position": 0,
+      "updatedAt": 1750680000000,
+      "deleted": false
+    }
+  ],
+  "months": [
+    {
+      "month": "2026-06",
+      "entries": [
+        {
+          "habitId": "11111111-1111-1111-1111-111111111111",
+          "date": "2026-06-03",
+          "outcome": "Success",
+          "updatedAt": 1750680001000,
+          "deleted": false
+        }
+      ]
+    }
+  ]
+}

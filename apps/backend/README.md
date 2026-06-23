@@ -63,6 +63,13 @@ pnpm migrate      # = dotnet ef database update
 ## API
 
 `/api/habits` — list / get / create / update / delete habits for the current (stub) user.
-Enums serialize as strings (`"Positive"`, `"Success"`). Entries are modelled
-(`(HabitId, Date)` keyed, `Outcome {Success, Failure}`) but not yet exposed over HTTP — habits are
-the first vertical slice.
+Enums serialize as strings (`"Positive"`, `"Success"`). Delete is a **soft-delete** (tombstone), so a
+removed habit stops appearing but can still lose/win a sync merge.
+
+`/api/sync` (POST) — one round-trip offline-first sync (see
+[`../../docs/adr/0003`](../../docs/adr/0003-offline-first-sync.md)). The client submits its roster +
+the month(s) it holds — alive rows and `deleted` tombstones, each carrying an `updatedAt` (epoch
+milliseconds UTC); the server merges per row **last-write-wins** by that edit-time and returns the
+authoritative **alive** state to overwrite local with. Edit-time is stored verbatim as the merge
+key, distinct from the server-stamped `UpdatedAt` audit field. `Entry` `(HabitId, Date)`-keyed with
+`Outcome {Success, Failure}` is now exposed through sync. See `HabitTracker.Api.http` for a sample.
