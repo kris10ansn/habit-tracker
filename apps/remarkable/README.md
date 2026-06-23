@@ -62,14 +62,6 @@ On the tablet, hold the middle button for ~3 seconds to open apploader, then tap
 
 State is saved under `/home/root/xovi/exthome/appload/habit-tracker/data/` — `roster.json` plus a `YYYY-MM.json` per month. First launch seeds the roster from the defaults in `src/js/habits.js`. The `data/` folder must exist (the deploy creates it); if it's missing, saves surface a visible error instead of failing silently. To reset, delete the files and relaunch.
 
-Already have a single-file `habits.json` from an older build? Convert it once, off-device:
-
-```sh
-node scripts/migrate-habits.mjs path/to/habits.json out-data/
-```
-
-then place the emitted `out-data/` contents into the device's `data/` folder. The app itself carries no migration code.
-
 ## How it's built
 
 The reMarkable 1 runs **xochitl**, the stock UI, which is itself a Qt 5.15 application. The community modding stack hooks into it:
