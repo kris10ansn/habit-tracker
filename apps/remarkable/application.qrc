@@ -6,6 +6,7 @@
         <file>src/JsonStore.qml</file>
         <file>src/HabitsStore.qml</file>
         <file>src/SettingsStore.qml</file>
+        <file>src/SyncStore.qml</file>
         <file>src/components/qmldir</file>
         <file>src/components/AppButton.qml</file>
         <file>src/components/MonthHeader.qml</file>
@@ -29,6 +30,8 @@
         <file>src/js/SuspendRender.js</file>
         <file>src/js/SuspendDraw.js</file>
         <file>src/js/SuspendStatus.js</file>
+        <file>src/js/SyncStatus.js</file>
+        <file>src/js/Sync.js</file>
         <file>src/js/Scroll.js</file>
     </qresource>
 </RCC>

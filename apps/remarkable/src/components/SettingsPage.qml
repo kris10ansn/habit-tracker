@@ -5,18 +5,30 @@ Item {
     id: settingsPage
 
     property bool suspendImageEnabled: false
+    property string serverUrl: ""
+    property string syncStatusText: ""
+
     signal applyRequested(bool value)
+    signal serverUrlApplied(string url)
+    signal syncNowRequested
     signal backRequested
 
     property bool staged: false
-    readonly property bool dirty: staged !== suspendImageEnabled
+    property string stagedUrl: ""
+    readonly property bool dirty: staged !== suspendImageEnabled || stagedUrl.trim() !== serverUrl
 
-    Component.onCompleted: settingsPage.staged = settingsPage.suspendImageEnabled
+    function _resync() {
+        settingsPage.staged = settingsPage.suspendImageEnabled;
+        settingsPage.stagedUrl = settingsPage.serverUrl;
+    }
+
+    Component.onCompleted: settingsPage._resync()
     onVisibleChanged: if (visible)
-        settingsPage.staged = settingsPage.suspendImageEnabled
-    // A committed change lands here (suspendImageEnabled follows the store), so
-    // re-sync staged — Done becomes idle and dirty clears.
-    onSuspendImageEnabledChanged: settingsPage.staged = settingsPage.suspendImageEnabled
+        settingsPage._resync()
+    // A committed change lands back here (the store properties follow), so re-sync the staged
+    // values — Done becomes idle and dirty clears.
+    onSuspendImageEnabledChanged: settingsPage._resync()
+    onServerUrlChanged: settingsPage._resync()
 
     Column {
         anchors.top: parent.top
@@ -48,6 +60,66 @@ Item {
                 onToggled: settingsPage.staged = value
             }
         }
+
+        Text {
+            text: "Sync server"
+            font.pixelSize: App.Theme.labelFont
+            color: App.Theme.fg
+        }
+
+        Rectangle {
+            width: Math.min(parent.width, 900)
+            height: App.Theme.boxSize
+            color: App.Theme.bg
+            border.color: App.Theme.fg
+            border.width: App.Theme.borderWidth
+
+            TextInput {
+                id: urlInput
+                anchors.fill: parent
+                anchors.margins: App.Theme.inputPadding
+                font.pixelSize: App.Theme.labelFont
+                color: App.Theme.fg
+                verticalAlignment: TextInput.AlignVCenter
+                clip: true
+                selectByMouse: true
+                inputMethodHints: Qt.ImhUrlCharactersOnly | Qt.ImhNoAutoUppercase
+                text: settingsPage.stagedUrl
+                onTextChanged: settingsPage.stagedUrl = text
+            }
+
+            Text {
+                anchors.fill: urlInput
+                text: "http://address:5137 — blank runs offline"
+                color: App.Theme.fg
+                opacity: App.Theme.fadedOpacity
+                font.pixelSize: urlInput.font.pixelSize
+                verticalAlignment: Text.AlignVCenter
+                visible: urlInput.text.length === 0 && !urlInput.activeFocus
+            }
+        }
+
+        Row {
+            spacing: App.Theme.buttonGap
+
+            AppButton {
+                width: App.Theme.quitButtonWidth
+                height: App.Theme.quitButtonHeight
+                text: "Sync now"
+                // Operates on the committed URL, so require it set with no unsaved edit pending.
+                disabled: settingsPage.serverUrl.trim() === "" || settingsPage.stagedUrl.trim() !== settingsPage.serverUrl
+                onClicked: settingsPage.syncNowRequested()
+            }
+
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: settingsPage.syncStatusText
+                font.pixelSize: App.Theme.labelFont
+                color: App.Theme.fg
+                opacity: App.Theme.fadedOpacity
+                visible: text.length > 0
+            }
+        }
     }
 
     AppButton {
@@ -69,10 +141,18 @@ Item {
         height: App.Theme.quitButtonHeight
         text: "Done"
         disabled: !settingsPage.dirty
-        onClicked: {
+        onClicked: settingsPage._commit()
+    }
+
+    function _commit() {
+        if (settingsPage.staged !== settingsPage.suspendImageEnabled) {
             settingsPage.applyRequested(settingsPage.staged);
-            settingsPage.backRequested();
         }
+        if (settingsPage.stagedUrl.trim() !== settingsPage.serverUrl) {
+            settingsPage.serverUrlApplied(settingsPage.stagedUrl.trim());
+        }
+
+        settingsPage.backRequested();
     }
 
     ConfirmDialog {

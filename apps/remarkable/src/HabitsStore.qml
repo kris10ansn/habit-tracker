@@ -221,6 +221,34 @@ QtObject {
         _month.scheduleSave();
     }
 
+    // Overwrite local state with the authoritative result of a sync (ADR 0003): rebuild the
+    // roster in the server's order and replace the current month's entries, preserving the
+    // device-only suspend visibility the server never sees. Persists both files immediately.
+    function applySynced(roster, entriesByHabitId) {
+        const hideById = {};
+        for (let i = 0; i < habits.count; i++) {
+            const habit = habits.get(i);
+            hideById[habit.id] = !!habit.hideFromSleep;
+        }
+
+        const items = (roster || []).map(habit => ({
+            id: habit.id,
+            name: habit.name,
+            negative: !!habit.negative,
+            hideFromSleep: !!hideById[habit.id],
+            updatedAt: habit.updatedAt,
+            entries: (entriesByHabitId || {})[habit.id] || ({})
+        }));
+
+        store.habits.clear();
+        if (items.length > 0) {
+            store.habits.append(items);
+        }
+
+        store._roster._doSave();
+        store._month._doSave();
+    }
+
     function flushPendingSave() {
         _roster.flushPendingSave();
         _month.flushPendingSave();

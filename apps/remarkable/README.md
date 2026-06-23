@@ -5,7 +5,7 @@
 
 A small habit tracker for the **reMarkable 1** e-ink tablet. The reMarkable has no app ecosystem and no official way to run third-party software, but a community modding stack ([XOVI](https://github.com/asivery/xovi) + [rm-appload](https://github.com/asivery/rm-appload)) lets you load custom QML scenes inside the stock UI process. This is one such scene — a calendar grid of habits × days of the current month, persisted to disk, with a twist: it can overwrite the tablet's **suspend image** (the full-screen image shown while the device sleeps) with today's grid, so the habits are the first thing you see when you wake the device. That overwrite is opt-in — you turn it on in **Settings**.
 
-No accounts, no syncing, no telemetry, no backend. Just a QML scene drawn by the same Qt process that already runs the device's UI.
+No accounts, no telemetry. It runs fully standalone and offline by default — just a QML scene drawn by the same Qt process that already runs the device's UI. Optionally, point it at a self-hosted server (Settings → **Sync server**) to sync your habits across devices; leave it blank and nothing ever leaves the tablet.
 
 ## What it looks like
 
@@ -30,9 +30,10 @@ Journal                 ▢ ▢ ▢ ▢ ▣ ▢ ▢ ▢ ▢ ▢ …
     - _Positive_ habits cycle empty → X → O → empty. X = done, O = explicitly not done.
     - _Negative_ habits invert it: every day is implicitly X ("didn't slip up today"), tap to flip to O when you do slip. Future days render muted and the name carries a `(−)` suffix.
 - **Suspend-image overlay (opt-in).** Off by default; enable it on the **Settings** page. While on, the latest habit grid is the suspend image. Enabling backs up the original `suspended.png` first; disabling restores it. Per-habit `Z` toggles (shown in edit mode while the feature is on) hide individual rows from the suspend image (they still show in the app).
-- **Settings.** A small settings page (button next to **Quit**) with a single `On` / `Off` toggle for suspend-image writing. Changes are staged and applied on **Done**, which returns to the grid and runs the backup/restore — its progress shows in the grid's status line. **Back** discards staged changes (with a confirmation if you've toggled it).
+- **Settings.** A small settings page (button next to **Quit**) with the suspend-image-writing `On` / `Off` toggle and a **Sync server** address field. Changes are staged and applied on **Done**, which returns to the grid and runs the backup/restore — its progress shows in the grid's status line. **Back** discards staged changes (with a confirmation if you've changed anything).
+- **Optional offline-first sync.** Leave the **Sync server** blank and the app is fully local. Enter a server address and it syncs your roster and the current month with that server — on open, a few seconds after edits, and via a **Sync now** button. Conflicts resolve last-write-wins per habit and per day; deletes propagate as tombstones. It's offline-tolerant: when the server is unreachable you keep working and a quiet status line (below the suspend status) shows "Offline — will retry" / "Synced 2m ago". The endpoint is unauthenticated, so run it on a trusted network (home LAN / Tailscale / VPN), not the open internet.
 - **In-app editing.** Reorder, rename, delete, toggle positive/negative, toggle suspend visibility, add new habits — all from the device. No editing JSON by SSH.
-- **Local persistence.** Habit data lives under a `data/` folder on the device: `roster.json` (the habit list + config) plus one `YYYY-MM.json` per month (that month's entries). App preferences stay in `settings.json`. A single tap rewrites only the current month, not all of history. Saves fail loudly — if `data/` is missing, a dialog says so rather than dropping your entries silently.
+- **Local persistence.** Habit data lives under a `data/` folder on the device: `roster.json` (the habit list + config) plus one `YYYY-MM.json` per month (that month's entries); `sync.json` holds sync bookkeeping. App preferences stay in `settings.json`. A single tap rewrites only the current month, not all of history. Saves fail loudly — if `data/` is missing, a dialog says so rather than dropping your entries silently.
 
 ## Install
 
@@ -57,7 +58,7 @@ On the tablet, hold the middle button for ~3 seconds to open apploader, then tap
 - **Tap a cell** to cycle its state.
 - **Edit** (bottom-left) enters edit mode. Each row gains `↑` / `↓` (reorder), `×` (delete with confirmation), `−` (toggle negative), `Z` (toggle suspend visibility — only shown while suspend-image writing is on), and the name becomes a text input. An empty row at the bottom of the list takes a new habit name; tap `+` or press Enter to add.
 - **Done** leaves edit mode.
-- **Settings** (bottom-right, left of Quit) opens the settings page. Toggle suspend-image writing `On` / `Off`, then **Done** to apply and return to the grid — enabling backs up your current suspend image and starts drawing the grid there; disabling restores the backup. Backup/restore progress shows in the grid's status line. **Back** returns without applying.
+- **Settings** (bottom-right, left of Quit) opens the settings page. Toggle suspend-image writing `On` / `Off`, and/or type a **Sync server** address (e.g. `http://192.168.1.50:5137`; blank = offline). **Done** applies and returns to the grid — enabling suspend writing backs up your current suspend image and starts drawing the grid there; disabling restores the backup; a non-blank server triggers a sync. **Sync now** forces an immediate sync. **Back** returns without applying.
 - **Quit** (bottom-right) unloads the app and restores the normal xochitl UI.
 
 State is saved under `/home/root/xovi/exthome/appload/habit-tracker/data/` — `roster.json` plus a `YYYY-MM.json` per month. First launch seeds the roster from the defaults in `src/js/habits.js`. The `data/` folder must exist (the deploy creates it); if it's missing, saves surface a visible error instead of failing silently. To reset, delete the files and relaunch.
@@ -95,7 +96,7 @@ This app is the QML scene. It's packaged as a Qt binary resource (`.rcc`) plus a
 
 **Cheap re-renders.** Saving a 1404×1872 PNG for every trivial edit is wasteful, so renders are _debounced_ (a 3-second timer restarts after each change while editing) and _deduplicated_ via a content signature persisted alongside the PNG — if nothing visible changed, nothing is written. A small status line on the grid ("Saving suspend image in 3s…" → "Suspend image saved", and the backup/restore phases) makes the pipeline visible. On quit, the latest state is flushed synchronously so the suspend image never lags a tap behind.
 
-**Pure QML + plain JS, no backend.** State lives in JSON-backed QML stores sharing a `JsonStore.qml` base for the load/debounced-save plumbing. `HabitsStore.qml` is a facade that splits persistence across two files — a `roster.json` (identity + config) and a per-month entries file keyed by a stable habit id — so a single toggle rewrites only the current month, not all history, and corruption is isolated to one month. Components forward signals upward; only the store mutates state. Updates are immutable (array spread, `Object.assign`) — the V4 engine handles re-bindings from there.
+**Pure QML + plain JS.** State lives in JSON-backed QML stores sharing a `JsonStore.qml` base for the load/debounced-save plumbing. `HabitsStore.qml` is a facade that splits persistence across two files — a `roster.json` (identity + config) and a per-month entries file keyed by a stable habit id — so a single toggle rewrites only the current month, not all history, and corruption is isolated to one month. Components forward signals upward; only the store mutates state. Updates are immutable (array spread, `Object.assign`) — the V4 engine handles re-bindings from there. Optional sync is a separate `SyncStore.qml` (the network engine + a `sync.json` sidecar) over a pure-JS `Sync.js` translation layer; the merge itself runs server-side, so the client just sends its state and accepts the authoritative result.
 
 **Platform constraints shape the code.**
 
@@ -133,9 +134,10 @@ make clean      # nukes local build/
 │   ├── Theme.qml        # singleton: sizes, fonts, colors
 │   ├── JsonStore.qml    # base: deferred load + debounced save for the stores
 │   ├── HabitsStore.qml  # facade: roster + per-month entry files, sole source of mutation
-│   ├── SettingsStore.qml# JSON-backed app settings (suspend-image on/off)
+│   ├── SettingsStore.qml# JSON-backed app settings (suspend-image on/off, sync server URL)
+│   ├── SyncStore.qml    # offline-first sync engine + sidecar (tombstones, last-synced)
 │   ├── components/      # reusable QML pieces (AppButton, HabitsGrid, SuspendCanvas, SettingsPage, …)
-│   └── js/              # plain JS modules (date helpers, scroll math, suspend-image draw)
+│   └── js/              # plain JS modules (date helpers, scroll math, suspend-image draw, sync translation)
 └── build/               # rcc output + deploy staging (gitignored)
 ```
 

@@ -4,6 +4,7 @@ import "components" as App
 import "js/DateUtils.js" as DateUtils
 import "js/Scroll.js" as Scroll
 import "js/SuspendStatus.js" as SuspendStatus
+import "js/SyncStatus.js" as SyncStatus
 
 Rectangle {
     id: root
@@ -11,14 +12,27 @@ Rectangle {
     color: App.Theme.bg
 
     readonly property string suspendStatusText: SuspendStatus.text(suspendCanvas.phase, suspendCanvas.remainingSeconds)
+    readonly property string syncStatusText: SyncStatus.text(syncStore.status, syncStore.lastSyncedAt, (settingsStore.serverUrl || "").trim() !== "")
 
     signal close
     function unloading() {
         console.log("Habit Tracker unloading");
         habitsStore.flushPendingSave();
         settingsStore.flushPendingSave();
+        syncStore.flushPendingSave();
         if (settingsStore.suspendImageEnabled)
             suspendCanvas.renderSync();
+    }
+
+    // Sync once both the habits and the sync sidecar have loaded — never before, or a first sync
+    // could miss pending tombstones. Guarded to run once per launch (ADR 0003).
+    property bool _syncedOnLoad: false
+    function _maybeSyncOnLoad() {
+        if (root._syncedOnLoad || !habitsStore.isLoaded || !syncStore.isLoaded)
+            return;
+
+        root._syncedOnLoad = true;
+        syncStore.syncNow();
     }
 
     // Enabling backs up the stock suspend image before the first overwrite; a
@@ -51,6 +65,14 @@ Rectangle {
         id: settingsStore
     }
 
+    App.SyncStore {
+        id: syncStore
+        filePath: habitsStore.dataDir + "/sync.json"
+        habitsStore: habitsStore
+        settingsStore: settingsStore
+        monthKey: habitsStore.monthKey
+    }
+
     App.SuspendCanvas {
         id: suspendCanvas
         habits: habitsStore.habits
@@ -61,6 +83,20 @@ Rectangle {
         function onSaved() {
             if (!landscape.editing && settingsStore.suspendImageEnabled)
                 suspendCanvas.scheduleRender();
+            syncStore.scheduleSync();
+        }
+        function onHabitRemoved(id) {
+            syncStore.addHabitTombstone(id);
+        }
+        function onIsLoadedChanged() {
+            root._maybeSyncOnLoad();
+        }
+    }
+
+    Connections {
+        target: syncStore
+        function onIsLoadedChanged() {
+            root._maybeSyncOnLoad();
         }
     }
 
@@ -282,11 +318,18 @@ Rectangle {
                 onClicked: landscape.editing = !landscape.editing
             }
 
-            App.StatusText {
+            Column {
                 anchors.left: editButton.right
                 anchors.leftMargin: App.Theme.buttonGap
                 anchors.verticalCenter: editButton.verticalCenter
-                text: root.suspendStatusText
+
+                App.StatusText {
+                    text: root.suspendStatusText
+                }
+
+                App.StatusText {
+                    text: root.syncStatusText
+                }
             }
 
             App.ConfirmDialog {
@@ -305,7 +348,14 @@ Rectangle {
             anchors.fill: parent
             visible: landscape.currentView === "settings"
             suspendImageEnabled: settingsStore.suspendImageEnabled
+            serverUrl: settingsStore.serverUrl
+            syncStatusText: root.syncStatusText
             onApplyRequested: root.applySuspendSetting(value)
+            onServerUrlApplied: {
+                settingsStore.setServerUrl(url);
+                syncStore.syncNow();
+            }
+            onSyncNowRequested: syncStore.syncNow()
             onBackRequested: landscape.currentView = "grid"
         }
 
@@ -316,6 +366,15 @@ Rectangle {
             message: "Couldn’t save to storage — your changes are only in memory. Check that the data/ folder exists on the device."
             onConfirmed: habitsStore.clearSaveError()
             onCancelled: habitsStore.clearSaveError()
+        }
+
+        App.ConfirmDialog {
+            visible: syncStore.status === "error" && syncStore.errorMessage !== ""
+            acknowledgeOnly: true
+            confirmText: "Dismiss"
+            message: "Sync failed: " + syncStore.errorMessage + ". Check the sync server address in Settings."
+            onConfirmed: syncStore.clearError()
+            onCancelled: syncStore.clearError()
         }
     }
 }
