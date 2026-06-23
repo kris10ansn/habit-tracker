@@ -5,9 +5,10 @@ RCC ?= rcc-qt5
 QMLLINT ?= qmllint-qt5
 QML_IMPORT_PATH ?= /usr/lib/qt/qml
 BUILD_DIR := build
+BACKUP_DIR := .backup
 QML_FILES := $(shell find src -name '*.qml')
 
-.PHONY: build inject-pragma deploy remove clean lint
+.PHONY: build inject-pragma deploy remove clean lint backup
 
 build: inject-pragma
 	cp application.qrc $(BUILD_DIR)/
@@ -36,6 +37,11 @@ deploy: build
 
 remove:
 	ssh $(REMARKABLE_HOST) "rm -rf $(REMOTE_DIR)"
+
+# Pull the device's data/ into a timestamped local backup (e.g. .backups/2026-06-24_14-30-05).
+backup:
+	mkdir -p $(BACKUP_DIR)
+	rsync -avz $(REMARKABLE_HOST):$(REMOTE_DIR)/data/ "$(BACKUP_DIR)/$(shell date +%Y-%m-%d_%H-%M-%S)/"
 
 clean:
 	rm -rf $(BUILD_DIR)
