@@ -7,6 +7,8 @@ Rectangle {
     property string message: ""
     property string confirmText: "Delete"
     property string cancelText: "Cancel"
+    // Acknowledge-only: a single dismiss button, for alerts with no choice to make.
+    property bool acknowledgeOnly: false
     signal confirmed
     signal cancelled
 
@@ -59,6 +61,7 @@ Rectangle {
             spacing: App.Theme.buttonGap
 
             AppButton {
+                visible: !dialog.acknowledgeOnly
                 width: App.Theme.quitButtonWidth
                 height: App.Theme.quitButtonHeight
                 text: dialog.cancelText

@@ -8,8 +8,14 @@ rendering, the suspend image — are **not** here; each client documents those i
 ## Language
 
 **Habit**:
-A behaviour the user tracks day-by-day. Has a name, a polarity, and a set of entries.
+A behaviour the user tracks day-by-day. Has a stable id, a name, a polarity, and a set of entries.
 _Avoid_: task, goal, item.
+
+**Habit id**:
+A habit's stable, unique identifier — minted once when the habit is created and never changed,
+surviving rename and reorder. It is the key entries and the future backend use to reference a
+habit; because ids are minted client-side, they are random so two offline clients never collide.
+_Avoid_: index, position, slug.
 
 **Polarity**:
 Whether a habit is positive or negative. Determines what the entry states mean.

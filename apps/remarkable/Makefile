@@ -28,8 +28,10 @@ inject-pragma:
 lint:
 	@command -v $(QMLLINT) >/dev/null 2>&1 && $(QMLLINT) -I $(QML_IMPORT_PATH) $(QML_FILES) || echo "$(QMLLINT) not installed; skipping"
 
+# The data/ subdir must exist before first launch: QML/XHR cannot create it, so
+# a missing dir turns every save into a visible failure (see ADR 0002).
 deploy: build
-	ssh $(REMARKABLE_HOST) "mkdir -p $(REMOTE_DIR)"
+	ssh $(REMARKABLE_HOST) "mkdir -p $(REMOTE_DIR)/data"
 	scp $(BUILD_DIR)/resources.rcc $(BUILD_DIR)/manifest.json $(BUILD_DIR)/icon.png $(REMARKABLE_HOST):$(REMOTE_DIR)/
 
 remove:
