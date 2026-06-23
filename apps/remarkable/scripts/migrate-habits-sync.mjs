@@ -7,7 +7,7 @@
 //
 // Output:
 //   - roster.json with UUID ids and per-habit updatedAt
-//   - YYYY-MM.json files whose entry cells are { s: "x"|"o"|"", t: epochMs }
+//   - YYYY-MM.json files whose entry cells are { state: "x"|"o"|"", updatedAt: epochMs }
 //
 // Usage:
 //   node scripts/migrate-habits-sync.mjs <legacy-habits.json|data-dir> <output-data-dir>
@@ -261,19 +261,33 @@ function migrateHabit(habit, id, editedAt, where) {
 function migrateCell(cell, editedAt, where) {
     if (typeof cell === "string") {
         assertState(cell, where);
-        return { s: cell, t: editedAt };
+        return { state: cell, updatedAt: editedAt };
     }
 
     if (isPlainObject(cell)) {
-        const state = typeof cell.s === "string" ? cell.s : "";
-        assertState(state, `${where}.s`);
+        const state = entryState(cell);
+        assertState(state, `${where}.state`);
         return {
-            s: state,
-            t: validTimestamp(cell.t) ? cell.t : editedAt,
+            state,
+            updatedAt: entryUpdatedAt(cell, editedAt),
         };
     }
 
-    die(`Expected ${where} to be "x", "o", "", or { s, t }.`);
+    die(
+        `Expected ${where} to be "x", "o", "", or { state, updatedAt }. Legacy { s, t } is also accepted as input.`,
+    );
+}
+
+function entryState(cell) {
+    if (typeof cell.state === "string") return cell.state;
+    if (typeof cell.s === "string") return cell.s;
+    return "";
+}
+
+function entryUpdatedAt(cell, fallback) {
+    if (validTimestamp(cell.updatedAt)) return cell.updatedAt;
+    if (validTimestamp(cell.t)) return cell.t;
+    return fallback;
 }
 
 function writeMigrated(dir, migrated) {

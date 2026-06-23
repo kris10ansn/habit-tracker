@@ -207,15 +207,15 @@ QtObject {
         const habit = habits.get(index);
         const currentEntries = habit.entries || {};
         const cell = currentEntries[dateKey];
-        const current = cell && cell.s ? cell.s : "";
+        const current = cell && cell.state ? cell.state : "";
         // positive: empty -> x -> o -> empty
         // negative: empty(displayed X) -> o -> empty
         const next = habit.negative ? (current === "o" ? "" : "o") : (current === "" ? "x" : current === "x" ? "o" : "");
 
-        // A cleared cell stays inline as { s: "", t } — a tombstone the next sync sends, not a
-        // deleted key (ADR 0003). It renders as Unmarked and is pruned when sync overwrites.
+        // A cleared cell stays inline as { state: "", updatedAt } — a tombstone the next sync
+        // sends, not a deleted key (ADR 0003). It renders as Unmarked and is pruned when sync overwrites.
         const entries = Object.assign({}, currentEntries);
-        entries[dateKey] = { s: next, t: Date.now() };
+        entries[dateKey] = { state: next, updatedAt: Date.now() };
 
         habits.setProperty(index, "entries", entries);
         _month.scheduleSave();

@@ -54,5 +54,6 @@ the device, describe what to run and wait. This applies even when a `make` targe
 
 ## Code style
 
-Shared `.prettierrc.json` applies repo-wide. Language-specific style rules live per app
-(QML/JS conventions in `apps/remarkable/CLAUDE.md`).
+Shared `.prettierrc.json` applies repo-wide. Prefer verbose, descriptive names in code and
+persisted/domain data; avoid single-letter or cryptic names except for very small local indices.
+Language-specific style rules live per app (QML/JS conventions in `apps/remarkable/CLAUDE.md`).

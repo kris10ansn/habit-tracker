@@ -28,7 +28,8 @@ the merge logic lives in C# (tested), not QML (no `async`/`await`, no tests).
   server stores that client edit-time **verbatim** as the row's merge key and compares edit-time vs
   edit-time, so clock domains never cross; the backend's own server-stamped `UpdatedAt` stays a
   separate audit field. On the client, an entry value changes from a bare `"x"`/`"o"` string to an
-  inline `{ state, updatedAt }` object.
+  inline `{ state, updatedAt }` object. Persisted/domain-facing client data uses descriptive field
+  names rather than shorthand keys.
 
 - **Deletes are timestamped tombstones.** Deleting a habit or clearing an entry records a soft-delete
   with a UTC timestamp (`DeletedAt` on backend `Habit` and `Entry` — the tombstones the backend ADR

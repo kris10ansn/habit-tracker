@@ -1,21 +1,21 @@
 // Projections of the in-memory habits ListModel onto serializable shapes. The model is the
 // single source of truth; each store serializes its own slice. Since sync, entries are inline
-// { s: state, t: editedAtMs } objects and habits carry an updatedAt edit-time (ADR 0003).
+// { state, updatedAt } objects and habits carry an updatedAt edit-time (ADR 0003).
 
 // Suspend-canvas projection: entries flattened to date -> state string. Drawing and the dedup
 // signature only care about the visible state, never timestamps — so this keeps SuspendDraw
-// unchanged and naturally drops cleared (s: "") tombstone markers.
+// unchanged and naturally drops cleared (state: "") tombstone markers.
 function toArray(model) {
     if (!model || typeof model.count !== "number") return [];
 
     const out = [];
     for (let i = 0; i < model.count; i++) {
-        const h = model.get(i);
+        const habit = model.get(i);
         out.push({
-            name: h.name,
-            negative: !!h.negative,
-            hideFromSleep: !!h.hideFromSleep,
-            entries: statesOf(h.entries),
+            name: habit.name,
+            negative: !!habit.negative,
+            hideFromSleep: !!habit.hideFromSleep,
+            entries: statesOf(habit.entries),
         });
     }
     return out;
@@ -24,7 +24,7 @@ function toArray(model) {
 const statesOf = (entries) => {
     const src = entries || {};
     return Object.keys(src).reduce((out, date) => {
-        const state = src[date] && src[date].s ? src[date].s : "";
+        const state = src[date] && src[date].state ? src[date].state : "";
         if (state) out[date] = state;
         return out;
     }, {});
@@ -36,28 +36,28 @@ function toRoster(model) {
 
     const out = [];
     for (let i = 0; i < model.count; i++) {
-        const h = model.get(i);
+        const habit = model.get(i);
         out.push({
-            id: h.id,
-            name: h.name,
-            negative: !!h.negative,
-            hideFromSleep: !!h.hideFromSleep,
-            updatedAt: h.updatedAt,
+            id: habit.id,
+            name: habit.name,
+            negative: !!habit.negative,
+            hideFromSleep: !!habit.hideFromSleep,
+            updatedAt: habit.updatedAt,
         });
     }
     return out;
 }
 
-// Month projection: { habitId: { dateKey: { s: state, t: editedAtMs } } }. Cleared cells
-// (s: "") are kept as tombstone markers for sync; habits with no cells are omitted.
+// Month projection: { habitId: { dateKey: { state, updatedAt } } }. Cleared cells
+// (state: "") are kept as tombstone markers for sync; habits with no cells are omitted.
 function toMonthEntries(model) {
     if (!model || typeof model.count !== "number") return {};
 
     const out = {};
     for (let i = 0; i < model.count; i++) {
-        const h = model.get(i);
-        const entries = h.entries || {};
-        if (Object.keys(entries).length > 0) out[h.id] = entries;
+        const habit = model.get(i);
+        const entries = habit.entries || {};
+        if (Object.keys(entries).length > 0) out[habit.id] = entries;
     }
     return out;
 }

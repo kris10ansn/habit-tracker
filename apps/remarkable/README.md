@@ -68,7 +68,7 @@ To migrate an older off-device backup to the sync-ready format, run:
 pnpm --filter @habit-tracker/remarkable run migrate:sync -- <legacy-habits.json-or-data-dir> <output-data-dir>
 ```
 
-The script accepts either the original `habits.json` array or an existing `data/` directory, then writes a fresh `roster.json` plus month files with UUID ids, `updatedAt`, and timestamped entry cells. Use `--edited-at <epoch-ms-or-iso-time>` when you need deterministic migration timestamps.
+The script accepts either the original `habits.json` array or an existing `data/` directory, then writes a fresh `roster.json` plus month files with UUID ids and timestamped entry cells shaped as `{ "state": "x", "updatedAt": 1782148800000 }`. Use `--edited-at <epoch-ms-or-iso-time>` when you need deterministic migration timestamps.
 
 ## How it's built
 

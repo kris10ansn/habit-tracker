@@ -11,24 +11,24 @@ const outcomeOf = (state) => (state === "x" ? SUCCESS : FAILURE);
 const stateOf = (outcome) => (outcome === SUCCESS ? "x" : "o");
 
 // Build the sync request. roster: [{id,name,negative,updatedAt}] in display order (its index
-// becomes Position). monthEntries: { id: { date: { s, t } } }. tombstones: pending habit
-// deletes [{ id, deletedAt }]. Cleared cells (s: "") become deleted entries.
+// becomes Position). monthEntries: { id: { date: { state, updatedAt } } }. tombstones: pending
+// habit deletes [{ id, deletedAt }]. Cleared cells (state: "") become deleted entries.
 function buildRequest(roster, monthEntries, monthKey, tombstones) {
-    const habits = (roster || []).map((h, i) => ({
-        id: h.id,
-        name: h.name,
-        polarity: h.negative ? NEGATIVE : POSITIVE,
-        position: i,
-        updatedAt: h.updatedAt,
+    const habits = (roster || []).map((habit, position) => ({
+        id: habit.id,
+        name: habit.name,
+        polarity: habit.negative ? NEGATIVE : POSITIVE,
+        position: position,
+        updatedAt: habit.updatedAt,
         deleted: false,
     }));
 
-    const habitTombstones = (tombstones || []).map((t) => ({
-        id: t.id,
+    const habitTombstones = (tombstones || []).map((tombstone) => ({
+        id: tombstone.id,
         name: "",
         polarity: POSITIVE,
         position: 0,
-        updatedAt: t.deletedAt,
+        updatedAt: tombstone.deletedAt,
         deleted: true,
     }));
 
@@ -44,12 +44,12 @@ const entriesToWire = (monthEntries) => {
         const cells = src[habitId] || {};
         Object.keys(cells).forEach((date) => {
             const cell = cells[date];
-            const cleared = !cell || !cell.s;
+            const cleared = !cell || !cell.state;
             acc.push({
                 habitId: habitId,
                 date: date,
-                outcome: cleared ? SUCCESS : outcomeOf(cell.s),
-                updatedAt: cell ? cell.t : 0,
+                outcome: cleared ? SUCCESS : outcomeOf(cell.state),
+                updatedAt: cell ? cell.updatedAt : 0,
                 deleted: cleared,
             });
         });
@@ -59,24 +59,29 @@ const entriesToWire = (monthEntries) => {
 
 // Fold an authoritative response into the shapes HabitsStore.applySynced wants: roster
 // [{id,name,negative,updatedAt}] (already in the server's Position order) and entriesByHabitId
-// { id: { date: { s, t } } } for the given month. The response carries alive rows only.
+// { id: { date: { state, updatedAt } } } for the given month. The response carries alive rows only.
 function applyResponse(response, monthKey) {
     const habits = (response && response.habits) || [];
-    const roster = habits.map((h) => ({
-        id: h.id,
-        name: h.name,
-        negative: h.polarity === NEGATIVE,
-        updatedAt: h.updatedAt,
+    const roster = habits.map((habit) => ({
+        id: habit.id,
+        name: habit.name,
+        negative: habit.polarity === NEGATIVE,
+        updatedAt: habit.updatedAt,
     }));
 
     const months = (response && response.months) || [];
-    const month = months.filter((m) => m.month === monthKey)[0];
+    const month = months.filter(
+        (responseMonth) => responseMonth.month === monthKey,
+    )[0];
     const entries = (month && month.entries) || [];
 
-    const entriesByHabitId = entries.reduce((acc, e) => {
-        acc[e.habitId] = acc[e.habitId] || {};
-        acc[e.habitId][e.date] = { s: stateOf(e.outcome), t: e.updatedAt };
-        return acc;
+    const entriesByHabitId = entries.reduce((byHabitId, entry) => {
+        byHabitId[entry.habitId] = byHabitId[entry.habitId] || {};
+        byHabitId[entry.habitId][entry.date] = {
+            state: stateOf(entry.outcome),
+            updatedAt: entry.updatedAt,
+        };
+        return byHabitId;
     }, {});
 
     return { roster: roster, entriesByHabitId: entriesByHabitId };
@@ -87,23 +92,29 @@ function applyResponse(response, monthKey) {
 // since the server stores client edit-times verbatim.
 function responseChangesLocal(request, response) {
     return (
-        !sameMap(aliveHabitMap(request.habits), aliveHabitMap(response.habits)) ||
+        !sameMap(
+            aliveHabitMap(request.habits),
+            aliveHabitMap(response.habits),
+        ) ||
         !sameMap(aliveEntryMap(request.months), aliveEntryMap(response.months))
     );
 }
 
 const aliveHabitMap = (habits) =>
-    (habits || []).reduce((acc, h) => {
-        if (!h.deleted) acc[h.id] = h.updatedAt;
-        return acc;
+    (habits || []).reduce((byId, habit) => {
+        if (!habit.deleted) byId[habit.id] = habit.updatedAt;
+        return byId;
     }, {});
 
 const aliveEntryMap = (months) =>
-    (months || []).reduce((acc, m) => {
-        (m.entries || []).forEach((e) => {
-            if (!e.deleted) acc[`${m.month}|${e.habitId}|${e.date}`] = e.updatedAt;
+    (months || []).reduce((byMonthHabitDate, month) => {
+        (month.entries || []).forEach((entry) => {
+            if (!entry.deleted)
+                byMonthHabitDate[
+                    `${month.month}|${entry.habitId}|${entry.date}`
+                ] = entry.updatedAt;
         });
-        return acc;
+        return byMonthHabitDate;
     }, {});
 
 const sameMap = (a, b) => {

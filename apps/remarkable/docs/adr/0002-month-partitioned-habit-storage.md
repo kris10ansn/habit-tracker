@@ -18,10 +18,12 @@ Only its **entries** are. That asymmetry is what the split exploits.
 
 Persist into two kinds of file under a `data/` subdirectory of the app dir:
 
-- **Roster** `data/roster.json` — `{ "habits": [ { "id", "name", "negative", "hideFromSleep" } ] }`.
+- **Roster** `data/roster.json` —
+  `{ "habits": [ { "id", "name", "negative", "hideFromSleep", "updatedAt" } ] }`.
   The object envelope (not a bare array) leaves room for future top-level fields. Array order is
   display order. No entries here.
-- **Month file** `data/YYYY-MM.json` — `{ "month": "2026-06", "entries": { "<habitId>": { "2026-06-01": "x", … } } }`.
+- **Month file** `data/YYYY-MM.json` —
+  `{ "month": "2026-06", "entries": { "<habitId>": { "2026-06-01": { "state": "x", "updatedAt": 1782148800000 }, … } } }`.
   One per month; **only the current month is ever loaded**.
 
 Each habit gets a stable, client-minted **random** id (see the shared glossary). Month entries key
