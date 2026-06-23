@@ -35,11 +35,19 @@ function isCorrupt(result) {
 // want best-effort writes must catch. The PUT is synchronous so xhr.status is
 // meaningful by the time send() returns.
 function writeJson(path, value) {
+    // JSON.stringify returns undefined for values it can't serialize (e.g. a nested QVariantMap
+    // read from a dynamicRoles ListModel). Writing that empty body silently produces a 0-byte
+    // file, so fail loudly instead — a save must never blank a file without surfacing it.
+    const body = JSON.stringify(value);
+    if (typeof body !== "string" || body === "") {
+        throw new Error(`Storage: refusing to write empty body for ${path}`);
+    }
+
     const xhr = new XMLHttpRequest();
     xhr.open("PUT", `file://${path}`, false);
 
     try {
-        xhr.send(JSON.stringify(value));
+        xhr.send(body);
     } catch (e) {
         throw new Error(`Storage: write failed for ${path} - ${e}`);
     }
