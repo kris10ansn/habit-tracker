@@ -18,10 +18,12 @@ JsonStore {
     property var habitTombstones: []
     property double lastSyncedAt: 0
 
-    // Transient status for the ambient line: "" (idle/standalone), "syncing", "ok", "offline",
-    // "error". Only "error" (misconfig) is surfaced loudly; the rest stay quiet.
+    // Transient status for the ambient line: "" (idle/standalone), "pending" (debounce countdown),
+    // "syncing", "ok", "offline", "error". Only "error" (misconfig) is surfaced loudly; the rest
+    // stay quiet.
     property string status: ""
     property string errorMessage: ""
+    property int remainingSeconds: 0
 
     serialize: function () {
         return {
@@ -60,6 +62,12 @@ JsonStore {
         onTriggered: syncStore.syncNow()
     }
 
+    property Timer _tickTimer: Timer {
+        interval: 1000
+        repeat: true
+        onTriggered: syncStore.remainingSeconds = Math.max(0, syncStore.remainingSeconds - 1)
+    }
+
     // QML XMLHttpRequest has no reliable timeout, so a hung request is aborted manually to free
     // the "syncing" guard. The _activeXhr identity check ignores the abort's state-change.
     property var _activeXhr: null
@@ -73,7 +81,11 @@ JsonStore {
         if (!syncStore._serverUrl()) {
             return;
         }
+
+        syncStore.status = "pending";
+        syncStore.remainingSeconds = syncStore._syncTimer.interval / 1000;
         syncStore._syncTimer.restart();
+        syncStore._tickTimer.restart();
     }
 
     function syncNow() {
@@ -90,6 +102,8 @@ JsonStore {
         }
 
         syncStore._syncTimer.stop();
+        syncStore._tickTimer.stop();
+        syncStore.remainingSeconds = 0;
         syncStore.status = "syncing";
 
         const roster = HabitsModel.toRoster(syncStore.habitsStore.habits);

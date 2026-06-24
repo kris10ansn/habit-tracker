@@ -12,7 +12,7 @@ Rectangle {
     color: App.Theme.bg
 
     readonly property string suspendStatusText: SuspendStatus.text(suspendCanvas.phase, suspendCanvas.remainingSeconds)
-    readonly property string syncStatusText: SyncStatus.text(syncStore.status, syncStore.lastSyncedAt, (settingsStore.serverUrl || "").trim() !== "")
+    readonly property string syncStatusText: SyncStatus.text(syncStore.status, syncStore.lastSyncedAt, (settingsStore.serverUrl || "").trim() !== "", syncStore.remainingSeconds)
 
     signal close
     function unloading() {
