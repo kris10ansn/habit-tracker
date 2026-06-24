@@ -16,6 +16,7 @@
         "remarkable:remove": "pnpm --filter @habit-tracker/remarkable run remove",
         "backend:build": "pnpm --filter @habit-tracker/backend run build",
         "backend:start": "pnpm --filter @habit-tracker/backend run start",
+        "backend:watch": "pnpm --filter @habit-tracker/backend run watch",
         "backend:test": "pnpm --filter @habit-tracker/backend run test",
         "backend:migrate": "pnpm --filter @habit-tracker/backend run migrate",
         "backend:db:up": "pnpm --filter @habit-tracker/backend run db:up",

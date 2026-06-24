@@ -6,6 +6,7 @@
     "scripts": {
         "build": "dotnet build",
         "start": "dotnet run --project src/HabitTracker.Api",
+		"watch": "dotnet watch run --project src/HabitTracker.Api",
         "test": "dotnet test",
         "typecheck": "dotnet build --nologo",
         "format": "dotnet format",
