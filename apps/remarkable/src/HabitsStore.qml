@@ -215,7 +215,10 @@ QtObject {
         // A cleared cell stays inline as { state: "", updatedAt } — a tombstone the next sync
         // sends, not a deleted key (ADR 0003). It renders as Unmarked and is pruned when sync overwrites.
         const entries = Object.assign({}, currentEntries);
-        entries[dateKey] = { state: next, updatedAt: Date.now() };
+        entries[dateKey] = {
+            state: next,
+            updatedAt: Date.now()
+        };
 
         habits.setProperty(index, "entries", entries);
         _month.scheduleSave();
@@ -232,13 +235,13 @@ QtObject {
         }
 
         const items = (roster || []).map(habit => ({
-            id: habit.id,
-            name: habit.name,
-            negative: !!habit.negative,
-            hideFromSleep: !!hideById[habit.id],
-            updatedAt: habit.updatedAt,
-            entries: (entriesByHabitId || {})[habit.id] || ({})
-        }));
+                    id: habit.id,
+                    name: habit.name,
+                    negative: !!habit.negative,
+                    hideFromSleep: !!hideById[habit.id],
+                    updatedAt: habit.updatedAt,
+                    entries: (entriesByHabitId || {})[habit.id] || ({})
+                }));
 
         store.habits.clear();
         if (items.length > 0) {
