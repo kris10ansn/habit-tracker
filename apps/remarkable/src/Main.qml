@@ -363,7 +363,7 @@ Rectangle {
             visible: habitsStore.saveError !== ""
             acknowledgeOnly: true
             confirmText: "Dismiss"
-            message: "Couldn’t save to storage — your changes are only in memory. Check that the data/ folder exists on the device."
+            message: "Couldn’t save to storage — your changes are only in memory. Check that the data/ folder exists on the device.\n\n" + habitsStore.saveError
             onConfirmed: habitsStore.clearSaveError()
             onCancelled: habitsStore.clearSaveError()
         }
