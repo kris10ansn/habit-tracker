@@ -44,10 +44,12 @@ JsonStore {
             return;
         }
 
-        syncStore.habitTombstones = syncStore.habitTombstones.concat([{
-            id: id,
-            deletedAt: Date.now()
-        }]);
+        syncStore.habitTombstones = syncStore.habitTombstones.concat([
+            {
+                id: id,
+                deletedAt: Date.now()
+            }
+        ]);
         syncStore.scheduleSave();
         syncStore.scheduleSync();
     }
@@ -168,7 +170,19 @@ JsonStore {
     }
 
     function _serverUrl() {
-        return syncStore.settingsStore ? (syncStore.settingsStore.serverUrl || "").trim() : "";
+        if (!syncStore.settingsStore) {
+            return "";
+        }
+
+        const configured = (syncStore.settingsStore.serverUrl || "").trim();
+        if (!configured || /^https?:\/\//i.test(configured)) {
+            return configured;
+        }
+
+        // A scheme-less host (e.g. "192.168.1.50:5000") is treated by Qt's XMLHttpRequest as a
+        // local file, which rejects POST with "Unsupported method used on a local file". Default
+        // to http:// so the request actually goes over the network.
+        return "http://" + configured;
     }
 
     function _endpoint(url) {
