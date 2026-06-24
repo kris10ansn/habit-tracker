@@ -17,7 +17,6 @@ Rectangle {
     signal close
 
     function _waitForPendingOperations() {
-        console.log("_waitForPendingOperations");
         const syncPending = syncStore.status === "syncing" || syncStore.status === "pending";
         const renderPending = suspendCanvas.phase === "saving" || suspendCanvas.phase === "pending";
 
