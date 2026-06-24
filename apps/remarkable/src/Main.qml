@@ -15,6 +15,31 @@ Rectangle {
     readonly property string syncStatusText: SyncStatus.text(syncStore.status, syncStore.lastSyncedAt, (settingsStore.serverUrl || "").trim() !== "", syncStore.remainingSeconds)
 
     signal close
+
+    function _waitForPendingOperations() {
+        console.log("_waitForPendingOperations");
+        const syncPending = syncStore.status === "syncing" || syncStore.status === "pending";
+        const renderPending = suspendCanvas.phase === "saving" || suspendCanvas.phase === "pending";
+
+        if (syncPending || renderPending) {
+            Qt.callLater(() => root._waitForPendingOperations());
+            return;
+        }
+
+        root.close();
+    }
+
+    function quit() {
+        habitsStore.flushPendingSave();
+        settingsStore.flushPendingSave();
+        syncStore.flushPendingSave();
+        if (settingsStore.suspendImageEnabled)
+            suspendCanvas.renderAsync();
+        if ((settingsStore.serverUrl || "").trim() !== "")
+            syncStore.syncNow();
+        root._waitForPendingOperations();
+    }
+
     function unloading() {
         console.log("Habit Tracker unloading");
         habitsStore.flushPendingSave();
@@ -290,7 +315,7 @@ Rectangle {
                 width: App.Theme.quitButtonWidth
                 height: App.Theme.quitButtonHeight
                 text: "Quit"
-                onClicked: root.close()
+                onClicked: quit()
             }
 
             App.AppButton {
