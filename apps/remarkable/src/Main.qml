@@ -32,10 +32,19 @@ Rectangle {
         habitsStore.flushPendingSave();
         settingsStore.flushPendingSave();
         syncStore.flushPendingSave();
-        if (settingsStore.suspendImageEnabled)
+
+        if (settingsStore.suspendImageEnabled) {
             suspendCanvas.renderAsync();
-        if ((settingsStore.serverUrl || "").trim() !== "")
+        }
+
+        // Don't block quit if last sync failed - will most likely fail again
+        const lastSyncFailed = syncStore.status === "offline" || syncStore.status === "error";
+        const noServerUrl = (settingsStore.serverUrl || "").trim() === "";
+
+        if (noServerUrl !== "" && !lastSyncFailed) {
             syncStore.syncNow();
+        }
+
         root._waitForPendingOperations();
     }
 
