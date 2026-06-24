@@ -30,6 +30,14 @@ Item {
     onSuspendImageEnabledChanged: settingsPage._resync()
     onServerUrlChanged: settingsPage._resync()
 
+    // Lowest sibling: taps on empty space fall through to here and drop input focus,
+    // which dismisses the virtual keyboard. Buttons and the TextInput sit on top and
+    // consume their own taps, so they're unaffected.
+    MouseArea {
+        anchors.fill: parent
+        onPressed: urlInput.focus = false
+    }
+
     Column {
         anchors.top: parent.top
         anchors.left: parent.left
