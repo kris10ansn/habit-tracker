@@ -20,7 +20,8 @@
         "backend:test": "pnpm --filter @habit-tracker/backend run test",
         "backend:migrate": "pnpm --filter @habit-tracker/backend run migrate",
         "backend:db:up": "pnpm --filter @habit-tracker/backend run db:up",
-        "backend:db:down": "pnpm --filter @habit-tracker/backend run db:down"
+        "backend:db:down": "pnpm --filter @habit-tracker/backend run db:down",
+        "backend:db:clear": "pnpm --filter @habit-tracker/backend run db:clear"
     },
     "devDependencies": {
         "prettier": "^3.8.3"

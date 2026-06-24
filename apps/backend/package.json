@@ -13,6 +13,8 @@
         "lint": "dotnet format --verify-no-changes",
         "db:up": "docker compose up -d",
         "db:down": "docker compose down",
+        "db:update": "dotnet ef database update --project src/HabitTracker.Api",
+        "db:clear": "dotnet ef database drop --force --project src/HabitTracker.Api && pnpm run db:update",
         "migrate": "dotnet tool restore && dotnet ef database update --project src/HabitTracker.Api"
     }
 }
