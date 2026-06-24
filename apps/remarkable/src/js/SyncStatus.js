@@ -3,9 +3,14 @@
 // modal in Main, not this line.
 function text(status, lastSyncedAt, hasServer, remainingSeconds) {
     if (!hasServer) return "";
-    if (status === "pending") return remainingSeconds > 0 ? `Syncing in ${remainingSeconds}s` : "Syncing…";
+    if (status === "pending") {
+        return remainingSeconds > 0
+            ? `Syncing in ${remainingSeconds}s`
+            : "Syncing…";
+    }
+
     if (status === "syncing") return "Syncing…";
-    if (status === "offline") return "Sync failed: offline";
+    if (status === "offline") return "Sync failed";
     if (status === "error") return "Sync error";
     if (lastSyncedAt > 0) return "Synced to server";
     return "";
