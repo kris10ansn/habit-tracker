@@ -10,3 +10,5 @@ dist/
 web-build/
 *.tsbuildinfo
 .metro-health-check*
+
+.vscode
