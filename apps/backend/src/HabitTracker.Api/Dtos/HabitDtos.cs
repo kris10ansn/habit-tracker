@@ -11,6 +11,9 @@ public record HabitResponse(
     DateTimeOffset UpdatedAt
 );
 
+
+public record HabitEntryResponse(Entry Entry);
+
 public record CreateHabitRequest(string Name, Polarity Polarity);
 
 public record UpdateHabitRequest(string Name, Polarity Polarity, int Position);

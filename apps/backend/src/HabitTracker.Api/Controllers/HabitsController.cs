@@ -54,4 +54,16 @@ public class HabitsController : ControllerBase
         var deleted = await _habits.DeleteHabitAsync(id, cancellationToken);
         return deleted ? NoContent() : NotFound();
     }
+
+    [HttpGet("{id:guid}/entries")]
+    public async Task<ActionResult<SyncResponse>> GetEntries(
+        Guid id,
+        CancellationToken cancellationToken
+    )
+    {
+        var entries = await _habits.GetEntriesAsync(id, cancellationToken);
+
+        return entries is null ? NotFound() : Ok(entries);
+    }
+
 }

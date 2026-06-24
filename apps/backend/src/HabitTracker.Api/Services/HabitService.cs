@@ -114,6 +114,29 @@ public class HabitService
         return true;
     }
 
+
+    public async Task<IReadOnlyList<HabitEntryResponse>?> GetEntriesAsync(
+        Guid id,
+        CancellationToken cancellationToken = default
+    )
+    {
+        var habit = await FindOwnedAsync(id, cancellationToken);
+
+        if (habit is null)
+        {
+            return null;
+        }
+
+
+        var entries = await _db.Entries
+            .Where(e => e.HabitId == habit.Id)
+            .OrderBy(e => e.Date)
+            .Select(e => new HabitEntryResponse(e))
+            .ToListAsync(cancellationToken);
+
+        return entries;
+    }
+
     private IQueryable<Habit> OwnedHabits() =>
         _db.Habits.Where(h => h.UserId == _currentUser.UserId && h.DeletedAt == null);
 
