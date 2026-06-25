@@ -7,8 +7,11 @@ QML_IMPORT_PATH ?= /usr/lib/qt/qml
 BUILD_DIR := build
 BACKUP_DIR := .backup
 QML_FILES := $(shell find src -name '*.qml')
+SW_DIR := tools/suspend-writer
+SW_REMOTE_DIR := $(REMOTE_DIR)/suspend-writer
 
-.PHONY: build inject-pragma deploy remove clean lint backup
+.PHONY: build inject-pragma deploy remove clean lint backup \
+	suspend-writer-host suspend-writer-device suspend-writer-deploy suspend-writer-clean
 
 build: inject-pragma
 	cp application.qrc $(BUILD_DIR)/
@@ -45,3 +48,25 @@ backup:
 
 clean:
 	rm -rf $(BUILD_DIR)
+
+# --- suspend-writer: headless renderer for the device suspend image ----------
+# A standalone C++ tool (tools/suspend-writer) that reuses the app's JS renderer
+# to draw the suspend image off-device. See its README for the SDK setup.
+
+# Host build (Qt5, no SDK) for previewing renders on your machine.
+suspend-writer-host:
+	$(SW_DIR)/build-host.sh
+
+# Cross-build for the device (ARM, Qt6) — requires the SDK unpacked at $(SW_DIR)/sdk.
+suspend-writer-device:
+	$(SW_DIR)/build-device.sh
+
+# Deploy the ARM binary plus the two loose JS modules it reads at runtime. The
+# app bundles those inside resources.rcc, so they are not otherwise on-device.
+suspend-writer-deploy: suspend-writer-device
+	ssh $(REMARKABLE_HOST) "mkdir -p $(SW_REMOTE_DIR)"
+	scp $(SW_DIR)/build/suspend-writer-arm $(REMARKABLE_HOST):$(SW_REMOTE_DIR)/
+	scp src/js/SuspendDraw.js src/js/DateUtils.js $(REMARKABLE_HOST):$(SW_REMOTE_DIR)/
+
+suspend-writer-clean:
+	rm -rf $(SW_DIR)/build

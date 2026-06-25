@@ -2,11 +2,11 @@
 // QML app. A QPainter-backed Canvas2D shim is exposed to a QJSEngine so the
 // *actual* src/js/SuspendDraw.js draws into a QImage we save as PNG.
 //
-// Host-only proof of concept: no settings/backup/signature. Reads the app's own
-// roster.json + month YYYY-MM.json (same on-disk shapes the QML stores write).
-// Run: ./build.sh
-//      ./suspend-writer --roster <roster.json> [--month <YYYY-MM.json>]
-//                       [--today YYYY-MM-DD] [--out suspended.png] [--js-dir <dir>]
+// Proof of concept: no settings/backup/signature, it always writes. Reads the
+// app's own roster.json + month YYYY-MM.json (same on-disk shapes the QML stores
+// write). Build with ./build-host.sh (host) or ./build-device.sh (ARM); see
+// README. Run: ./build/suspend-writer --roster <roster.json> [--month <YYYY-MM.json>]
+//              [--today YYYY-MM-DD] [--out suspended.png] [--js-dir <dir>]
 
 #include <QGuiApplication>
 #include <QImage>

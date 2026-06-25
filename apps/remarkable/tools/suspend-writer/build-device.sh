@@ -8,23 +8,24 @@
 # needs no epaper plugin and never stops xochitl. Run it with
 # QT_QPA_PLATFORM=offscreen (a minimal/offscreen plugin ships in the sysroot).
 #
-# Output: ./suspend-writer-arm  (kept separate from the host ./suspend-writer)
+# Output: ./build/suspend-writer-arm  (kept separate from the host binary).
 set -e
 cd "$(dirname "$0")"
 
 ENV_SETUP=sdk/environment-setup-cortexa9hf-neon-remarkable-linux-gnueabi
-[ -f "$ENV_SETUP" ] || { echo "SDK env-setup not found at $ENV_SETUP" >&2; exit 1; }
+[ -f "$ENV_SETUP" ] || { echo "SDK env-setup not found at $ENV_SETUP — see README (Building for the device)" >&2; exit 1; }
 # shellcheck disable=SC1090
 . "$ENV_SETUP"
 
+mkdir -p build
 MOC="$OECORE_NATIVE_SYSROOT/usr/libexec/moc"
 QT_CFLAGS="$(pkg-config --cflags Qt6Core Qt6Gui Qt6Qml)"
 QT_LIBS="$(pkg-config --libs Qt6Core Qt6Gui Qt6Qml)"
 
-"$MOC" main.cpp -o main.moc
+"$MOC" main.cpp -o build/main.moc
 # Default JS_DIR is irrelevant on-device; pass --js-dir at runtime.
-$CXX -std=c++17 -fPIC $CXXFLAGS $QT_CFLAGS -DJS_DIR='"."' \
-    main.cpp -o suspend-writer-arm $QT_LIBS $LDFLAGS
+$CXX -std=c++17 -fPIC $CXXFLAGS $QT_CFLAGS -Ibuild -DJS_DIR='"."' \
+    main.cpp -o build/suspend-writer-arm $QT_LIBS $LDFLAGS
 
-echo "built ./suspend-writer-arm"
-file suspend-writer-arm
+echo "built ./build/suspend-writer-arm"
+file build/suspend-writer-arm
