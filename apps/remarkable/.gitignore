@@ -3,3 +3,5 @@ build/
 
 # Ignore suspend-writer binary and suspended.png output
 tools/suspend-writer/suspend*
+# Ignore sampe json files for debugging
+tools/suspend-writer/*.json

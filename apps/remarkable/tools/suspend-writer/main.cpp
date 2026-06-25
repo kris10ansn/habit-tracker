@@ -2,8 +2,11 @@
 // QML app. A QPainter-backed Canvas2D shim is exposed to a QJSEngine so the
 // *actual* src/js/SuspendDraw.js draws into a QImage we save as PNG.
 //
-// Host-only proof of concept: sample data, no args, no settings/backup/signature.
-// Run: ./build.sh && ./suspend-writer  ->  writes suspended.png in cwd.
+// Host-only proof of concept: no settings/backup/signature. Reads the app's own
+// roster.json + month YYYY-MM.json (same on-disk shapes the QML stores write).
+// Run: ./build.sh
+//      ./suspend-writer --roster <roster.json> [--month <YYYY-MM.json>]
+//                       [--today YYYY-MM-DD] [--out suspended.png]
 
 #include <QGuiApplication>
 #include <QImage>
@@ -11,6 +14,7 @@
 #include <QFont>
 #include <QFontMetricsF>
 #include <QColor>
+#include <QDate>
 #include <QJSEngine>
 #include <QFile>
 #include <QTextStream>
@@ -121,9 +125,47 @@ static QString loadModule(const QString &path, const QString &exports) {
     return "(function(){\n" + kept.join('\n') + "\nreturn " + exports + ";\n})()";
 }
 
+static QString readFile(const QString &path) {
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        qWarning() << "cannot open" << path;
+        return QString();
+    }
+    return QTextStream(&file).readAll();
+}
+
 int main(int argc, char *argv[]) {
     qputenv("QT_QPA_PLATFORM", "offscreen");
     QGuiApplication app(argc, argv);
+
+    QString rosterPath, monthPath, todayArg;
+    QString outPath = "suspended.png";
+    const QStringList args = app.arguments();
+    for (int i = 1; i < args.size(); i++) {
+        const QString &arg = args[i];
+        if (arg == "--roster" && i + 1 < args.size()) rosterPath = args[++i];
+        else if (arg == "--month" && i + 1 < args.size()) monthPath = args[++i];
+        else if (arg == "--today" && i + 1 < args.size()) todayArg = args[++i];
+        else if (arg == "--out" && i + 1 < args.size()) outPath = args[++i];
+        else { qWarning() << "unknown argument" << arg; return 2; }
+    }
+
+    if (rosterPath.isEmpty()) {
+        qWarning() << "usage: suspend-writer --roster <roster.json> [--month <YYYY-MM.json>]"
+                   << "[--today YYYY-MM-DD] [--out suspended.png]";
+        return 2;
+    }
+
+    const QString rosterJson = readFile(rosterPath);
+    if (rosterJson.isEmpty()) return 1;
+    const QString monthJson = monthPath.isEmpty() ? QStringLiteral("{}") : readFile(monthPath);
+
+    QDate today = QDate::currentDate();
+    if (!todayArg.isEmpty()) {
+        const QDate parsed = QDate::fromString(todayArg, "yyyy-MM-dd");
+        if (parsed.isValid()) today = parsed;
+        else qWarning() << "ignoring invalid --today (want YYYY-MM-DD):" << todayArg;
+    }
 
     QImage image(1404, 1872, QImage::Format_RGB32);
     image.fill(Qt::white);
@@ -138,6 +180,11 @@ int main(int argc, char *argv[]) {
 
     QJSEngine engine;
     engine.globalObject().setProperty("ctx", engine.newQObject(&ctx));
+    engine.globalObject().setProperty("rosterJson", rosterJson);
+    engine.globalObject().setProperty("monthJson", monthJson);
+    engine.globalObject().setProperty("todayYear", today.year());
+    engine.globalObject().setProperty("todayMonth", today.month() - 1);
+    engine.globalObject().setProperty("todayDay", today.day());
 
     // Qt.formatDate is the only QML global DateUtils.js reaches; only the
     // "MMMM yyyy" form is used, so a minimal JS stand-in suffices for the spike.
@@ -158,20 +205,25 @@ int main(int argc, char *argv[]) {
         loadModule(JS_DIR "/SuspendDraw.js",
                    "{ draw: draw, computeSignature: computeSignature }") + ";";
 
-    const QString sample =
-        "var today = new Date(2026, 5, 25);"
-        "var entry = function(day, mark) { return mark; };"
-        "var mk = function(name, negative, marks) {"
+    // Join roster (display order + config) with the month's entries, flattening
+    // { state, updatedAt } cells to bare state strings and dropping empties —
+    // mirrors HabitsModel.toArray / statesOf, the projection SuspendDraw expects.
+    const QString data =
+        "var today = new Date(todayYear, todayMonth, todayDay);"
+        "var rosterDoc = JSON.parse(rosterJson);"
+        "var roster = rosterDoc && Array.isArray(rosterDoc.habits) ? rosterDoc.habits : [];"
+        "var monthDoc = JSON.parse(monthJson);"
+        "var month = monthDoc && monthDoc.entries ? monthDoc.entries : {};"
+        "var habits = roster.map(function(habit) {"
+        "  var cells = month[habit.id] || {};"
         "  var entries = {};"
-        "  for (var d in marks) entries['2026-06-' + (d < 10 ? '0' + d : d)] = marks[d];"
-        "  return { name: name, negative: negative, hideFromSleep: false, entries: entries };"
-        "};"
-        "var habits = ["
-        "  mk('Read', false, {1:'x',2:'x',3:'',4:'x',10:'x',24:'x',25:'x'}),"
-        "  mk('Exercise', false, {1:'x',5:'x',12:'x',20:'x'}),"
-        "  mk('No sugar', true, {3:'o',7:'o',15:'o'}),"
-        "  mk('Meditate', false, {25:'x'})"
-        "];";
+        "  Object.keys(cells).forEach(function(date) {"
+        "    var state = cells[date] && cells[date].state ? cells[date].state : '';"
+        "    if (state) entries[date] = state;"
+        "  });"
+        "  return { name: habit.name, negative: !!habit.negative,"
+        "    hideFromSleep: !!habit.hideFromSleep, entries: entries };"
+        "});";
 
     const QString cfg =
         "var cfg = { margin: 40, habitsWidth: 360, boxSize: 40, boxSpacing: 5,"
@@ -179,7 +231,7 @@ int main(int argc, char *argv[]) {
         "  subtitleFont: 24, labelFont: 28, dayLabelFont: 22, borderWidth: 2,"
         "  fg: '#000000', bg: '#ffffff' };";
 
-    const QString script = qtShim + dateUtils + suspendDraw + sample + cfg +
+    const QString script = qtShim + dateUtils + suspendDraw + data + cfg +
         "SuspendDraw.draw(ctx, 1404, 1872, habits, today, cfg);";
 
     const QJSValue result = engine.evaluate(script);
@@ -190,7 +242,6 @@ int main(int argc, char *argv[]) {
 
     painter.end();
 
-    const QString outPath = "suspended.png";
     if (!image.save(outPath)) {
         qWarning() << "failed to save" << outPath;
         return 1;
