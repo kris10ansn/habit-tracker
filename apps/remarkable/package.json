@@ -9,6 +9,7 @@
         "migrate:sync": "node scripts/migrate-habits-sync.mjs",
         "clean": "make clean",
         "deploy": "make deploy",
-        "remove": "make remove"
+        "remove": "make remove",
+        "backup": "make backup"
     }
 }
