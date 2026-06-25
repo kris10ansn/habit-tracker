@@ -1,2 +1,5 @@
 build/
 .backup/
+
+# Ignore suspend-writer binary and suspended.png output
+tools/suspend-writer/suspend*
