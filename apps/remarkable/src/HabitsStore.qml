@@ -128,6 +128,14 @@ QtObject {
         return i >= 0 && i < habits.count;
     }
 
+    function _nextEntryState(habitNegative, currentState) {
+        // positive habit: empty -> x -> o -> empty
+        // negative habit (displays X as default): empty(X) -> o -> empty(X)
+        return habitNegative
+            ? (currentState === "o" ? "" : "o")
+            : (currentState === "" ? "x" : currentState === "x" ? "o" : "");
+    }
+
     function add(name, negative) {
         const trimmed = (name || "").trim();
         if (!trimmed) {
@@ -208,9 +216,7 @@ QtObject {
         const currentEntries = habit.entries || {};
         const cell = currentEntries[dateKey];
         const current = cell && cell.state ? cell.state : "";
-        // positive: empty -> x -> o -> empty
-        // negative: empty(displayed X) -> o -> empty
-        const next = habit.negative ? (current === "o" ? "" : "o") : (current === "" ? "x" : current === "x" ? "o" : "");
+        const next = store._nextEntryState(habit.negative, current);
 
         // A cleared cell stays inline as { state: "", updatedAt } — a tombstone the next sync
         // sends, not a deleted key (ADR 0003). It renders as Unmarked and is pruned when sync overwrites.

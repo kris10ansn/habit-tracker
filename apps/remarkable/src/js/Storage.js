@@ -1,12 +1,14 @@
 const MISSING = "missing";
 const CORRUPT = "corrupt";
 
+const ok = (status) => status === 200 || status === 0;
+
 function writeFile(path, body) {
     const xhr = new XMLHttpRequest();
 
     xhr.onreadystatechange = () => {
         if (xhr.readyState !== xhr.DONE) return;
-        if (xhr.status === 200 || xhr.status === 0) return;
+        if (ok(xhr.status)) return;
 
         throw new Error(
             `Storage: write failed (status ${xhr.status}) for ${path}`,
@@ -28,8 +30,7 @@ function readFile(path) {
         xhr.open("GET", `file://${path}`, false);
         xhr.send();
 
-        const ok = xhr.status === 200 || xhr.status === 0;
-        if (!ok || !xhr.responseText) return MISSING;
+        if (!ok(xhr.status) || !xhr.responseText) return MISSING;
 
         return xhr.responseText;
     } catch (e) {
@@ -75,8 +76,7 @@ function readBinary(path) {
         xhr.responseType = "arraybuffer";
         xhr.send();
 
-        const ok = xhr.status === 200 || xhr.status === 0;
-        return ok && xhr.response ? xhr.response : null;
+        return ok(xhr.status) && xhr.response ? xhr.response : null;
     } catch (e) {
         console.log("Storage: could not read binary", path, "-", e);
         return null;

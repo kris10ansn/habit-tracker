@@ -15,7 +15,9 @@ Item {
 
     property bool staged: false
     property string stagedUrl: ""
-    readonly property bool dirty: staged !== suspendImageEnabled || stagedUrl.trim() !== serverUrl
+    readonly property bool suspendImageDirty: staged !== suspendImageEnabled
+    readonly property bool urlDirty: stagedUrl.trim() !== serverUrl
+    readonly property bool dirty: suspendImageDirty || urlDirty
 
     function _resync() {
         settingsPage.staged = settingsPage.suspendImageEnabled;
@@ -114,8 +116,7 @@ Item {
                 width: App.Theme.quitButtonWidth
                 height: App.Theme.quitButtonHeight
                 text: "Sync now"
-                // Operates on the committed URL, so require it set with no unsaved edit pending.
-                disabled: settingsPage.serverUrl.trim() === "" || settingsPage.stagedUrl.trim() !== settingsPage.serverUrl
+                disabled: settingsPage.serverUrl.trim() === "" || settingsPage.urlDirty
                 onClicked: settingsPage.syncNowRequested()
             }
 
@@ -153,10 +154,10 @@ Item {
     }
 
     function _commit() {
-        if (settingsPage.staged !== settingsPage.suspendImageEnabled) {
+        if (settingsPage.suspendImageDirty) {
             settingsPage.applyRequested(settingsPage.staged);
         }
-        if (settingsPage.stagedUrl.trim() !== settingsPage.serverUrl) {
+        if (settingsPage.urlDirty) {
             settingsPage.serverUrlApplied(settingsPage.stagedUrl.trim());
         }
 

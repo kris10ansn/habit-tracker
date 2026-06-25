@@ -33,9 +33,12 @@ Row {
             readonly property bool isFuture: day > gridRow.currentDay
             readonly property var cell: (gridRow.entries || {})[DateUtils.dateKey(gridRow.year, gridRow.month, day)]
             readonly property string entry: cell && cell.state ? cell.state : ""
-            readonly property string mark: entry === "x" ? "X"
-                                         : entry === "o" ? "O"
-                                         : gridRow.negative && !isFuture ? "X"
+            readonly property bool isMarkedPositive: entry === "x"
+            readonly property bool isMarkedNegative: entry === "o"
+            readonly property bool shouldShowDefaultX: gridRow.negative && !isFuture
+            readonly property string mark: isMarkedPositive ? "X"
+                                         : isMarkedNegative ? "O"
+                                         : shouldShowDefaultX ? "X"
                                          : ""
             readonly property bool faded: mark === "O" || isFuture
 

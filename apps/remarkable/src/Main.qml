@@ -11,16 +11,17 @@ Rectangle {
     anchors.fill: parent
     color: App.Theme.bg
 
+    readonly property bool hasServerUrl: (settingsStore.serverUrl || "").trim() !== ""
     readonly property string suspendStatusText: SuspendStatus.text(suspendCanvas.phase, suspendCanvas.remainingSeconds)
-    readonly property string syncStatusText: SyncStatus.text(syncStore.status, syncStore.lastSyncedAt, (settingsStore.serverUrl || "").trim() !== "", syncStore.remainingSeconds)
+    readonly property string syncStatusText: SyncStatus.text(syncStore.status, syncStore.lastSyncedAt, hasServerUrl, syncStore.remainingSeconds)
 
     signal close
 
     function _waitForPendingOperations() {
-        const syncPending = syncStore.status === "syncing" || syncStore.status === "pending";
-        const renderPending = suspendCanvas.phase === "saving" || suspendCanvas.phase === "pending";
+        const syncInProgress = syncStore.status === "syncing" || syncStore.status === "pending";
+        const renderInProgress = suspendCanvas.phase === "saving" || suspendCanvas.phase === "pending";
 
-        if (syncPending || renderPending) {
+        if (syncInProgress || renderInProgress) {
             Qt.callLater(() => root._waitForPendingOperations());
             return;
         }
@@ -37,11 +38,8 @@ Rectangle {
             suspendCanvas.renderAsync();
         }
 
-        // Don't block quit if last sync failed - will most likely fail again
         const lastSyncFailed = syncStore.status === "offline" || syncStore.status === "error";
-        const noServerUrl = (settingsStore.serverUrl || "").trim() === "";
-
-        if (noServerUrl !== "" && !lastSyncFailed) {
+        if (root.hasServerUrl && !lastSyncFailed) {
             syncStore.syncNow();
         }
 
@@ -68,24 +66,17 @@ Rectangle {
         syncStore.syncNow();
     }
 
-    // Enabling backs up the stock suspend image before the first overwrite; a
-    // failed backup aborts so we never clobber an unrecoverable original.
-    // Disabling restores it and invalidates the signature so a later enable
-    // re-renders. Commit only — staged in Settings until Done.
-    function applySuspendSetting(value) {
-        if (value === settingsStore.suspendImageEnabled)
-            return;
-
-        if (value) {
-            if (!suspendCanvas.backup())
-                return;
-            settingsStore.setSuspendImageEnabled(true);
+    function applySuspendSetting(enabled) {
+        if (enabled && !suspendCanvas.backup()) {
             return;
         }
 
-        settingsStore.setSuspendImageEnabled(false);
-        suspendCanvas.invalidateSignature();
-        suspendCanvas.restore();
+        settingsStore.setSuspendImageEnabled(enabled);
+
+        if (!enabled) {
+            suspendCanvas.invalidateSignature();
+            suspendCanvas.restore();
+        }
     }
 
     Component.onCompleted: console.log("Habit Tracker loaded; size:", width, "x", height)
