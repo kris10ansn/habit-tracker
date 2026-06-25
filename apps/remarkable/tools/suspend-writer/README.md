@@ -19,6 +19,36 @@ Proof of concept only: no settings/opt-in check, no backup, no `.sleep-sig` dedu
 | `--month`  | no       | `{}`          | The month whose entries to draw. Omitted → an empty grid.   |
 | `--today`  | no       | system date   | `YYYY-MM-DD`. Sets which day is highlighted and the cutoff. |
 | `--out`    | no       | `suspended.png` | Output PNG path.                                           |
+| `--js-dir` | no       | build default | Dir holding `SuspendDraw.js` + `DateUtils.js` (set this on-device). |
+
+## Building for the device (ARM)
+
+Unlike a live e-paper app, this is **headless** — it renders a `QImage` to PNG, so it needs no
+`epaper` plugin and never stops xochitl. That makes the cross-build simple:
+
+1. Unpack the reMarkable SDK at `./sdk` (rM1 = `cortexa9hf-neon`). Its `environment-setup-*` script
+   provides the cross `$CXX`, a sysroot-aware `pkg-config`, and the host `moc`.
+2. `./build-device.sh` → `./suspend-writer-arm` (ARM 32-bit ELF).
+
+**Qt version caveat.** The current SDK ships **Qt 6**, so the binary links `libQt6{Core,Gui,Qml}.so.6`
+— *not* the Qt 5.15 that the QML app's `rcc` targets. The device must provide matching Qt6 runtime
+libs. Verify on-device before relying on it: `ldd ./suspend-writer-arm` must show no "not found".
+
+Run it headless with the offscreen platform (its plugin ships in the sysroot under
+`usr/lib/plugins/platforms/`; copy it next to the binary if the device lacks it):
+
+```sh
+QT_QPA_PLATFORM=offscreen ./suspend-writer-arm \
+  --js-dir <dir with the two .js files> \
+  --roster <appload>/habit-tracker/data/roster.json \
+  --month  <appload>/habit-tracker/data/<YYYY-MM>.json \
+  --out    /usr/share/remarkable/suspended.png
+```
+
+Deploy alongside the binary: loose copies of `src/js/SuspendDraw.js` and `src/js/DateUtils.js` (the
+app bundles these inside `resources.rcc`, so they are *not* otherwise present on disk), pointed at by
+`--js-dir`. Writing `--out` to the system suspend image with no backup is the still-unaddressed
+data-loss risk (no settings/opt-in, no `.bak`).
 
 ## Input JSON shapes
 

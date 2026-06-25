@@ -6,7 +6,7 @@
 // roster.json + month YYYY-MM.json (same on-disk shapes the QML stores write).
 // Run: ./build.sh
 //      ./suspend-writer --roster <roster.json> [--month <YYYY-MM.json>]
-//                       [--today YYYY-MM-DD] [--out suspended.png]
+//                       [--today YYYY-MM-DD] [--out suspended.png] [--js-dir <dir>]
 
 #include <QGuiApplication>
 #include <QImage>
@@ -21,6 +21,8 @@
 #include <QDebug>
 #include <cmath>
 
+// Default location of the app's JS modules; overridable at runtime with --js-dir
+// (on the device the loose .js files live wherever they're deployed, not here).
 #ifndef JS_DIR
 #define JS_DIR "."
 #endif
@@ -140,6 +142,7 @@ int main(int argc, char *argv[]) {
 
     QString rosterPath, monthPath, todayArg;
     QString outPath = "suspended.png";
+    QString jsDir = QStringLiteral(JS_DIR);
     const QStringList args = app.arguments();
     for (int i = 1; i < args.size(); i++) {
         const QString &arg = args[i];
@@ -147,12 +150,13 @@ int main(int argc, char *argv[]) {
         else if (arg == "--month" && i + 1 < args.size()) monthPath = args[++i];
         else if (arg == "--today" && i + 1 < args.size()) todayArg = args[++i];
         else if (arg == "--out" && i + 1 < args.size()) outPath = args[++i];
+        else if (arg == "--js-dir" && i + 1 < args.size()) jsDir = args[++i];
         else { qWarning() << "unknown argument" << arg; return 2; }
     }
 
     if (rosterPath.isEmpty()) {
         qWarning() << "usage: suspend-writer --roster <roster.json> [--month <YYYY-MM.json>]"
-                   << "[--today YYYY-MM-DD] [--out suspended.png]";
+                   << "[--today YYYY-MM-DD] [--out suspended.png] [--js-dir <dir>]";
         return 2;
     }
 
@@ -196,13 +200,13 @@ int main(int argc, char *argv[]) {
 
     const QString dateUtils =
         "var DateUtils = " +
-        loadModule(JS_DIR "/DateUtils.js",
+        loadModule(jsDir + "/DateUtils.js",
                    "{ daysInMonth: daysInMonth, monthName: monthName, dateKey: dateKey, "
                    "monthKey: monthKey, ordinal: ordinal }") + ";";
 
     const QString suspendDraw =
         "var SuspendDraw = " +
-        loadModule(JS_DIR "/SuspendDraw.js",
+        loadModule(jsDir + "/SuspendDraw.js",
                    "{ draw: draw, computeSignature: computeSignature }") + ";";
 
     // Join roster (display order + config) with the month's entries, flattening

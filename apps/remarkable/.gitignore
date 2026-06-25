@@ -7,3 +7,6 @@ tools/suspend-writer/suspend*
 tools/suspend-writer/main.moc
 # Ignore sample json files for debugging
 tools/suspend-writer/*.json
+# Ignore the reMarkable SDK (huge, user-installed locally) and its installers
+tools/suspend-writer/sdk/
+tools/suspend-writer/*-toolchain.sh
