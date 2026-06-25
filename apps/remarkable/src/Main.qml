@@ -38,9 +38,8 @@ Rectangle {
             suspendCanvas.renderAsync();
         }
 
-        const lastSyncFailed = syncStore.status === "offline" || syncStore.status === "error";
-        if (root.hasServerUrl && !lastSyncFailed) {
-            syncStore.syncNow();
+        if (!syncStore.hasSyncedSuccessfully) {
+            syncStore.abortSync();
         }
 
         root._waitForPendingOperations();

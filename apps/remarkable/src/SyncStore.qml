@@ -24,6 +24,7 @@ JsonStore {
     property string status: ""
     property string errorMessage: ""
     property int remainingSeconds: 0
+    property bool hasSyncedSuccessfully: false
 
     serialize: function () {
         return {
@@ -159,15 +160,29 @@ JsonStore {
         syncStore.lastSyncedAt = Date.now();
         syncStore.errorMessage = "";
         syncStore.status = "ok";
+        syncStore.hasSyncedSuccessfully = true;
         syncStore.scheduleSave();
     }
 
-    function _abort() {
+    function abortSync() {
+        syncStore._syncTimer.stop();
+        syncStore._tickTimer.stop();
+        syncStore._timeoutTimer.stop();
+        syncStore.remainingSeconds = 0;
+
         const xhr = syncStore._activeXhr;
         syncStore._activeXhr = null;
         if (xhr) {
             xhr.abort();
         }
+
+        if (syncStore.status === "syncing" || syncStore.status === "pending") {
+            syncStore.status = "";
+        }
+    }
+
+    function _abort() {
+        syncStore.abortSync();
         syncStore._fail("offline", "Sync timed out");
     }
 
