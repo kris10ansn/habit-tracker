@@ -34,7 +34,7 @@ Rectangle {
         settingsStore.flushPendingSave();
         syncStore.flushPendingSave();
 
-        if (settingsStore.suspendImageEnabled) {
+        if (settingsStore.suspendImageEnabled && landscape.isCurrentMonth) {
             suspendCanvas.renderAsync();
         }
 
@@ -50,7 +50,7 @@ Rectangle {
         habitsStore.flushPendingSave();
         settingsStore.flushPendingSave();
         syncStore.flushPendingSave();
-        if (settingsStore.suspendImageEnabled)
+        if (settingsStore.suspendImageEnabled && landscape.isCurrentMonth)
             suspendCanvas.renderSync();
     }
 
@@ -104,7 +104,7 @@ Rectangle {
     Connections {
         target: habitsStore
         function onSaved() {
-            if (!landscape.editing && settingsStore.suspendImageEnabled)
+            if (!landscape.editing && settingsStore.suspendImageEnabled && landscape.isCurrentMonth)
                 suspendCanvas.scheduleRender();
             syncStore.scheduleSync();
         }
@@ -128,7 +128,7 @@ Rectangle {
     Connections {
         target: settingsStore
         function onSuspendImageEnabledChanged() {
-            if (settingsStore.suspendImageEnabled && landscape.gridReady && !landscape.editing)
+            if (settingsStore.suspendImageEnabled && landscape.gridReady && !landscape.editing && landscape.isCurrentMonth)
                 suspendCanvas.renderAsync();
         }
     }
@@ -141,7 +141,6 @@ Rectangle {
         rotation: 90
 
         property date today: new Date()
-        property int daysInMonth: DateUtils.daysInMonth(today)
         property int currentDay: today.getDate()
         property int currentYear: today.getFullYear()
         property int currentMonth: today.getMonth()
@@ -149,7 +148,64 @@ Rectangle {
         property int pendingDeleteIndex: -1
         property string currentView: "grid"
 
-        onEditingChanged: if (!editing && settingsStore.suspendImageEnabled)
+        // The month on screen. Starts on the real current month; the header arrows
+        // move it. The grid, the day count, and (via habitsStore) the loaded entries
+        // and sync unit all follow it. Only the real current month highlights today
+        // and drives the suspend image.
+        property int viewYear: currentYear
+        property int viewMonth: currentMonth
+        readonly property bool isCurrentMonth: viewYear === currentYear && viewMonth === currentMonth
+        readonly property bool viewIsAfterCurrent: viewYear > currentYear || (viewYear === currentYear && viewMonth > currentMonth)
+        readonly property date viewDate: isCurrentMonth ? today : new Date(viewYear, viewMonth, 1)
+        property int daysInMonth: DateUtils.daysInMonth(viewDate)
+
+        readonly property int highlightDay: isCurrentMonth ? currentDay : 0
+        readonly property int lastNonFutureDay: isCurrentMonth ? currentDay : (viewIsAfterCurrent ? 0 : daysInMonth)
+
+        function goToMonth(year, month) {
+            landscape.viewYear = year;
+            landscape.viewMonth = month;
+            habitsStore.loadMonth(year, month);
+            landscape.recenterScroll();
+
+            // Pull the arrived-at month from the server (no-op when standalone).
+            syncStore.syncNow();
+
+            if (!landscape.isCurrentMonth) {
+                // A render debounced against the current month must not fire now
+                // that the model holds another month.
+                suspendCanvas.cancelPending();
+                return;
+            }
+
+            // Back on the current month: refresh the suspend image if it drifted
+            // while we were away (e.g. suspend enabled mid-browse). scheduleRender
+            // self-dedups, so an unchanged current month costs nothing.
+            if (settingsStore.suspendImageEnabled && !landscape.editing)
+                suspendCanvas.scheduleRender();
+        }
+
+        function goToPreviousMonth() {
+            const previous = new Date(landscape.viewYear, landscape.viewMonth - 1, 1);
+            landscape.goToMonth(previous.getFullYear(), previous.getMonth());
+        }
+
+        function goToNextMonth() {
+            const next = new Date(landscape.viewYear, landscape.viewMonth + 1, 1);
+            landscape.goToMonth(next.getFullYear(), next.getMonth());
+        }
+
+        function goToCurrentMonth() {
+            landscape.goToMonth(landscape.currentYear, landscape.currentMonth);
+        }
+
+        function recenterScroll() {
+            landscape.scrollX = landscape.isCurrentMonth
+                ? Scroll.centerOnDay(landscape.currentDay, landscape.viewportWidth, App.Theme.boxSize, App.Theme.boxSpacing, landscape.maxScrollX)
+                : 0;
+        }
+
+        onEditingChanged: if (!editing && settingsStore.suspendImageEnabled && isCurrentMonth)
             suspendCanvas.renderAsync()
 
         property int step: App.Theme.boxSize + App.Theme.boxSpacing
@@ -162,10 +218,10 @@ Rectangle {
         readonly property bool gridReady: gridLoader.status === Loader.Ready
         readonly property bool loading: !gridReady
 
-        onViewportWidthChanged: scrollX = Scroll.centerOnDay(currentDay, viewportWidth, App.Theme.boxSize, App.Theme.boxSpacing, maxScrollX)
+        onViewportWidthChanged: recenterScroll()
 
         // Vertical scrolling for when the habit rows overflow the available height.
-        property int viewportHeight: height - 2 * App.Theme.margin - monthHeader.height - App.Theme.quitButtonHeight - 2 * App.Theme.rowSpacing
+        property int viewportHeight: height - 2 * App.Theme.margin - monthHeaderRow.height - App.Theme.quitButtonHeight - 2 * App.Theme.rowSpacing
         property int bodyViewportHeight: viewportHeight - App.Theme.dayLabelHeight - App.Theme.rowSpacing
         property int rowStep: App.Theme.boxSize + App.Theme.rowSpacing
         property int scrollRows: Math.max(1, Math.floor(bodyViewportHeight / rowStep) - 1)
@@ -193,10 +249,43 @@ Rectangle {
                 anchors.margins: App.Theme.margin
                 spacing: App.Theme.rowSpacing
 
-                App.MonthHeader {
-                    id: monthHeader
-                    date: landscape.today
-                    warn: suspendCanvas.lastRenderFailed
+                Row {
+                    id: monthHeaderRow
+                    spacing: App.Theme.buttonGap
+
+                    App.AppButton {
+                        width: App.Theme.buttonWidth
+                        height: monthHeader.height
+                        text: "‹"
+                        fontSize: App.Theme.scrollFont
+                        disabled: landscape.loading
+                        onClicked: landscape.goToPreviousMonth()
+                    }
+
+                    App.MonthHeader {
+                        id: monthHeader
+                        date: landscape.viewDate
+                        isCurrentMonth: landscape.isCurrentMonth
+                        warn: suspendCanvas.lastRenderFailed
+                    }
+
+                    App.AppButton {
+                        width: App.Theme.buttonWidth
+                        height: monthHeader.height
+                        text: "›"
+                        fontSize: App.Theme.scrollFont
+                        disabled: landscape.loading
+                        onClicked: landscape.goToNextMonth()
+                    }
+
+                    App.AppButton {
+                        width: App.Theme.quitButtonWidth
+                        height: monthHeader.height
+                        visible: !landscape.isCurrentMonth
+                        text: "Today"
+                        disabled: landscape.loading
+                        onClicked: landscape.goToCurrentMonth()
+                    }
                 }
 
                 Row {
@@ -235,7 +324,7 @@ Rectangle {
                         asynchronous: true
                         active: habitsStore.isLoaded
                         visible: status === Loader.Ready
-                        onLoaded: if (settingsStore.suspendImageEnabled)
+                        onLoaded: if (settingsStore.suspendImageEnabled && landscape.isCurrentMonth)
                             suspendCanvas.renderAsync()
 
                         sourceComponent: Component {
@@ -244,9 +333,10 @@ Rectangle {
                                 viewportHeight: landscape.viewportHeight
                                 habits: habitsStore.habits
                                 daysInMonth: landscape.daysInMonth
-                                currentDay: landscape.currentDay
-                                year: landscape.currentYear
-                                month: landscape.currentMonth
+                                highlightDay: landscape.highlightDay
+                                lastNonFutureDay: landscape.lastNonFutureDay
+                                year: landscape.viewYear
+                                month: landscape.viewMonth
                                 editing: landscape.editing
                                 scrollX: landscape.scrollX
                                 scrollY: landscape.scrollY

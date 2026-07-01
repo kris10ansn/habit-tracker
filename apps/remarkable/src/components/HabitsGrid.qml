@@ -7,7 +7,8 @@ Item {
 
     property var habits: []
     property int daysInMonth: 0
-    property int currentDay: 0
+    property int highlightDay: 0
+    property int lastNonFutureDay: 0
     property int year: 0
     property int month: 0
     property bool editing: false
@@ -28,7 +29,7 @@ Item {
         id: dayLabels
         x: -grid.scrollX
         daysInMonth: grid.daysInMonth
-        currentDay: grid.currentDay
+        highlightDay: grid.highlightDay
         boxSize: grid.boxSize
         boxSpacing: grid.boxSpacing
     }
@@ -53,7 +54,8 @@ Item {
 
                 HabitGridRow {
                     daysInMonth: grid.daysInMonth
-                    currentDay: grid.currentDay
+                    highlightDay: grid.highlightDay
+                    lastNonFutureDay: grid.lastNonFutureDay
                     year: grid.year
                     month: grid.month
                     negative: model.negative

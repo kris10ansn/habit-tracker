@@ -97,6 +97,12 @@ Canvas {
         _save();
     }
 
+    // Drop a queued (debounced) render before it fires. Used when leaving the
+    // current month so a render scheduled against it can't paint another month.
+    function cancelPending() {
+        _cancelPending();
+    }
+
     function backup() {
         canvas.phase = "backing-up";
         const ok = SuspendRender.copyFile(canvas.targetPath, canvas.backupPath);

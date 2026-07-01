@@ -6,9 +6,10 @@ Default habits) lives in the [root glossary](../../CONTEXT.md); see
 [CONTEXT-MAP.md](../../CONTEXT-MAP.md). This file covers only what's specific to running on the
 device: the suspend image, settings, and edit mode.
 
-Presentation note: this client lays habits as **rows** and days-of-the-current-month as
-**columns** (landscape), with today's column highlighted. A negative habit's name carries a
-`(−)` suffix and its future days render muted.
+Presentation note: this client lays habits as **rows** and days-of-the-**viewed month** as
+**columns** (landscape). Only when the viewed month is the current month is today's column
+highlighted; other months show no highlight. A negative habit's name carries a `(−)` suffix and
+its future days render muted.
 
 ## Language
 
@@ -43,6 +44,23 @@ _Avoid_: options, preferences pane, config screen.
 The state, toggled by Edit/Done, in which rows become editable — reorder, rename, delete,
 toggle polarity, toggle suspend visibility — and an empty add-row appears at the bottom.
 
+**Current month**:
+The real calendar month (`new Date()`). It alone highlights today, drives the suspend image, and
+is where the grid opens. Distinct from the viewed month.
+_Avoid_: this month, present month.
+
+**Viewed month**:
+The month whose entries the grid currently shows — the current month by default, moved by the
+header `‹` / `›` arrows. Its entries are loaded into the one in-memory model and its file is the
+sync unit; editing works on any viewed month. The **Today** button (shown only off-current)
+returns to the current month.
+_Avoid_: selected month, shown month, browsed month (in code/UI copy).
+
+**Month navigation**:
+Stepping the viewed month backward/forward with the header arrows. Unbounded in both directions;
+a month with no data shows an empty grid and writes no file until a box is toggled.
+_Avoid_: month switcher, month picker, paging.
+
 ### Storage
 
 **Data directory**:
@@ -61,8 +79,8 @@ _Avoid_: habit list, config.
 _Avoid_: habits.json (the legacy single-file name).
 
 **Month file**:
-`data/YYYY-MM.json`, persisting one calendar month's entries keyed by habit id. Only the current
-month's file is loaded.
+`data/YYYY-MM.json`, persisting one calendar month's entries keyed by habit id. Exactly one
+month's file — the viewed month — is loaded at a time; navigating re-points to another.
 _Avoid_: entries file, day file.
 
 ### Sync

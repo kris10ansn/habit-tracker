@@ -3,15 +3,15 @@
 > Part of the **habit-tracker** monorepo — this is the `apps/remarkable/` client. Run the
 > `make` commands below from this directory. The sibling expo client lives in `apps/mobile/`.
 
-A small habit tracker for the **reMarkable 1** e-ink tablet. The reMarkable has no app ecosystem and no official way to run third-party software, but a community modding stack ([XOVI](https://github.com/asivery/xovi) + [rm-appload](https://github.com/asivery/rm-appload)) lets you load custom QML scenes inside the stock UI process. This is one such scene — a calendar grid of habits × days of the current month, persisted to disk, with a twist: it can overwrite the tablet's **suspend image** (the full-screen image shown while the device sleeps) with today's grid, so the habits are the first thing you see when you wake the device. That overwrite is opt-in — you turn it on in **Settings**.
+A small habit tracker for the **reMarkable 1** e-ink tablet. The reMarkable has no app ecosystem and no official way to run third-party software, but a community modding stack ([XOVI](https://github.com/asivery/xovi) + [rm-appload](https://github.com/asivery/rm-appload)) lets you load custom QML scenes inside the stock UI process. This is one such scene — a calendar grid of habits × days of the month (with arrows to step back and forth through months), persisted to disk, with a twist: it can overwrite the tablet's **suspend image** (the full-screen image shown while the device sleeps) with today's grid, so the habits are the first thing you see when you wake the device. That overwrite is opt-in — you turn it on in **Settings**.
 
 No accounts, no telemetry. It runs fully standalone and offline by default — just a QML scene drawn by the same Qt process that already runs the device's UI. Optionally, point it at a self-hosted server (Settings → **Sync server**) to sync your habits across devices; leave it blank and nothing ever leaves the tablet.
 
 ## What it looks like
 
 ```
-June 2026
-30 days · today is the 5th
+‹  June 2026  ›
+   30 days · today is the 5th
 
                          1  2  3  4  [5] 6  7  8  9  10 …
 Read 20 pages           ▢ ▢ ▢ ▢ ▣ ▢ ▢ ▢ ▢ ▢ …
@@ -26,12 +26,13 @@ Journal                 ▢ ▢ ▢ ▢ ▣ ▢ ▢ ▢ ▢ ▢ …
 ## Features
 
 - **Calendar grid layout.** One row per habit, one column per day of the month, today's column highlighted in inverted ink. Horizontal `‹` / `›` buttons scroll a week at a time when the month doesn't fit; the view opens centered on today. Vertical `↑` / `↓` buttons scroll a page of habits at a time when the list is taller than the screen; the day-of-month header stays fixed while the rows scroll. The grid builds asynchronously on launch — until it's ready a `Loading…` placeholder fills its place and the `‹` / `›` buttons stay disabled.
+- **Month navigation.** `‹` / `›` arrows either side of the month header step back and forth through months — unbounded in both directions, so you can review any past month or peek ahead. Any month is fully editable: tap cells to backfill a month you never tracked (its file is written lazily, only once you mark something). Only the current month highlights today and feeds the suspend image; other months show no highlight. A **Today** button appears in the header while you're off the current month and jumps straight back.
 - **Two habit modes.**
     - _Positive_ habits cycle empty → X → O → empty. X = done, O = explicitly not done.
     - _Negative_ habits invert it: every day is implicitly X ("didn't slip up today"), tap to flip to O when you do slip. Future days render muted and the name carries a `(−)` suffix.
 - **Suspend-image overlay (opt-in).** Off by default; enable it on the **Settings** page. While on, the latest habit grid is the suspend image. Enabling backs up the original `suspended.png` first; disabling restores it. Per-habit `Z` toggles (shown in edit mode while the feature is on) hide individual rows from the suspend image (they still show in the app).
 - **Settings.** A small settings page (button next to **Quit**) with the suspend-image-writing `On` / `Off` toggle and a **Sync server** address field. Changes are staged and applied on **Done**, which returns to the grid and runs the backup/restore — its progress shows in the grid's status line. **Back** discards staged changes (with a confirmation if you've changed anything).
-- **Optional offline-first sync.** Leave the **Sync server** blank and the app is fully local. Enter a server address and it syncs your roster and the current month with that server — on open, a few seconds after edits, and via a **Sync now** button. Conflicts resolve last-write-wins per habit and per day; deletes propagate as tombstones. It's offline-tolerant: when the server is unreachable you keep working and a quiet status line (below the suspend status) counts the debounce down ("Syncing in 3s" → "Syncing…") and then shows the outcome ("Synced to server" / "Sync failed: offline"). The endpoint is unauthenticated, so run it on a trusted network (home LAN / Tailscale / VPN), not the open internet.
+- **Optional offline-first sync.** Leave the **Sync server** blank and the app is fully local. Enter a server address and it syncs your roster and the month you're viewing with that server — on open, whenever you navigate to a month, a few seconds after edits, and via a **Sync now** button. Conflicts resolve last-write-wins per habit and per day; deletes propagate as tombstones. It's offline-tolerant: when the server is unreachable you keep working and a quiet status line (below the suspend status) counts the debounce down ("Syncing in 3s" → "Syncing…") and then shows the outcome ("Synced to server" / "Sync failed: offline"). The endpoint is unauthenticated, so run it on a trusted network (home LAN / Tailscale / VPN), not the open internet.
 - **In-app editing.** Reorder, rename, delete, toggle positive/negative, toggle suspend visibility, add new habits — all from the device. No editing JSON by SSH.
 - **Local persistence.** Habit data lives under a `data/` folder on the device: `roster.json` (the habit list + config) plus one `YYYY-MM.json` per month (that month's entries); `sync.json` holds sync bookkeeping. App preferences stay in `settings.json`. A single tap rewrites only the current month, not all of history. Saves fail loudly — if `data/` is missing, a dialog says so rather than dropping your entries silently.
 
@@ -56,6 +57,7 @@ On the tablet, hold the middle button for ~3 seconds to open apploader, then tap
 ## Daily use
 
 - **Tap a cell** to cycle its state.
+- **`‹` / `›` beside the month title** move to the previous / next month; **Today** (appears once you're off the current month) jumps back. Editing works in any month, so you can backfill a month you missed.
 - **Edit** (bottom-left) enters edit mode. Each row gains `↑` / `↓` (reorder), `×` (delete with confirmation), `−` (toggle negative), `Z` (toggle suspend visibility — only shown while suspend-image writing is on), and the name becomes a text input. An empty row at the bottom of the list takes a new habit name; tap `+` or press Enter to add.
 - **Done** leaves edit mode.
 - **Settings** (bottom-right, left of Quit) opens the settings page. Toggle suspend-image writing `On` / `Off`, and/or type a **Sync server** address (e.g. `http://192.168.1.50:5137`; blank = offline). **Done** applies and returns to the grid — enabling suspend writing backs up your current suspend image and starts drawing the grid there; disabling restores the backup; a non-blank server triggers a sync. **Sync now** forces an immediate sync. **Back** returns without applying.

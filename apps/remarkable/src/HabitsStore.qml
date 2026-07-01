@@ -16,7 +16,13 @@ QtObject {
 
     readonly property string dataDir: "/home/root/xovi/exthome/appload/habit-tracker/data"
     property date today: new Date()
-    readonly property string monthKey: DateUtils.monthKey(today.getFullYear(), today.getMonth())
+
+    // The month the grid is currently viewing. Starts on the real current month;
+    // month navigation re-points it (see loadMonth). monthKey — and thus the month
+    // file path and the sync unit — follow it.
+    property int viewYear: today.getFullYear()
+    property int viewMonth: today.getMonth()
+    readonly property string monthKey: DateUtils.monthKey(viewYear, viewMonth)
 
     property ListModel habits: ListModel {
         dynamicRoles: true
@@ -256,6 +262,24 @@ QtObject {
 
         store._roster._doSave();
         store._month._doSave();
+    }
+
+    // Swap the in-memory entries to another month's file. Flush any pending edit
+    // to the *old* file first (filePath still points there until viewYear/Month
+    // change), then re-point and re-read, folding the new month's entries onto the
+    // roster. The roster (identity/config) is month-independent and stays put.
+    function loadMonth(year, month) {
+        if (year === store.viewYear && month === store.viewMonth) {
+            return;
+        }
+
+        store._month.flushPendingSave();
+
+        store.viewYear = year;
+        store.viewMonth = month;
+
+        store._monthApplied = false;
+        store._month.reload();
     }
 
     function flushPendingSave() {

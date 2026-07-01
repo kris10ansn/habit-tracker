@@ -109,12 +109,13 @@ JsonStore {
 
         const roster = HabitsModel.toRoster(syncStore.habitsStore.habits);
         const monthEntries = HabitsModel.toMonthEntries(syncStore.habitsStore.habits);
-        const request = Sync.buildRequest(roster, monthEntries, syncStore.monthKey, syncStore.habitTombstones);
+        const requestMonthKey = syncStore.monthKey;
+        const request = Sync.buildRequest(roster, monthEntries, requestMonthKey, syncStore.habitTombstones);
 
-        syncStore._send(syncStore._endpoint(url), request);
+        syncStore._send(syncStore._endpoint(url), request, requestMonthKey);
     }
 
-    function _send(endpoint, request) {
+    function _send(endpoint, request, requestMonthKey) {
         const xhr = new XMLHttpRequest();
         syncStore._activeXhr = xhr;
 
@@ -125,7 +126,7 @@ JsonStore {
 
             syncStore._activeXhr = null;
             syncStore._timeoutTimer.stop();
-            syncStore._handleDone(xhr, request);
+            syncStore._handleDone(xhr, request, requestMonthKey);
         };
 
         xhr.open("POST", endpoint);
@@ -134,7 +135,7 @@ JsonStore {
         xhr.send(JSON.stringify(request));
     }
 
-    function _handleDone(xhr, request) {
+    function _handleDone(xhr, request, requestMonthKey) {
         if (xhr.status === 0) {
             syncStore._fail("offline", "Couldn’t reach the server");
             return;
@@ -150,8 +151,17 @@ JsonStore {
             return;
         }
 
+        // The user navigated to a different month while this request was in flight.
+        // The response describes requestMonthKey, not what's on screen — applying it
+        // would fold one month's entries onto another. Drop it; the arrival sync for
+        // the now-viewed month reconciles, and unpushed tombstones resend next round.
+        if (syncStore.monthKey !== requestMonthKey) {
+            syncStore.status = "";
+            return;
+        }
+
         if (Sync.responseChangesLocal(request, response)) {
-            const applied = Sync.applyResponse(response, syncStore.monthKey);
+            const applied = Sync.applyResponse(response, requestMonthKey);
             syncStore.habitsStore.applySynced(applied.roster, applied.entriesByHabitId);
         }
 
