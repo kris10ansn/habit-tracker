@@ -249,43 +249,15 @@ Rectangle {
                 anchors.margins: App.Theme.margin
                 spacing: App.Theme.rowSpacing
 
-                Row {
+                App.MonthNavHeader {
                     id: monthHeaderRow
-                    spacing: App.Theme.buttonGap
-
-                    App.AppButton {
-                        width: App.Theme.buttonWidth
-                        height: monthHeader.height
-                        text: "‹"
-                        fontSize: App.Theme.scrollFont
-                        disabled: landscape.loading
-                        onClicked: landscape.goToPreviousMonth()
-                    }
-
-                    App.MonthHeader {
-                        id: monthHeader
-                        date: landscape.viewDate
-                        isCurrentMonth: landscape.isCurrentMonth
-                        warn: suspendCanvas.lastRenderFailed
-                    }
-
-                    App.AppButton {
-                        width: App.Theme.buttonWidth
-                        height: monthHeader.height
-                        text: "›"
-                        fontSize: App.Theme.scrollFont
-                        disabled: landscape.loading
-                        onClicked: landscape.goToNextMonth()
-                    }
-
-                    App.AppButton {
-                        width: App.Theme.quitButtonWidth
-                        height: monthHeader.height
-                        visible: !landscape.isCurrentMonth
-                        text: "Today"
-                        disabled: landscape.loading
-                        onClicked: landscape.goToCurrentMonth()
-                    }
+                    date: landscape.viewDate
+                    isCurrentMonth: landscape.isCurrentMonth
+                    warn: suspendCanvas.lastRenderFailed
+                    disabled: landscape.loading
+                    onPreviousRequested: landscape.goToPreviousMonth()
+                    onNextRequested: landscape.goToNextMonth()
+                    onCurrentRequested: landscape.goToCurrentMonth()
                 }
 
                 Row {
@@ -365,84 +337,26 @@ Rectangle {
                     }
 
                     // Vertical ↑ / ↓ buttons scroll a page of habits; shown only when they overflow the height.
-                    Column {
-                        spacing: App.Theme.rowSpacing
+                    App.VerticalScrollButtons {
                         visible: landscape.canScrollY
-
-                        Item {
-                            width: App.Theme.buttonWidth
-                            height: App.Theme.dayLabelHeight
-                        }
-
-                        App.AppButton {
-                            width: App.Theme.buttonWidth
-                            height: (landscape.bodyViewportHeight - App.Theme.rowSpacing) / 2
-                            text: "↑"
-                            fontSize: App.Theme.scrollFont
-                            disabled: landscape.loading || landscape.scrollY <= 0
-                            onClicked: landscape.scrollY = Scroll.scrollByBoxes(landscape.scrollY, -landscape.scrollRows, landscape.rowStep, landscape.maxScrollY)
-                        }
-
-                        App.AppButton {
-                            width: App.Theme.buttonWidth
-                            height: (landscape.bodyViewportHeight - App.Theme.rowSpacing) / 2
-                            text: "↓"
-                            fontSize: App.Theme.scrollFont
-                            disabled: landscape.loading || landscape.scrollY >= landscape.maxScrollY
-                            onClicked: landscape.scrollY = Scroll.scrollByBoxes(landscape.scrollY, landscape.scrollRows, landscape.rowStep, landscape.maxScrollY)
-                        }
+                        buttonHeight: (landscape.bodyViewportHeight - App.Theme.rowSpacing) / 2
+                        upDisabled: landscape.loading || landscape.scrollY <= 0
+                        downDisabled: landscape.loading || landscape.scrollY >= landscape.maxScrollY
+                        onScrollUp: landscape.scrollY = Scroll.scrollByBoxes(landscape.scrollY, -landscape.scrollRows, landscape.rowStep, landscape.maxScrollY)
+                        onScrollDown: landscape.scrollY = Scroll.scrollByBoxes(landscape.scrollY, landscape.scrollRows, landscape.rowStep, landscape.maxScrollY)
                     }
                 }
             }
 
-            App.AppButton {
-                id: quitButton
-                anchors.right: parent.right
-                anchors.bottom: parent.bottom
-                anchors.margins: App.Theme.margin
-                width: App.Theme.quitButtonWidth
-                height: App.Theme.quitButtonHeight
-                text: "Quit"
-                onClicked: quit()
-            }
-
-            App.AppButton {
-                id: settingsButton
-                anchors.right: quitButton.left
-                anchors.rightMargin: App.Theme.buttonGap
-                anchors.bottom: parent.bottom
-                anchors.bottomMargin: App.Theme.margin
-                width: App.Theme.quitButtonWidth
-                height: App.Theme.quitButtonHeight
-                text: "Settings"
-                disabled: landscape.loading
-                onClicked: landscape.currentView = "settings"
-            }
-
-            App.AppButton {
-                id: editButton
-                anchors.left: parent.left
-                anchors.bottom: parent.bottom
-                anchors.margins: App.Theme.margin
-                width: App.Theme.quitButtonWidth
-                height: App.Theme.quitButtonHeight
-                text: landscape.editing ? "Done" : "Edit"
-                disabled: landscape.loading
-                onClicked: landscape.editing = !landscape.editing
-            }
-
-            Column {
-                anchors.left: editButton.right
-                anchors.leftMargin: App.Theme.buttonGap
-                anchors.verticalCenter: editButton.verticalCenter
-
-                App.StatusText {
-                    text: root.suspendStatusText
-                }
-
-                App.StatusText {
-                    text: root.syncStatusText
-                }
+            App.GridBottomBar {
+                anchors.fill: parent
+                editing: landscape.editing
+                loading: landscape.loading
+                suspendStatusText: root.suspendStatusText
+                syncStatusText: root.syncStatusText
+                onEditToggled: landscape.editing = !landscape.editing
+                onSettingsRequested: landscape.currentView = "settings"
+                onQuitRequested: quit()
             }
 
             App.ConfirmDialog {

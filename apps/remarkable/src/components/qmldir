@@ -1,14 +1,17 @@
 AppButton 1.0 AppButton.qml
 MonthHeader 1.0 MonthHeader.qml
+MonthNavHeader 1.0 MonthNavHeader.qml
 HabitRow 1.0 HabitRow.qml
 HabitAddRow 1.0 HabitAddRow.qml
 DayLabelsRow 1.0 DayLabelsRow.qml
 HabitGridRow 1.0 HabitGridRow.qml
 ConfirmDialog 1.0 ConfirmDialog.qml
 SideScrollButton 1.0 SideScrollButton.qml
+VerticalScrollButtons 1.0 VerticalScrollButtons.qml
 HabitsColumn 1.0 HabitsColumn.qml
 HabitsGrid 1.0 HabitsGrid.qml
 SuspendCanvas 1.0 SuspendCanvas.qml
 StatusText 1.0 StatusText.qml
 SegmentedToggle 1.0 SegmentedToggle.qml
 SettingsPage 1.0 SettingsPage.qml
+GridBottomBar 1.0 GridBottomBar.qml

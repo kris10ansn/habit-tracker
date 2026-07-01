@@ -10,18 +10,21 @@
         <file>src/components/qmldir</file>
         <file>src/components/AppButton.qml</file>
         <file>src/components/MonthHeader.qml</file>
+        <file>src/components/MonthNavHeader.qml</file>
         <file>src/components/HabitRow.qml</file>
         <file>src/components/HabitAddRow.qml</file>
         <file>src/components/DayLabelsRow.qml</file>
         <file>src/components/HabitGridRow.qml</file>
         <file>src/components/ConfirmDialog.qml</file>
         <file>src/components/SideScrollButton.qml</file>
+        <file>src/components/VerticalScrollButtons.qml</file>
         <file>src/components/HabitsColumn.qml</file>
         <file>src/components/HabitsGrid.qml</file>
         <file>src/components/SuspendCanvas.qml</file>
         <file>src/components/StatusText.qml</file>
         <file>src/components/SegmentedToggle.qml</file>
         <file>src/components/SettingsPage.qml</file>
+        <file>src/components/GridBottomBar.qml</file>
         <file>src/js/DateUtils.js</file>
         <file>src/js/habits.js</file>
         <file>src/js/HabitsModel.js</file>
