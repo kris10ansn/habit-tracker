@@ -6,16 +6,19 @@ namespace HabitTracker.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-public class HabitsController : ControllerBase
+public class HabitsController(HabitService _habits, ILogger<HabitsController> _logger) : ControllerBase
 {
-    private readonly HabitService _habits;
-
-    public HabitsController(HabitService habits) => _habits = habits;
 
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<HabitResponse>>> GetHabits(
         CancellationToken cancellationToken
-    ) => Ok(await _habits.GetHabitsAsync(cancellationToken));
+    )
+    {
+        var habits = await _habits.GetHabitsAsync(cancellationToken);
+        _logger.LogInformation("Returned {HabitCount} habits", habits.Count);
+
+        return Ok(habits);
+    }
 
     [HttpGet("{id:guid}")]
     public async Task<ActionResult<HabitResponse>> GetHabit(
@@ -24,7 +27,13 @@ public class HabitsController : ControllerBase
     )
     {
         var habit = await _habits.GetHabitAsync(id, cancellationToken);
-        return habit is null ? NotFound() : Ok(habit);
+        if (habit is null)
+        {
+            _logger.LogInformation("Habit {HabitId} not found", id);
+            return NotFound();
+        }
+
+        return Ok(habit);
     }
 
     [HttpPost]
@@ -34,6 +43,8 @@ public class HabitsController : ControllerBase
     )
     {
         var habit = await _habits.CreateHabitAsync(request, cancellationToken);
+        _logger.LogInformation("Created habit {HabitId}", habit.Id);
+
         return CreatedAtAction(nameof(GetHabit), new { id = habit.Id }, habit);
     }
 
@@ -45,14 +56,28 @@ public class HabitsController : ControllerBase
     )
     {
         var habit = await _habits.UpdateHabitAsync(id, request, cancellationToken);
-        return habit is null ? NotFound() : Ok(habit);
+        if (habit is null)
+        {
+            _logger.LogInformation("Habit {HabitId} not found for update", id);
+            return NotFound();
+        }
+
+        _logger.LogInformation("Updated habit {HabitId}", id);
+        return Ok(habit);
     }
 
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> DeleteHabit(Guid id, CancellationToken cancellationToken)
     {
         var deleted = await _habits.DeleteHabitAsync(id, cancellationToken);
-        return deleted ? NoContent() : NotFound();
+        if (!deleted)
+        {
+            _logger.LogInformation("Habit {HabitId} not found for delete", id);
+            return NotFound();
+        }
+
+        _logger.LogInformation("Deleted habit {HabitId}", id);
+        return NoContent();
     }
 
     [HttpGet("{id:guid}/entries")]
@@ -62,8 +87,13 @@ public class HabitsController : ControllerBase
     )
     {
         var entries = await _habits.GetEntriesAsync(id, cancellationToken);
+        if (entries is null)
+        {
+            _logger.LogInformation("Habit {HabitId} not found for entries", id);
+            return NotFound();
+        }
 
-        return entries is null ? NotFound() : Ok(entries);
+        _logger.LogInformation("Returned {EntryCount} entries for habit {HabitId}", entries.Count, id);
+        return Ok(entries);
     }
-
 }
