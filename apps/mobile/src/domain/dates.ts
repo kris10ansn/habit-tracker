@@ -36,5 +36,5 @@ export const monthDayLabel = (grid: MonthGrid): string =>
     day: 'numeric',
   });
 
-export const weekdayNarrow = (year: number, month: number, day: number): string =>
-  new Date(year, month, day).toLocaleDateString(undefined, { weekday: 'narrow' });
+export const weekdayShort = (year: number, month: number, day: number): string =>
+  new Date(year, month, day).toLocaleDateString(undefined, { weekday: 'short' });
