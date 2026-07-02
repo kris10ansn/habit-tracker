@@ -1,0 +1,1087 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Habit Tracker — Mobile Design Demo</title>
+    <style>
+      /* ----------------------------------------------------------------
+         Design tokens. A calm, paper-adjacent light palette (a nod to the
+         reMarkable's e-ink roots) with a single indigo accent and a
+         green/amber success–slip pair for the X/O marks.
+      ----------------------------------------------------------------- */
+      :root {
+        --bg: #ececef;
+        --surface: #ffffff;
+        --surface-2: #f5f5f7;
+        --ink: #16161a;
+        --ink-2: #5b5b66;
+        --ink-3: #9a9aa5;
+        --line: #e4e4ea;
+        --accent: #5b5bd6;
+        --accent-soft: #ececfb;
+        --done: #12a56a;
+        --done-soft: #e3f5ec;
+        --slip: #e05656;
+        --slip-soft: #fbe9e9;
+        --shadow: 0 1px 2px rgba(20, 20, 30, 0.06), 0 8px 24px rgba(20, 20, 30, 0.08);
+        --radius: 18px;
+        --radius-sm: 12px;
+        font-family:
+          -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      }
+
+      * {
+        box-sizing: border-box;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      body {
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        gap: 28px;
+        padding: 40px 16px;
+        background:
+          radial-gradient(1200px 600px at 50% -10%, #f6f6ff 0%, transparent 60%), var(--bg);
+        color: var(--ink);
+      }
+
+      .caption {
+        text-align: center;
+        color: var(--ink-2);
+        max-width: 380px;
+      }
+      .caption h1 {
+        font-size: 20px;
+        margin: 0 0 6px;
+        color: var(--ink);
+      }
+      .caption p {
+        margin: 0;
+        font-size: 13px;
+        line-height: 1.5;
+      }
+
+      /* ----------------------------- Phone frame ----------------------------- */
+      .phone {
+        width: 390px;
+        height: 844px;
+        background: var(--surface-2);
+        border-radius: 46px;
+        padding: 12px;
+        box-shadow:
+          0 0 0 12px #1c1c22,
+          0 0 0 14px #2c2c34,
+          0 40px 80px rgba(20, 20, 30, 0.35);
+        position: relative;
+      }
+      .screen {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        background: var(--surface-2);
+        border-radius: 34px;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+      }
+      .notch {
+        position: absolute;
+        top: 0;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 130px;
+        height: 26px;
+        background: #1c1c22;
+        border-radius: 0 0 16px 16px;
+        z-index: 40;
+      }
+
+      /* ------------------------------ App chrome ----------------------------- */
+      .statusbar {
+        height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 24px;
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--ink);
+        flex: none;
+      }
+      .statusbar .dots {
+        letter-spacing: 2px;
+      }
+
+      header.appbar {
+        padding: 6px 20px 12px;
+        flex: none;
+      }
+      header.appbar .eyebrow {
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.4px;
+        text-transform: uppercase;
+        color: var(--accent);
+      }
+      header.appbar h2 {
+        margin: 2px 0 0;
+        font-size: 26px;
+        letter-spacing: -0.3px;
+      }
+      header.appbar .sub {
+        margin-top: 3px;
+        font-size: 13px;
+        color: var(--ink-2);
+      }
+
+      main.body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 4px 16px 20px;
+        -webkit-overflow-scrolling: touch;
+      }
+      main.body::-webkit-scrollbar {
+        width: 0;
+      }
+
+      .page {
+        display: none;
+      }
+      .page.active {
+        display: block;
+      }
+
+      /* ------------------------------- Cards --------------------------------- */
+      .card {
+        background: var(--surface);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        padding: 14px 16px;
+        margin-bottom: 12px;
+      }
+
+      /* ---------------------------- Today view ------------------------------- */
+      .habit-row {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        background: var(--surface);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        padding: 14px 16px;
+        margin-bottom: 12px;
+      }
+      .habit-row .meta {
+        flex: 1;
+        min-width: 0;
+      }
+      .habit-row .name {
+        font-size: 16px;
+        font-weight: 600;
+        letter-spacing: -0.2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .habit-row .streak {
+        margin-top: 3px;
+        font-size: 12.5px;
+        color: var(--ink-2);
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+      .pill {
+        display: inline-block;
+        font-size: 11px;
+        font-weight: 600;
+        padding: 2px 8px;
+        border-radius: 999px;
+      }
+      .pill.neg {
+        background: var(--accent-soft);
+        color: var(--accent);
+      }
+
+      /* The tap target that cycles today's mark. */
+      .mark {
+        flex: none;
+        width: 52px;
+        height: 52px;
+        border-radius: 16px;
+        border: 2px solid var(--line);
+        background: var(--surface-2);
+        display: grid;
+        place-items: center;
+        font-size: 24px;
+        font-weight: 700;
+        cursor: pointer;
+        transition:
+          transform 0.08s ease,
+          background 0.15s ease,
+          border-color 0.15s ease;
+        user-select: none;
+      }
+      .mark:active {
+        transform: scale(0.92);
+      }
+      .mark.done {
+        background: var(--done-soft);
+        border-color: var(--done);
+        color: var(--done);
+      }
+      .mark.slip {
+        background: var(--slip-soft);
+        border-color: var(--slip);
+        color: var(--slip);
+      }
+      .mark.clean {
+        background: var(--surface);
+        border-color: var(--done);
+        color: var(--done);
+      }
+      .mark.empty {
+        color: var(--ink-3);
+        font-size: 15px;
+        font-weight: 500;
+      }
+
+      .day-summary {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 16px;
+      }
+      .day-summary .stat {
+        flex: 1;
+        background: var(--surface);
+        border-radius: var(--radius-sm);
+        box-shadow: var(--shadow);
+        padding: 12px 14px;
+      }
+      .day-summary .stat b {
+        display: block;
+        font-size: 22px;
+        letter-spacing: -0.5px;
+      }
+      .day-summary .stat span {
+        font-size: 12px;
+        color: var(--ink-2);
+      }
+
+      /* ------------------------------ Month grid ----------------------------- */
+      .month-nav {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 12px;
+      }
+      .month-nav button {
+        border: none;
+        background: var(--surface);
+        box-shadow: var(--shadow);
+        width: 38px;
+        height: 38px;
+        border-radius: 12px;
+        font-size: 18px;
+        color: var(--ink);
+        cursor: pointer;
+      }
+      .month-nav .label {
+        font-size: 17px;
+        font-weight: 600;
+      }
+
+      .grid-wrap {
+        background: var(--surface);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        padding: 8px;
+        overflow-x: auto;
+      }
+      table.grid {
+        border-collapse: collapse;
+        width: 100%;
+        font-size: 13px;
+      }
+      table.grid th,
+      table.grid td {
+        text-align: center;
+        padding: 0;
+      }
+      table.grid thead th {
+        padding: 6px 2px 10px;
+        font-size: 10.5px;
+        font-weight: 600;
+        color: var(--ink-2);
+        vertical-align: bottom;
+        line-height: 1.15;
+      }
+      table.grid thead th.corner {
+        width: 34px;
+      }
+      table.grid .day-cell {
+        width: 34px;
+        color: var(--ink-2);
+        font-variant-numeric: tabular-nums;
+        font-size: 12px;
+      }
+      table.grid .day-cell .wd {
+        display: block;
+        font-size: 9px;
+        color: var(--ink-3);
+      }
+      table.grid tbody tr.today {
+        background: var(--accent-soft);
+      }
+      table.grid tbody tr.today .day-cell {
+        color: var(--accent);
+        font-weight: 700;
+      }
+      table.grid td.cell {
+        cursor: pointer;
+        height: 34px;
+      }
+      td.cell .g {
+        display: inline-grid;
+        place-items: center;
+        width: 26px;
+        height: 26px;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 700;
+      }
+      td.cell .g.done {
+        background: var(--done-soft);
+        color: var(--done);
+      }
+      td.cell .g.slip {
+        background: var(--slip-soft);
+        color: var(--slip);
+      }
+      td.cell .g.clean {
+        color: var(--done);
+        opacity: 0.55;
+      }
+      td.cell .g.muted {
+        color: var(--ink-3);
+        opacity: 0.4;
+      }
+
+      /* ------------------------------ Habits edit ---------------------------- */
+      .edit-row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: var(--surface);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow);
+        padding: 12px 14px;
+        margin-bottom: 10px;
+      }
+      .edit-row .handle {
+        color: var(--ink-3);
+        font-size: 18px;
+        cursor: grab;
+        display: flex;
+        flex-direction: column;
+        line-height: 0.7;
+      }
+      .edit-row .reorder {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .edit-row .reorder button {
+        border: none;
+        background: var(--surface-2);
+        color: var(--ink-2);
+        width: 26px;
+        height: 20px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 11px;
+        line-height: 1;
+      }
+      .edit-row .grow {
+        flex: 1;
+        min-width: 0;
+      }
+      .edit-row input.rename {
+        width: 100%;
+        border: none;
+        background: transparent;
+        font-size: 15.5px;
+        font-weight: 600;
+        color: var(--ink);
+        padding: 2px 0;
+        outline: none;
+      }
+      .edit-row .polarity {
+        display: inline-flex;
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        overflow: hidden;
+        font-size: 11px;
+        font-weight: 600;
+        margin-top: 4px;
+      }
+      .edit-row .polarity button {
+        border: none;
+        background: transparent;
+        color: var(--ink-2);
+        padding: 3px 10px;
+        cursor: pointer;
+      }
+      .edit-row .polarity button.on {
+        background: var(--accent);
+        color: #fff;
+      }
+      .edit-row .del {
+        border: none;
+        background: transparent;
+        color: var(--slip);
+        font-size: 18px;
+        cursor: pointer;
+        padding: 6px;
+      }
+      .add-habit {
+        display: flex;
+        gap: 10px;
+        margin-top: 4px;
+      }
+      .add-habit input {
+        flex: 1;
+        border: 1px dashed var(--ink-3);
+        background: var(--surface);
+        border-radius: var(--radius-sm);
+        padding: 12px 14px;
+        font-size: 15px;
+        outline: none;
+        color: var(--ink);
+      }
+      .add-habit button {
+        border: none;
+        background: var(--accent);
+        color: #fff;
+        border-radius: var(--radius-sm);
+        padding: 0 18px;
+        font-size: 22px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+
+      /* ------------------------------- Sync ---------------------------------- */
+      .field-label {
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.3px;
+        text-transform: uppercase;
+        color: var(--ink-3);
+        margin: 6px 4px 6px;
+      }
+      .field {
+        width: 100%;
+        border: 1px solid var(--line);
+        background: var(--surface);
+        border-radius: var(--radius-sm);
+        padding: 13px 14px;
+        font-size: 15px;
+        outline: none;
+        color: var(--ink);
+      }
+      .field:focus {
+        border-color: var(--accent);
+      }
+      .hint {
+        font-size: 12px;
+        color: var(--ink-2);
+        margin: 8px 4px 18px;
+        line-height: 1.5;
+      }
+      .sync-status {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 14px;
+      }
+      .sync-status .dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: var(--done);
+        box-shadow: 0 0 0 4px var(--done-soft);
+        flex: none;
+      }
+      .sync-status.offline .dot {
+        background: var(--ink-3);
+        box-shadow: 0 0 0 4px var(--surface-2);
+      }
+      .sync-status .txt b {
+        font-size: 15px;
+      }
+      .sync-status .txt span {
+        display: block;
+        font-size: 12.5px;
+        color: var(--ink-2);
+      }
+      .btn-primary {
+        width: 100%;
+        border: none;
+        background: var(--accent);
+        color: #fff;
+        border-radius: var(--radius-sm);
+        padding: 15px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+        margin-top: 4px;
+      }
+      .btn-primary:disabled {
+        opacity: 0.55;
+        cursor: default;
+      }
+      .btn-primary.spinning::after {
+        content: '';
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        margin-left: 8px;
+        vertical-align: -2px;
+        border: 2px solid rgba(255, 255, 255, 0.4);
+        border-top-color: #fff;
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+      }
+      @keyframes spin {
+        to {
+          transform: rotate(360deg);
+        }
+      }
+
+      /* ------------------------------ Tab bar -------------------------------- */
+      nav.tabs {
+        flex: none;
+        display: flex;
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(12px);
+        border-top: 1px solid var(--line);
+        padding: 8px 10px 22px;
+      }
+      nav.tabs button {
+        flex: 1;
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 3px;
+        color: var(--ink-3);
+        font-size: 10.5px;
+        font-weight: 600;
+      }
+      nav.tabs button .icon {
+        font-size: 20px;
+        line-height: 1;
+      }
+      nav.tabs button.active {
+        color: var(--accent);
+      }
+
+      .toast {
+        position: absolute;
+        left: 50%;
+        bottom: 96px;
+        transform: translate(-50%, 20px);
+        background: var(--ink);
+        color: #fff;
+        font-size: 13px;
+        font-weight: 500;
+        padding: 10px 16px;
+        border-radius: 999px;
+        opacity: 0;
+        pointer-events: none;
+        transition: all 0.25s ease;
+        z-index: 50;
+        box-shadow: var(--shadow);
+      }
+      .toast.show {
+        opacity: 1;
+        transform: translate(-50%, 0);
+      }
+
+      .empty-note {
+        text-align: center;
+        color: var(--ink-3);
+        font-size: 13px;
+        padding: 30px 20px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="caption">
+      <h1>Habit Tracker — Mobile</h1>
+      <p>
+        Design demo. Tap the marks to log, switch tabs to review the month, edit habits, or set up
+        sync. Fully interactive mock — no backend.
+      </p>
+    </div>
+
+    <div class="phone">
+      <div class="screen">
+        <div class="notch"></div>
+
+        <div class="statusbar">
+          <span id="clock">9:41</span>
+          <span class="dots">● ● ●</span>
+        </div>
+
+        <header class="appbar" id="appbar"></header>
+
+        <main class="body">
+          <section class="page active" id="page-today"></section>
+          <section class="page" id="page-month"></section>
+          <section class="page" id="page-habits"></section>
+          <section class="page" id="page-sync"></section>
+        </main>
+
+        <div class="toast" id="toast"></div>
+
+        <nav class="tabs" id="tabs">
+          <button data-tab="today" class="active">
+            <span class="icon">◎</span>Today
+          </button>
+          <button data-tab="month"><span class="icon">▦</span>Month</button>
+          <button data-tab="habits"><span class="icon">✎</span>Habits</button>
+          <button data-tab="sync"><span class="icon">⟳</span>Sync</button>
+        </nav>
+      </div>
+    </div>
+
+    <script>
+      // ---------------------------------------------------------------------
+      // Model — mirrors the shared domain: Habit { id, name, negative, entries }
+      // Entries keyed by YYYY-MM-DD, value "x" | "o". Absence = Unmarked.
+      // ---------------------------------------------------------------------
+      const TODAY = { year: 2026, month: 6, day: 2 }; // month is 0-indexed (July)
+      const pad = (n) => String(n).padStart(2, '0');
+      const key = (y, m, d) => `${y}-${pad(m + 1)}-${pad(d)}`;
+      const TODAY_KEY = key(TODAY.year, TODAY.month, TODAY.day);
+
+      let nextId = 1;
+      const mk = (name, negative, entries) => ({ id: nextId++, name, negative, entries });
+
+      const state = {
+        view: { year: TODAY.year, month: TODAY.month },
+        serverUrl: 'https://habits.myserver.dev',
+        lastSynced: '2 min ago',
+        syncing: false,
+        habits: [
+          mk('Read 20 pages', false, { [d(1)]: 'x', [d(2)]: 'x' }),
+          mk('Exercise', false, { [d(1)]: 'x' }),
+          mk('Meditate', false, { [d(1)]: 'x', [d(2)]: 'o' }),
+          mk('Drink water', false, { [d(1)]: 'x', [d(2)]: 'x' }),
+          mk('Doomscroll', true, { [d(1)]: 'o' }),
+          mk('Late-night snacks', true, {}),
+        ],
+      };
+
+      function d(day) {
+        return key(TODAY.year, TODAY.month, day);
+      }
+
+      // ------------------------------- Mark logic --------------------------
+      // Positive: Unmarked -> x -> o -> Unmarked.
+      // Negative: Unmarked (shown clean) -> o (slipped) -> Unmarked.
+      function cycle(habit, k) {
+        const cur = habit.entries[k];
+        if (habit.negative) {
+          if (cur === 'o') delete habit.entries[k];
+          else habit.entries[k] = 'o';
+          return;
+        }
+        if (!cur) habit.entries[k] = 'x';
+        else if (cur === 'x') habit.entries[k] = 'o';
+        else delete habit.entries[k];
+      }
+
+      // Display class + glyph for a habit's state on a day.
+      function markView(habit, k, isFuture) {
+        const cur = habit.entries[k];
+        if (habit.negative) {
+          if (cur === 'o') return { cls: 'slip', glyph: '✕', word: 'Slipped' };
+          return { cls: isFuture ? 'muted' : 'clean', glyph: '✓', word: 'Clean' };
+        }
+        if (cur === 'x') return { cls: 'done', glyph: '✓', word: 'Done' };
+        if (cur === 'o') return { cls: 'slip', glyph: '✕', word: 'Missed' };
+        return { cls: 'empty', glyph: '–', word: 'Not yet' };
+      }
+
+      // ------------------------------- Helpers -----------------------------
+      const MONTHS = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December',
+      ];
+      const WEEKDAYS = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+      const daysInMonth = (y, m) => new Date(y, m + 1, 0).getDate();
+      const el = (id) => document.getElementById(id);
+
+      let toastTimer = null;
+      function toast(msg) {
+        const t = el('toast');
+        t.textContent = msg;
+        t.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => t.classList.remove('show'), 1600);
+      }
+
+      // ------------------------------- Render ------------------------------
+      let currentTab = 'today';
+
+      const APPBARS = {
+        today: () => ({
+          eyebrow: 'Thursday · Today',
+          title: `${MONTHS[TODAY.month]} ${TODAY.day}`,
+          sub: `${doneToday()} of ${state.habits.length} habits logged`,
+        }),
+        month: () => ({
+          eyebrow: 'Overview',
+          title: 'Month',
+          sub: 'Tap any cell to change a day',
+        }),
+        habits: () => ({
+          eyebrow: 'Manage',
+          title: 'Habits',
+          sub: 'Rename, reorder, set polarity, or add',
+        }),
+        sync: () => ({
+          eyebrow: 'Backend',
+          title: 'Sync',
+          sub: 'Keep every device in step',
+        }),
+      };
+
+      function doneToday() {
+        return state.habits.filter((h) => {
+          const cur = h.entries[TODAY_KEY];
+          return h.negative ? cur !== 'o' : cur === 'x';
+        }).length;
+      }
+
+      function renderAppbar() {
+        const a = APPBARS[currentTab]();
+        el('appbar').innerHTML = `
+          <div class="eyebrow">${a.eyebrow}</div>
+          <h2>${a.title}</h2>
+          <div class="sub">${a.sub}</div>`;
+      }
+
+      // ------- Today -------
+      function renderToday() {
+        const marked = doneToday();
+        const slips = state.habits.filter((h) => h.negative && h.entries[TODAY_KEY] === 'o').length;
+        const rows = state.habits
+          .map((h) => {
+            const v = markView(h, TODAY_KEY, false);
+            return `
+            <div class="habit-row">
+              <div class="meta">
+                <div class="name">${escapeHtml(h.name)}</div>
+                <div class="streak">
+                  ${h.negative ? '<span class="pill neg">avoid</span>' : ''}
+                  <span>${streakText(h)}</span>
+                </div>
+              </div>
+              <div class="mark ${v.cls}" data-habit="${h.id}" title="${v.word}">${v.glyph}</div>
+            </div>`;
+          })
+          .join('');
+
+        el('page-today').innerHTML = `
+          <div class="day-summary">
+            <div class="stat"><b>${marked}/${state.habits.length}</b><span>logged today</span></div>
+            <div class="stat"><b>${slips}</b><span>slip-ups</span></div>
+          </div>
+          ${rows}`;
+
+        el('page-today')
+          .querySelectorAll('.mark')
+          .forEach((node) =>
+            node.addEventListener('click', () => {
+              const habit = state.habits.find((h) => h.id === +node.dataset.habit);
+              cycle(habit, TODAY_KEY);
+              render();
+            }),
+          );
+      }
+
+      function streakText(habit) {
+        let n = 0;
+        for (let day = TODAY.day; day >= 1; day--) {
+          const cur = habit.entries[key(TODAY.year, TODAY.month, day)];
+          const good = habit.negative ? cur !== 'o' : cur === 'x';
+          if (!good) break;
+          n++;
+        }
+        if (habit.negative) return n > 0 ? `${n}-day clean streak` : 'Slipped today';
+        return n > 0 ? `${n}-day streak` : 'Tap to log today';
+      }
+
+      // ------- Month grid (days as rows, habits as columns — portrait) -------
+      function renderMonth() {
+        const { year, month } = state.view;
+        const total = daysInMonth(year, month);
+        const isThisMonth = year === TODAY.year && month === TODAY.month;
+
+        const head = state.habits
+          .map((h) => `<th title="${escapeHtml(h.name)}">${escapeHtml(shortName(h))}</th>`)
+          .join('');
+
+        let rows = '';
+        for (let day = 1; day <= total; day++) {
+          const k = key(year, month, day);
+          const isToday = isThisMonth && day === TODAY.day;
+          const isFuture = isThisMonth && day > TODAY.day;
+          const wd = WEEKDAYS[new Date(year, month, day).getDay()];
+          const cells = state.habits
+            .map((h) => {
+              const v = markView(h, k, isFuture);
+              return `<td class="cell" data-habit="${h.id}" data-key="${k}">
+                        <span class="g ${v.cls}">${v.glyph}</span></td>`;
+            })
+            .join('');
+          rows += `<tr class="${isToday ? 'today' : ''}">
+                     <td class="day-cell">${day}<span class="wd">${wd}</span></td>${cells}</tr>`;
+        }
+
+        el('page-month').innerHTML = `
+          <div class="month-nav">
+            <button id="prev-month">‹</button>
+            <div class="label">${MONTHS[month]} ${year}</div>
+            <button id="next-month">›</button>
+          </div>
+          <div class="grid-wrap">
+            <table class="grid">
+              <thead><tr><th class="corner"></th>${head}</tr></thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>`;
+
+        el('prev-month').onclick = () => {
+          shiftMonth(-1);
+        };
+        el('next-month').onclick = () => {
+          shiftMonth(1);
+        };
+        el('page-month')
+          .querySelectorAll('td.cell')
+          .forEach((node) =>
+            node.addEventListener('click', () => {
+              const habit = state.habits.find((h) => h.id === +node.dataset.habit);
+              cycle(habit, node.dataset.key);
+              render();
+            }),
+          );
+      }
+
+      function shortName(habit) {
+        const words = habit.name.split(' ');
+        const base = words.length > 1 ? words.map((w) => w[0]).join('') : habit.name.slice(0, 4);
+        return habit.negative ? base + '⁻' : base;
+      }
+
+      function shiftMonth(delta) {
+        let m = state.view.month + delta;
+        let y = state.view.year;
+        if (m < 0) {
+          m = 11;
+          y--;
+        }
+        if (m > 11) {
+          m = 0;
+          y++;
+        }
+        state.view = { year: y, month: m };
+        render();
+      }
+
+      // ------- Habits edit -------
+      function renderHabits() {
+        const rows = state.habits
+          .map(
+            (h, i) => `
+          <div class="edit-row">
+            <div class="reorder">
+              <button data-up="${h.id}" ${i === 0 ? 'disabled' : ''}>▲</button>
+              <button data-down="${h.id}" ${i === state.habits.length - 1 ? 'disabled' : ''}>▼</button>
+            </div>
+            <div class="grow">
+              <input class="rename" data-rename="${h.id}" value="${escapeAttr(h.name)}" />
+              <div class="polarity">
+                <button data-pol="${h.id}" data-neg="0" class="${h.negative ? '' : 'on'}">Positive</button>
+                <button data-pol="${h.id}" data-neg="1" class="${h.negative ? 'on' : ''}">Negative</button>
+              </div>
+            </div>
+            <button class="del" data-del="${h.id}" title="Delete">🗑</button>
+          </div>`,
+          )
+          .join('');
+
+        el('page-habits').innerHTML = `
+          ${rows || '<div class="empty-note">No habits yet. Add your first below.</div>'}
+          <div class="add-habit">
+            <input id="new-habit" placeholder="New habit…" />
+            <button id="add-habit">+</button>
+          </div>`;
+
+        const find = (id) => state.habits.find((h) => h.id === +id);
+
+        el('page-habits')
+          .querySelectorAll('[data-rename]')
+          .forEach((n) =>
+            n.addEventListener('input', () => {
+              find(n.dataset.rename).name = n.value;
+            }),
+          );
+        el('page-habits')
+          .querySelectorAll('[data-pol]')
+          .forEach((n) =>
+            n.addEventListener('click', () => {
+              find(n.dataset.pol).negative = n.dataset.neg === '1';
+              render();
+            }),
+          );
+        el('page-habits')
+          .querySelectorAll('[data-del]')
+          .forEach((n) =>
+            n.addEventListener('click', () => {
+              state.habits = state.habits.filter((h) => h.id !== +n.dataset.del);
+              toast('Habit deleted');
+              render();
+            }),
+          );
+        el('page-habits')
+          .querySelectorAll('[data-up]')
+          .forEach((n) => n.addEventListener('click', () => move(+n.dataset.up, -1)));
+        el('page-habits')
+          .querySelectorAll('[data-down]')
+          .forEach((n) => n.addEventListener('click', () => move(+n.dataset.down, 1)));
+
+        const addBtn = el('add-habit');
+        const addInput = el('new-habit');
+        const doAdd = () => {
+          const name = addInput.value.trim();
+          if (!name) return;
+          state.habits.push(mk(name, false, {}));
+          toast('Habit added');
+          render();
+        };
+        addBtn.onclick = doAdd;
+        addInput.addEventListener('keydown', (e) => {
+          if (e.key === 'Enter') doAdd();
+        });
+      }
+
+      function move(id, delta) {
+        const i = state.habits.findIndex((h) => h.id === id);
+        const j = i + delta;
+        if (j < 0 || j >= state.habits.length) return;
+        const arr = state.habits;
+        [arr[i], arr[j]] = [arr[j], arr[i]];
+        render();
+      }
+
+      // ------- Sync -------
+      function renderSync() {
+        const standalone = !state.serverUrl.trim();
+        el('page-sync').innerHTML = `
+          <div class="card">
+            <div class="sync-status ${standalone ? 'offline' : ''}">
+              <div class="dot"></div>
+              <div class="txt">
+                <b>${standalone ? 'Standalone' : state.syncing ? 'Syncing…' : 'Up to date'}</b>
+                <span>${
+                  standalone
+                    ? 'Running fully on this device'
+                    : 'Last synced ' + state.lastSynced
+                }</span>
+              </div>
+            </div>
+            <button class="btn-primary ${state.syncing ? 'spinning' : ''}"
+              id="sync-now" ${standalone || state.syncing ? 'disabled' : ''}>
+              ${state.syncing ? 'Syncing' : 'Sync now'}
+            </button>
+          </div>
+
+          <div class="field-label">Server URL</div>
+          <input class="field" id="server-url" value="${escapeAttr(state.serverUrl)}"
+            placeholder="https://…" />
+          <div class="hint">
+            Leave empty to stay standalone — the app runs fully local and never reaches out.
+            Sync is last-write-wins per entry, with tombstones for deletes, so every device
+            converges to the same habits and marks.
+          </div>`;
+
+        el('server-url').addEventListener('input', (e) => {
+          state.serverUrl = e.target.value;
+          renderSync();
+          renderAppbar();
+        });
+        const btn = el('sync-now');
+        if (btn)
+          btn.onclick = () => {
+            state.syncing = true;
+            render();
+            setTimeout(() => {
+              state.syncing = false;
+              state.lastSynced = 'just now';
+              render();
+              toast('Synced ✓');
+            }, 1400);
+          };
+      }
+
+      // ------------------------------- Utils -------------------------------
+      function escapeHtml(s) {
+        return s.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' })[c]);
+      }
+      function escapeAttr(s) {
+        return escapeHtml(s).replace(/"/g, '&quot;');
+      }
+
+      const RENDERERS = {
+        today: renderToday,
+        month: renderMonth,
+        habits: renderHabits,
+        sync: renderSync,
+      };
+
+      function render() {
+        renderAppbar();
+        RENDERERS[currentTab]();
+      }
+
+      // ------------------------------- Nav ---------------------------------
+      el('tabs')
+        .querySelectorAll('button')
+        .forEach((b) =>
+          b.addEventListener('click', () => {
+            currentTab = b.dataset.tab;
+            el('tabs')
+              .querySelectorAll('button')
+              .forEach((x) => x.classList.toggle('active', x === b));
+            el('body') || null;
+            document
+              .querySelectorAll('.page')
+              .forEach((p) => p.classList.toggle('active', p.id === `page-${currentTab}`));
+            render();
+          }),
+        );
+
+      render();
+    </script>
+  </body>
+</html>
