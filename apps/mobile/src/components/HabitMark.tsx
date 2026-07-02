@@ -49,32 +49,20 @@ const SM_CONTAINER: Record<MarkKind, string> = {
 };
 
 export function HabitMark({ view, size = 'lg' }: Props) {
-  if (size === 'sm') {
-    return (
-      <View
-        className={cn('h-7 w-7 items-center justify-center rounded-lg', SM_CONTAINER[view.kind])}
-      >
-        <Icon
-          name={ICON[view.kind]}
-          size={18}
-          className={cn(GLYPH[view.kind], view.muted && 'opacity-40')}
-        />
-      </View>
-    );
-  }
-
+  const small = size === 'sm';
   return (
     <View
       className={cn(
-        'h-[52px] w-[52px] items-center justify-center rounded-2xl border-2',
-        CONTAINER[view.kind],
-        view.muted && 'opacity-40',
+        'items-center justify-center',
+        small ? 'h-7 w-7 rounded-lg' : 'h-[52px] w-[52px] rounded-2xl border-2',
+        small ? SM_CONTAINER[view.kind] : CONTAINER[view.kind],
+        !small && view.muted && 'opacity-40',
       )}
     >
       <Icon
         name={ICON[view.kind]}
-        size={view.kind === 'empty' ? 22 : 28}
-        className={GLYPH[view.kind]}
+        size={small ? 18 : view.kind === 'empty' ? 22 : 28}
+        className={cn(GLYPH[view.kind], small && view.muted && 'opacity-40')}
       />
     </View>
   );
