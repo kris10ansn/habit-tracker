@@ -38,8 +38,8 @@ streak logic live in `marks.ts`, so components never re-derive the semantics.
   conditional classes.
 - `@/*` path alias → `src/*` (see `tsconfig.json`).
 - NativeWind config lives at the app root: `tailwind.config.js` (content globs + `nativewind/preset`
-  + the design tokens), `global.css` (Tailwind directives), `metro.config.js` (`withNativeWind`),
-  `babel.config.js` (`jsxImportSource: 'nativewind'`), and `nativewind-env.d.ts` (types).
+    - the design tokens), `global.css` (Tailwind directives), `metro.config.js` (`withNativeWind`),
+      `babel.config.js` (`jsxImportSource: 'nativewind'`), and `nativewind-env.d.ts` (types).
 
 ## Conventions
 

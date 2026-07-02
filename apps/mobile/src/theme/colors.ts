@@ -4,4 +4,4 @@
 //
 // Re-exported from the single source in `palette.js` (which `tailwind.config.js`
 // also consumes), so color values are defined in exactly one place.
-export { palette as colors } from './palette';
+export { palette as colors } from "./palette";
