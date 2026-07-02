@@ -53,7 +53,11 @@ export const currentStreak = (habit: Habit, grid: MonthGrid): number => {
   return streak;
 };
 
-export const streakLabel = (habit: Habit, streak: number): string => {
-  if (habit.negative) return streak > 0 ? `${streak}-day clean streak` : 'Slipped today';
-  return streak > 0 ? `${streak}-day streak` : 'Tap to log today';
+export const priorStreak = (habit: Habit, grid: MonthGrid): number => {
+  let streak = 0;
+  for (let day = grid.today - 1; day >= 1; day -= 1) {
+    if (!isSuccess(habit, dateKey(grid.year, grid.month, day))) break;
+    streak += 1;
+  }
+  return streak;
 };
