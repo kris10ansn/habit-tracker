@@ -2,15 +2,12 @@ import { Text, View, ViewStyle } from 'react-native';
 
 import { cn } from '@/lib/cn';
 
-type PillProps = { className?: string; style?: ViewStyle } & (
-  | {
-      label: string;
-      labelClassName?: string;
-    }
-  | {
-      children: React.ReactNode;
-    }
-);
+type PillProps = {
+  className?: string;
+  style?: ViewStyle;
+  label: string;
+  labelClassName?: string;
+};
 
 export function Pill({ className, ...props }: PillProps) {
   return (
@@ -22,12 +19,9 @@ export function Pill({ className, ...props }: PillProps) {
       )}
       style={props.style}
     >
-      {'label' in props && (
-        <Text className={cn('text-sm font-semibold text-accent', props.labelClassName)}>
-          {props.label}
-        </Text>
-      )}
-      {'children' in props && props.children}
+      <Text className={cn('text-sm font-semibold text-accent', props.labelClassName)}>
+        {props.label}
+      </Text>
     </View>
   );
 }
