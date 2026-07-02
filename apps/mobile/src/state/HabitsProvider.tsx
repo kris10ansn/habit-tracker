@@ -12,8 +12,8 @@ import type { Habit } from "@/domain/types";
 
 interface HabitsContextValue {
     habits: Habit[];
-    // Cycle one habit's mark for a day through the shared X/O tap states.
     toggleEntry: (habitIndex: number, dateKey: string) => void;
+    updateHabit: (habit: Habit, partial: Partial<Habit>) => void;
 }
 
 const HabitsContext = createContext<HabitsContextValue | null>(null);
@@ -39,8 +39,14 @@ export function HabitsProvider({ children }: { children: ReactNode }) {
         );
     }, []);
 
+    const updateHabit = useCallback((habit: Habit, partial: Partial<Habit>) => {
+        setHabits((current) =>
+            current.map((h, index) => (habit === h ? { ...h, ...partial } : h)),
+        );
+    }, []);
+
     return (
-        <HabitsContext.Provider value={{ habits, toggleEntry }}>
+        <HabitsContext.Provider value={{ habits, toggleEntry, updateHabit }}>
             {children}
         </HabitsContext.Provider>
     );

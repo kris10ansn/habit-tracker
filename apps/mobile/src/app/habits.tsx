@@ -14,12 +14,7 @@ export default function HabitsScreen() {
             subtitle="Rename, reorder, set polarity, or add"
         >
             {habits.map((habit, i) => (
-                <EditHabitRow
-                    key={habit.name}
-                    habit={habit}
-                    isFirst={i === 0}
-                    isLast={i === habits.length - 1}
-                />
+                <EditHabitRow key={i} habit={habit} />
             ))}
             <AddHabitRow />
         </AppScreen>
