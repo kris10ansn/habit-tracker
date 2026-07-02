@@ -1,8 +1,14 @@
-import { Pressable, View } from 'react-native';
+import { Pressable } from 'react-native';
 
 import { Icon, type IconName } from '@/components/ui/Icon';
 import type { MarkKind, MarkView } from '@/domain/marks';
 import { cn } from '@/lib/cn';
+import Animated, {
+  useAnimatedStyle,
+  useSharedValue,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 
 type Size = 'lg' | 'sm';
 
@@ -13,6 +19,44 @@ interface Props {
   onPress?: () => void;
 }
 
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+export function HabitMark({ view, size = 'lg', onPress }: Props) {
+  const scale = useSharedValue(1);
+  const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+
+  const handlePress = () => {
+    scale.value = withSequence(withTiming(0.9, POP_TIMING_IN), withTiming(1, POP_TIMING_OUT));
+    onPress?.();
+  };
+
+  const small = size === 'sm';
+
+  return (
+    <AnimatedPressable
+      style={style}
+      onPress={handlePress}
+      accessibilityRole="button"
+      accessibilityLabel={view.label}
+      className={cn(
+        'items-center justify-center',
+        small ? 'h-7 w-7 rounded-lg' : 'h-[52px] w-[52px] rounded-2xl border-2',
+        small ? SM_CONTAINER[view.kind] : CONTAINER[view.kind],
+        !small && view.muted && 'opacity-40',
+        onPress && 'active:opacity-60',
+      )}
+    >
+      <Icon
+        name={ICON[view.kind]}
+        size={small ? 18 : view.kind === 'empty' ? 22 : 28}
+        className={cn(GLYPH[view.kind], small && view.muted && 'opacity-40')}
+      />
+    </AnimatedPressable>
+  );
+}
+
+const POP_TIMING_IN = { duration: 100 };
+const POP_TIMING_OUT = { duration: 60 };
 // Container + glyph colors per state. `lg` (Today) is a bordered tile; `sm`
 // (month grid) is a compact filled chip.
 const CONTAINER: Record<MarkKind, string> = {
@@ -49,36 +93,3 @@ const SM_CONTAINER: Record<MarkKind, string> = {
   clean: 'bg-transparent',
   empty: 'bg-transparent',
 };
-
-export function HabitMark({ view, size = 'lg', onPress }: Props) {
-  const small = size === 'sm';
-  const containerClassName = cn(
-    'items-center justify-center',
-    small ? 'h-7 w-7 rounded-lg' : 'h-[52px] w-[52px] rounded-2xl border-2',
-    small ? SM_CONTAINER[view.kind] : CONTAINER[view.kind],
-    !small && view.muted && 'opacity-40',
-    onPress && 'active:opacity-60',
-  );
-  const glyph = (
-    <Icon
-      name={ICON[view.kind]}
-      size={small ? 18 : view.kind === 'empty' ? 22 : 28}
-      className={cn(GLYPH[view.kind], small && view.muted && 'opacity-40')}
-    />
-  );
-
-  if (onPress) {
-    return (
-      <Pressable
-        onPress={onPress}
-        accessibilityRole="button"
-        accessibilityLabel={view.label}
-        className={containerClassName}
-      >
-        {glyph}
-      </Pressable>
-    );
-  }
-
-  return <View className={containerClassName}>{glyph}</View>;
-}
