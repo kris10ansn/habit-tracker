@@ -1,16 +1,9 @@
 import { Tabs } from 'expo-router';
-import { Text } from 'react-native';
 
-import { cn } from '@/lib/cn';
+import { Icon } from '@/components/ui/Icon';
 import { colors } from '@/theme/colors';
 
 import '../../global.css';
-
-// Text-glyph tab icons — this app has no icon font installed. Tint follows the
-// focused state via NativeWind rather than the navigator's color prop.
-function TabGlyph({ glyph, focused }: { glyph: string; focused: boolean }) {
-  return <Text className={cn('text-xl', focused ? 'text-accent' : 'text-ink-3')}>{glyph}</Text>;
-}
 
 export default function RootLayout() {
   return (
@@ -27,28 +20,28 @@ export default function RootLayout() {
         name="index"
         options={{
           title: 'Today',
-          tabBarIcon: ({ focused }) => <TabGlyph glyph="◎" focused={focused} />,
+          tabBarIcon: ({ color, size }) => <Icon name="check-circle" color={color} size={size} />,
         }}
       />
       <Tabs.Screen
         name="month"
         options={{
           title: 'Month',
-          tabBarIcon: ({ focused }) => <TabGlyph glyph="▦" focused={focused} />,
+          tabBarIcon: ({ color, size }) => <Icon name="calendar-month" color={color} size={size} />,
         }}
       />
       <Tabs.Screen
         name="habits"
         options={{
           title: 'Habits',
-          tabBarIcon: ({ focused }) => <TabGlyph glyph="✎" focused={focused} />,
+          tabBarIcon: ({ color, size }) => <Icon name="edit" color={color} size={size} />,
         }}
       />
       <Tabs.Screen
         name="sync"
         options={{
           title: 'Sync',
-          tabBarIcon: ({ focused }) => <TabGlyph glyph="⟳" focused={focused} />,
+          tabBarIcon: ({ color, size }) => <Icon name="sync" color={color} size={size} />,
         }}
       />
     </Tabs>

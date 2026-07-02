@@ -1,5 +1,6 @@
-import { Pressable, Text, TextInput, View } from 'react-native';
+import { Pressable, TextInput, View } from 'react-native';
 
+import { Icon } from '@/components/ui/Icon';
 import { IconButton } from '@/components/ui/IconButton';
 import type { Habit } from '@/domain/types';
 
@@ -17,8 +18,8 @@ export function EditHabitRow({ habit, isFirst, isLast }: Props) {
   return (
     <View className="mb-2.5 flex-row items-center gap-3 rounded-card bg-surface px-3.5 py-3 shadow-sm">
       <View className="gap-0.5">
-        <IconButton glyph="▲" size="xs" disabled={isFirst} />
-        <IconButton glyph="▼" size="xs" disabled={isLast} />
+        <IconButton icon="keyboard-arrow-up" size="xs" disabled={isFirst} />
+        <IconButton icon="keyboard-arrow-down" size="xs" disabled={isLast} />
       </View>
 
       <View className="flex-1">
@@ -32,7 +33,7 @@ export function EditHabitRow({ habit, isFirst, isLast }: Props) {
       </View>
 
       <Pressable className="h-8 w-8 items-center justify-center rounded-full bg-slip-soft active:opacity-70">
-        <Text className="text-sm font-bold text-slip">✕</Text>
+        <Icon name="close" size={16} className="text-slip" />
       </Pressable>
     </View>
   );

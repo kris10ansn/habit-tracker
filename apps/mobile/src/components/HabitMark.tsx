@@ -1,5 +1,6 @@
-import { Text, View } from 'react-native';
+import { View } from 'react-native';
 
+import { Icon, type IconName } from '@/components/ui/Icon';
 import type { MarkKind, MarkView } from '@/domain/marks';
 import { cn } from '@/lib/cn';
 
@@ -28,6 +29,15 @@ const GLYPH: Record<MarkKind, string> = {
   empty: 'text-ink-3',
 };
 
+// Material icon per state — reads the shared X/O semantics via `kind`.
+const ICON: Record<MarkKind, IconName> = {
+  done: 'check',
+  missed: 'close',
+  slip: 'close',
+  clean: 'check',
+  empty: 'remove',
+};
+
 // `sm` drops the border and softens the neutral states so the grid reads as
 // marks-on-paper rather than a wall of boxes.
 const SM_CONTAINER: Record<MarkKind, string> = {
@@ -44,9 +54,11 @@ export function HabitMark({ view, size = 'lg' }: Props) {
       <View
         className={cn('h-7 w-7 items-center justify-center rounded-lg', SM_CONTAINER[view.kind])}
       >
-        <Text className={cn('text-sm font-bold', GLYPH[view.kind], view.muted && 'opacity-40')}>
-          {view.glyph}
-        </Text>
+        <Icon
+          name={ICON[view.kind]}
+          size={18}
+          className={cn(GLYPH[view.kind], view.muted && 'opacity-40')}
+        />
       </View>
     );
   }
@@ -59,14 +71,11 @@ export function HabitMark({ view, size = 'lg' }: Props) {
         view.muted && 'opacity-40',
       )}
     >
-      <Text
-        className={cn(
-          view.kind === 'empty' ? 'text-base font-medium' : 'text-2xl font-bold',
-          GLYPH[view.kind],
-        )}
-      >
-        {view.glyph}
-      </Text>
+      <Icon
+        name={ICON[view.kind]}
+        size={view.kind === 'empty' ? 22 : 28}
+        className={GLYPH[view.kind]}
+      />
     </View>
   );
 }

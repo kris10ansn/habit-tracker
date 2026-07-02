@@ -8,7 +8,6 @@ export type MarkKind = 'done' | 'missed' | 'slip' | 'clean' | 'empty';
 
 export interface MarkView {
   kind: MarkKind;
-  glyph: string;
   label: string;
   // Future clean days on a negative habit: "didn't slip" hasn't happened yet.
   muted: boolean;
@@ -16,17 +15,18 @@ export interface MarkView {
 
 // Positive: x = done, o = missed, absent = unmarked.
 // Negative: o = slipped; any other day is an (implicit) clean day.
+// `kind` drives both glyph and color in the component — no UI concern here.
 export const markView = (habit: Habit, key: string, isFuture = false): MarkView => {
   const entry = habit.entries[key];
 
   if (habit.negative) {
-    if (entry === 'o') return { kind: 'slip', glyph: '✕', label: 'Slipped', muted: false };
-    return { kind: 'clean', glyph: '✓', label: 'Clean', muted: isFuture };
+    if (entry === 'o') return { kind: 'slip', label: 'Slipped', muted: false };
+    return { kind: 'clean', label: 'Clean', muted: isFuture };
   }
 
-  if (entry === 'x') return { kind: 'done', glyph: '✓', label: 'Done', muted: false };
-  if (entry === 'o') return { kind: 'missed', glyph: '✕', label: 'Missed', muted: false };
-  return { kind: 'empty', glyph: '–', label: 'Not yet', muted: false };
+  if (entry === 'x') return { kind: 'done', label: 'Done', muted: false };
+  if (entry === 'o') return { kind: 'missed', label: 'Missed', muted: false };
+  return { kind: 'empty', label: 'Not yet', muted: false };
 };
 
 // A day "counts" when a positive habit is done, or a negative habit didn't slip.

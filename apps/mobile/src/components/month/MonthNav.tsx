@@ -11,9 +11,9 @@ interface Props {
 export function MonthNav({ label, onPrev, onNext }: Props) {
   return (
     <View className="mb-3 flex-row items-center justify-between">
-      <IconButton glyph="‹" onPress={onPrev} />
+      <IconButton icon="chevron-left" onPress={onPrev} />
       <Text className="text-[17px] font-semibold text-ink">{label}</Text>
-      <IconButton glyph="›" onPress={onNext} />
+      <IconButton icon="chevron-right" onPress={onNext} />
     </View>
   );
 }

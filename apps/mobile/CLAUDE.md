@@ -27,7 +27,7 @@ streak logic live in `marks.ts`, so components never re-derive the semantics.
   imports `global.css` (the app-wide stylesheet entrypoint — keep this import). Routes: `index`
   (Today), `month`, `habits`, `sync`.
 - `src/components/` — UI grouped by feature: `ui/` holds reusable primitives (`Card`, `Button`,
-  `Pill`, `IconButton`, `StatCard`, `TextField`, `AppScreen`, `ScreenHeader`); `today/`, `month/`,
+  `Pill`, `Icon`, `IconButton`, `StatCard`, `TextField`, `AppScreen`, `ScreenHeader`); `today/`, `month/`,
   `habits/`, `sync/` hold screen-specific pieces; `HabitMark.tsx` is the shared X/O chip.
 - `src/domain/` — model + logic, no UI. `src/theme/colors.ts` — raw palette for non-className APIs.
   `src/lib/cn.ts` — classname joiner for conditional classes.
@@ -46,11 +46,13 @@ streak logic live in `marks.ts`, so components never re-derive the semantics.
   like `rounded-card`/`rounded-field` are tokens in `tailwind.config.js`.
 - **Reuse the primitives.** Build screens from `components/ui/*` (`Card`, `Button`, `AppScreen`, …)
   and compose feature pieces; don't re-style raw `View`s ad hoc. Use `cn()` for conditional classes.
-- **No icon font is installed** (`@expo/vector-icons` is absent). Icons are tinted text glyphs
-  (see `IconButton` and the tab-bar `TabGlyph`). Add the dep before reaching for a real icon set.
-- Third-party components (e.g. `SafeAreaView` from `react-native-safe-area-context`) don't accept
-  `className` until registered with `cssInterop(Component, { className: 'style' })` — registered in
-  `src/components/ui/AppScreen.tsx`. Core RN components (`View`, `Text`, `ScrollView`, `TextInput`,
+- **Icons are Material icons** from `@expo/vector-icons`, wrapped by the `Icon` primitive
+  (`components/ui/Icon.tsx`) — pass a Material `name` and a `text-*` class for the tint (it registers
+  `cssInterop` so `className` drives color); `size` is a number. `IconButton` takes an `icon` name;
+  the tab bar passes React Navigation's resolved `color`. Don't render raw text glyphs for icons.
+- Third-party components (e.g. `SafeAreaView` from `react-native-safe-area-context`, `MaterialIcons`)
+  don't accept `className` until registered with `cssInterop(Component, { className: 'style' })` —
+  registered in `src/components/ui/AppScreen.tsx` and `src/components/ui/Icon.tsx`. Core RN components (`View`, `Text`, `ScrollView`, `TextInput`,
   …) work out of the box; `ScrollView` also takes `contentContainerClassName`.
 - `babel-preset-expo` auto-configures the reanimated 4 babel plugin on SDK 56, so **never** add
   `react-native-reanimated/plugin` (or `react-native-worklets/plugin`) to `babel.config.js` — it

@@ -1,25 +1,25 @@
-import { Pressable, Text } from 'react-native';
+import { Pressable } from 'react-native';
 
+import { Icon, type IconName } from '@/components/ui/Icon';
 import { cn } from '@/lib/cn';
 
 type Size = 'md' | 'xs';
 
 interface Props {
-  glyph: string;
+  icon: IconName;
   onPress?: () => void;
   disabled?: boolean;
   size?: Size;
   className?: string;
 }
 
-// Square, glyph-labelled tap target — month arrows, list reordering, etc.
-// Uses text glyphs rather than an icon font (none is installed in this app).
-const SIZES: Record<Size, { box: string; text: string }> = {
-  md: { box: 'h-9 w-9 rounded-field', text: 'text-lg' },
-  xs: { box: 'h-5 w-6 rounded-md', text: 'text-[11px]' },
+// Square, Material-icon tap target — month arrows, list reordering, etc.
+const SIZES: Record<Size, { box: string; icon: number }> = {
+  md: { box: 'h-9 w-9 rounded-field', icon: 20 },
+  xs: { box: 'h-5 w-6 rounded-md', icon: 14 },
 };
 
-export function IconButton({ glyph, onPress, disabled, size = 'md', className }: Props) {
+export function IconButton({ icon, onPress, disabled, size = 'md', className }: Props) {
   const s = SIZES[size];
   return (
     <Pressable
@@ -33,7 +33,7 @@ export function IconButton({ glyph, onPress, disabled, size = 'md', className }:
         className,
       )}
     >
-      <Text className={cn(s.text, 'text-ink-2')}>{glyph}</Text>
+      <Icon name={icon} size={s.icon} className="text-ink-2" />
     </Pressable>
   );
 }
