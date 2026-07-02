@@ -1,4 +1,4 @@
-import { MaterialIcons } from "@expo/vector-icons";
+import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
 import { cssInterop } from "nativewind";
 import type { ComponentProps } from "react";
 import type { ColorValue } from "react-native";
@@ -11,10 +11,10 @@ cssInterop(MaterialIcons, { className: "style" });
 // The shared icon primitive: MaterialIcons with className-driven color. Pass
 // `size` as a number (icons aren't sized by text utilities) and a `text-*`
 // class for the tint. Names are constrained to the Material set.
-export type IconName = ComponentProps<typeof MaterialIcons>["name"];
+export type MaterialIconName = ComponentProps<typeof MaterialIcons>["name"];
 
-interface Props {
-    name: IconName;
+interface Props<T_Name extends string> {
+    name: T_Name;
     size?: number;
     className?: string;
     // Escape hatch for callers that hand us a resolved color rather than a class
@@ -22,9 +22,36 @@ interface Props {
     color?: ColorValue;
 }
 
-export function Icon({ name, size = 20, className, color }: Props) {
+export function Icon({
+    name,
+    size = 20,
+    className,
+    color,
+}: Props<MaterialIconName>) {
     return (
         <MaterialIcons
+            name={name}
+            size={size}
+            className={className}
+            color={color}
+        />
+    );
+}
+
+cssInterop(MaterialCommunityIcons, { className: "style" });
+
+export type MaterialCommunityIconName = ComponentProps<
+    typeof MaterialCommunityIcons
+>["name"];
+
+export function CommunityIcon({
+    name,
+    size = 20,
+    className,
+    color,
+}: Props<MaterialCommunityIconName>) {
+    return (
+        <MaterialCommunityIcons
             name={name}
             size={size}
             className={className}

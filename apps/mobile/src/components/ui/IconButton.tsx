@@ -1,12 +1,12 @@
 import { Pressable } from "react-native";
 
-import { Icon, type IconName } from "@/components/ui/Icon";
+import { Icon, type MaterialIconName } from "@/components/ui/Icon";
 import { cn } from "@/lib/cn";
 
 type Size = "md" | "xs";
 
 interface Props {
-    icon: IconName;
+    icon: MaterialIconName;
     onPress?: () => void;
     disabled?: boolean;
     size?: Size;

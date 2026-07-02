@@ -1,6 +1,6 @@
 import { Pressable } from "react-native";
 
-import { Icon, type IconName } from "@/components/ui/Icon";
+import { Icon, type MaterialIconName } from "@/components/ui/Icon";
 import type { MarkKind, MarkView } from "@/domain/marks";
 import { cn } from "@/lib/cn";
 import Animated, {
@@ -86,7 +86,7 @@ const GLYPH: Record<MarkKind, string> = {
 };
 
 // Material icon per state — reads the shared X/O semantics via `kind`.
-const ICON: Record<MarkKind, IconName> = {
+const ICON: Record<MarkKind, MaterialIconName> = {
     done: "check",
     missed: "close",
     slip: "close",
