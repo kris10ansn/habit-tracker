@@ -62,9 +62,20 @@ would fold onto another. Unpushed tombstones simply resend on the next sync.
   keep last" is correct because current-month data is immutable while browsing elsewhere.
 - **Suspend mirrors the on-screen month** — rejected: the lockscreen is a passive "now" dashboard;
   sleeping while browsing March should not leave March on the lockscreen.
-- **Async Loader rebuild per month switch** — not needed: a switch only re-binds `entries` and a
-  ±3-day column count on the already-built grid; the async Loader exists to avoid the *first*
-  600-delegate construction, which a re-point doesn't repeat.
+- **Async Loader rebuild per month switch** — originally rejected as not needed (a switch only
+  re-binds `entries` and a ±3-day column count on the already-built grid). **Reversed:** on the rM1
+  the synchronous re-point freezes the UI thread noticeably with no feedback. A switch now tears the
+  grid Loader down *first* (`beginLoadMonth` drops the month store's `isLoaded`) so the "Loading…"
+  screen paints that frame, then **defers the blocking read** past the paint (`Qt.callLater`,
+  mirroring the deferred first-open read) before the Loader async-rebuilds against the new month — so
+  feedback is instant. Doing the read synchronously on the tap (a first attempt) delayed the
+  loading screen until the read finished, defeating the point. The post-read work (`syncNow`'s
+  server pull, suspend refresh) runs in the same deferred step, after `isLoaded` is restored, so its
+  `isLoaded` gate still passes. The arrows gate on a sticky `hasLoadedOnce` (true after the first
+  load ever), not the per-switch teardown, so rapid month-hopping stays live and coalesces
+  (`Qt.callLater` dedups to a single load of the final on-screen month). Vertical scroll resets to
+  the top on switch (the teardown clamps `scrollY`), accepted as consistent with the horizontal
+  recenter.
 
 ## Consequences
 

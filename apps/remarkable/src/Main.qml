@@ -162,10 +162,23 @@ Rectangle {
         readonly property int highlightDay: isCurrentMonth ? currentDay : 0
         readonly property int lastNonFutureDay: isCurrentMonth ? currentDay : (viewIsAfterCurrent ? 0 : daysInMonth)
 
+        // Tear the grid down and repoint the header this frame for instant feedback,
+        // then defer the blocking month read past the paint (mirrors the deferred
+        // first-open read). Qt.callLater dedups, so rapid hops collapse to a single
+        // load of the final month; _loadViewedMonth reads whatever month is on screen.
         function goToMonth(year, month) {
+            if (landscape.viewYear === year && landscape.viewMonth === month)
+                return;
+
+            habitsStore.beginLoadMonth();
             landscape.viewYear = year;
             landscape.viewMonth = month;
-            habitsStore.loadMonth(year, month);
+
+            Qt.callLater(landscape._loadViewedMonth);
+        }
+
+        function _loadViewedMonth() {
+            habitsStore.loadMonth(landscape.viewYear, landscape.viewMonth);
             landscape.recenterScroll();
 
             // Pull the arrived-at month from the server (no-op when standalone).
@@ -218,6 +231,11 @@ Rectangle {
         readonly property bool gridReady: gridLoader.status === Loader.Ready
         readonly property bool loading: !gridReady
 
+        // The month-nav arrows gate on the store's first-ever load only, not on the
+        // per-switch teardown/rebuild — so you can keep hopping while a switch is in
+        // flight (hasLoadedOnce stays true across the transient isLoaded drop).
+        readonly property bool dataLoading: !habitsStore.hasLoadedOnce
+
         onViewportWidthChanged: recenterScroll()
 
         // Vertical scrolling for when the habit rows overflow the available height.
@@ -254,7 +272,7 @@ Rectangle {
                     date: landscape.viewDate
                     isCurrentMonth: landscape.isCurrentMonth
                     warn: suspendCanvas.lastRenderFailed
-                    disabled: landscape.loading
+                    disabled: landscape.dataLoading
                     onPreviousRequested: landscape.goToPreviousMonth()
                     onNextRequested: landscape.goToNextMonth()
                     onCurrentRequested: landscape.goToCurrentMonth()

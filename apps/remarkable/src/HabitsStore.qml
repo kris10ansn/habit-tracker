@@ -29,6 +29,14 @@ QtObject {
     }
 
     readonly property bool isLoaded: _roster.isLoaded && _month.isLoaded
+
+    // Sticky: true once the first load ever completes, and never false again — even
+    // while a month switch briefly drops isLoaded to tear the grid down. The month
+    // arrows gate on this (not isLoaded) so they stay live across switches.
+    property bool hasLoadedOnce: false
+    onIsLoadedChanged: if (store.isLoaded)
+        store.hasLoadedOnce = true
+
     signal saved
 
     // Emitted before a habit leaves the roster so the sync layer can keep a tombstone (ADR 0003).
@@ -264,15 +272,24 @@ QtObject {
         store._month._doSave();
     }
 
+    // Tear the grid Loader down now (drop the month store's isLoaded) so the
+    // "Loading…" screen paints this frame — the instant half of a month switch.
+    // The blocking read is deferred by the caller and runs in loadMonth (ADR 0004).
+    function beginLoadMonth() {
+        store._month.isLoaded = false;
+    }
+
     // Swap the in-memory entries to another month's file. Flush any pending edit
     // to the *old* file first (filePath still points there until viewYear/Month
     // change), then re-point and re-read, folding the new month's entries onto the
     // roster. The roster (identity/config) is month-independent and stays put.
+    //
+    // This holds the blocking read, so the caller defers it past the teardown paint
+    // (see Main.goToMonth). reload restores isLoaded to true, rebuilding the grid
+    // async against the new month. No same-month early-return: after a teardown the
+    // read must run to restore isLoaded even when the viewed month is unchanged
+    // (e.g. hopping forward then back before the deferred load fires).
     function loadMonth(year, month) {
-        if (year === store.viewYear && month === store.viewMonth) {
-            return;
-        }
-
         store._month.flushPendingSave();
 
         store.viewYear = year;

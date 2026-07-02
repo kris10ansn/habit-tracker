@@ -37,8 +37,9 @@ QtObject {
     }
 
     // Re-read the (possibly re-pointed) file into memory. Used when a store swaps
-    // filePath at runtime — e.g. month navigation. Stays loaded throughout so
-    // dependent views update in place rather than tearing down.
+    // filePath at runtime — e.g. month navigation. Restores isLoaded to true; a
+    // caller that wants the dependent Loader to tear down and rebuild first sets
+    // isLoaded false before calling (see HabitsStore.loadMonth).
     function reload() {
         jsonStore.applyLoaded(Storage.readJson(jsonStore.filePath));
         jsonStore.isLoaded = true;
