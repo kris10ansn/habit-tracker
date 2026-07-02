@@ -1,18 +1,20 @@
 import { AppScreen } from '@/components/ui/AppScreen';
 import { AddHabitRow } from '@/components/habits/AddHabitRow';
 import { EditHabitRow } from '@/components/habits/EditHabitRow';
-import { DEFAULT_HABITS } from '@/domain/habits';
+import { useHabits } from '@/state/HabitsProvider';
 
 // Habits: manage the roster — rename, reorder, set polarity, add, delete.
 export default function HabitsScreen() {
+  const { habits } = useHabits();
+
   return (
     <AppScreen eyebrow="Manage" title="Habits" subtitle="Rename, reorder, set polarity, or add">
-      {DEFAULT_HABITS.map((habit, i) => (
+      {habits.map((habit, i) => (
         <EditHabitRow
           key={habit.name}
           habit={habit}
           isFirst={i === 0}
-          isLast={i === DEFAULT_HABITS.length - 1}
+          isLast={i === habits.length - 1}
         />
       ))}
       <AddHabitRow />

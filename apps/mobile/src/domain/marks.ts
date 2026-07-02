@@ -2,7 +2,7 @@
 // shared X/O glossary. Components map `kind` to styling; they never re-derive the
 // X/O semantics themselves. See the monorepo-root CONTEXT.md.
 import { dateKey, type MonthGrid } from './dates';
-import type { Habit } from './types';
+import type { EntryState, Habit } from './types';
 
 export type MarkKind = 'done' | 'missed' | 'slip' | 'clean' | 'empty';
 
@@ -27,6 +27,16 @@ export const markView = (habit: Habit, key: string, isFuture = false): MarkView 
   if (entry === 'x') return { kind: 'done', label: 'Done', muted: false };
   if (entry === 'o') return { kind: 'missed', label: 'Missed', muted: false };
   return { kind: 'empty', label: 'Not yet', muted: false };
+};
+
+// The tap cycle, mirroring the reMarkable client (HabitsStore._nextEntryState):
+// positive: unmarked → x → o → unmarked; negative: clean → o → clean. `undefined`
+// is the unmarked state — callers drop the key rather than storing it.
+export const nextEntry = (habit: Habit, key: string): EntryState | undefined => {
+  const entry = habit.entries[key];
+  if (habit.negative) return entry === 'o' ? undefined : 'o';
+  if (entry === undefined) return 'x';
+  return entry === 'x' ? 'o' : undefined;
 };
 
 // A day "counts" when a positive habit is done, or a negative habit didn't slip.

@@ -1,4 +1,4 @@
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 import { Icon, type IconName } from '@/components/ui/Icon';
 import type { MarkKind, MarkView } from '@/domain/marks';
@@ -9,6 +9,8 @@ type Size = 'lg' | 'sm';
 interface Props {
   view: MarkView;
   size?: Size;
+  // When set, the mark becomes a tap target that cycles the day's X/O state.
+  onPress?: () => void;
 }
 
 // Container + glyph colors per state. `lg` (Today) is a bordered tile; `sm`
@@ -48,22 +50,35 @@ const SM_CONTAINER: Record<MarkKind, string> = {
   empty: 'bg-transparent',
 };
 
-export function HabitMark({ view, size = 'lg' }: Props) {
+export function HabitMark({ view, size = 'lg', onPress }: Props) {
   const small = size === 'sm';
-  return (
-    <View
-      className={cn(
-        'items-center justify-center',
-        small ? 'h-7 w-7 rounded-lg' : 'h-[52px] w-[52px] rounded-2xl border-2',
-        small ? SM_CONTAINER[view.kind] : CONTAINER[view.kind],
-        !small && view.muted && 'opacity-40',
-      )}
-    >
-      <Icon
-        name={ICON[view.kind]}
-        size={small ? 18 : view.kind === 'empty' ? 22 : 28}
-        className={cn(GLYPH[view.kind], small && view.muted && 'opacity-40')}
-      />
-    </View>
+  const containerClassName = cn(
+    'items-center justify-center',
+    small ? 'h-7 w-7 rounded-lg' : 'h-[52px] w-[52px] rounded-2xl border-2',
+    small ? SM_CONTAINER[view.kind] : CONTAINER[view.kind],
+    !small && view.muted && 'opacity-40',
+    onPress && 'active:opacity-60',
   );
+  const glyph = (
+    <Icon
+      name={ICON[view.kind]}
+      size={small ? 18 : view.kind === 'empty' ? 22 : 28}
+      className={cn(GLYPH[view.kind], small && view.muted && 'opacity-40')}
+    />
+  );
+
+  if (onPress) {
+    return (
+      <Pressable
+        onPress={onPress}
+        accessibilityRole="button"
+        accessibilityLabel={view.label}
+        className={containerClassName}
+      >
+        {glyph}
+      </Pressable>
+    );
+  }
+
+  return <View className={containerClassName}>{glyph}</View>;
 }

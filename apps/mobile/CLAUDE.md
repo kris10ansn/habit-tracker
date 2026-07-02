@@ -9,9 +9,11 @@ styled with NativeWind (Tailwind for React Native).
 
 A mobile habit tracker with four tabs — **Today** (log), **Month** (the grid), **Habits** (edit
 roster), **Sync**. Renders the same Habit × Entry model as the reMarkable client; the Month grid is
-**transposed** for portrait (days as rows, habits as columns, today highlighted). The **design is
-built but not wired**: screens render from sample data, and controls (marks, edit, sync) are
-affordances only — no persistence yet. The plan is to back it with a shared backend.
+**transposed** for portrait (days as rows, habits as columns, today highlighted). **Marks are
+wired** to an in-memory store (`src/state/HabitsProvider.tsx`) — tapping a `HabitMark` on Today or
+Month cycles its X/O state and both tabs reflect it. The rest of the design is affordances only:
+roster edits and sync don't act yet, and nothing persists across launches. The plan is to back the
+store with a shared backend.
 
 ## Domain
 
@@ -23,14 +25,17 @@ streak logic live in `marks.ts`, so components never re-derive the semantics.
 
 ## Layout
 
-- `src/app/` — expo-router routes. `_layout.tsx` is the `Tabs` navigator (headerShown false) and
-  imports `global.css` (the app-wide stylesheet entrypoint — keep this import). Routes: `index`
-  (Today), `month`, `habits`, `sync`.
+- `src/app/` — expo-router routes. `_layout.tsx` is the `Tabs` navigator (headerShown false), wraps
+  the tree in `HabitsProvider`, and imports `global.css` (the app-wide stylesheet entrypoint — keep
+  this import). Routes: `index` (Today), `month`, `habits`, `sync`.
 - `src/components/` — UI grouped by feature: `ui/` holds reusable primitives (`Card`, `Button`,
   `Pill`, `Icon`, `IconButton`, `StatCard`, `TextField`, `AppScreen`, `ScreenHeader`); `today/`, `month/`,
   `habits/`, `sync/` hold screen-specific pieces; `HabitMark.tsx` is the shared X/O chip.
-- `src/domain/` — model + logic, no UI. `src/theme/colors.ts` — raw palette for non-className APIs.
-  `src/lib/cn.ts` — classname joiner for conditional classes.
+- `src/domain/` — model + logic, no UI (the X/O tap cycle is `nextEntry` in `marks.ts`).
+  `src/state/HabitsProvider.tsx` — the in-memory habits store: `useHabits()` returns the roster and
+  `toggleEntry(habitIndex, dateKey)`; screens read habits from here, not `DEFAULT_HABITS` directly.
+  `src/theme/colors.ts` — raw palette for non-className APIs. `src/lib/cn.ts` — classname joiner for
+  conditional classes.
 - `@/*` path alias → `src/*` (see `tsconfig.json`).
 - NativeWind config lives at the app root: `tailwind.config.js` (content globs + `nativewind/preset`
   + the design tokens), `global.css` (Tailwind directives), `metro.config.js` (`withNativeWind`),

@@ -11,10 +11,11 @@ interface Props {
   habit: Habit;
   dateKey: string;
   grid: MonthGrid;
+  onToggle?: () => void;
 }
 
 // One habit on the Today screen: name, streak/polarity, and today's mark.
-export function HabitListItem({ habit, dateKey, grid }: Props) {
+export function HabitListItem({ habit, dateKey, grid, onToggle }: Props) {
   const view = markView(habit, dateKey);
   const streak = currentStreak(habit, grid);
 
@@ -29,7 +30,7 @@ export function HabitListItem({ habit, dateKey, grid }: Props) {
           <Text className="text-[13px] text-ink-2">{streakLabel(habit, streak)}</Text>
         </View>
       </View>
-      <HabitMark view={view} size="lg" />
+      <HabitMark view={view} size="lg" onPress={onToggle} />
     </Card>
   );
 }

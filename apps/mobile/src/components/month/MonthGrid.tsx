@@ -10,6 +10,7 @@ import { cn } from '@/lib/cn';
 interface Props {
   habits: Habit[];
   grid: MonthGridMeta;
+  onToggle?: (habitIndex: number, dateKey: string) => void;
 }
 
 // Column header abbreviation — habits are columns in this portrait transpose, so
@@ -21,7 +22,7 @@ const columnLabel = (habit: Habit): string => {
 };
 
 // Days as rows, habits as columns (portrait transpose of the reMarkable grid).
-export function MonthGrid({ habits, grid }: Props) {
+export function MonthGrid({ habits, grid, onToggle }: Props) {
   const days = Array.from({ length: grid.daysInMonth }, (_, i) => i + 1);
 
   return (
@@ -53,14 +54,18 @@ export function MonthGrid({ habits, grid }: Props) {
                 {weekdayNarrow(grid.year, grid.month, day)}
               </Text>
             </View>
-            {habits.map((habit) => (
-              <View key={habit.name} className="flex-1 items-center py-1">
-                <HabitMark
-                  view={markView(habit, dateKey(grid.year, grid.month, day), isFuture)}
-                  size="sm"
-                />
-              </View>
-            ))}
+            {habits.map((habit, habitIndex) => {
+              const dayKey = dateKey(grid.year, grid.month, day);
+              return (
+                <View key={habit.name} className="flex-1 items-center py-1">
+                  <HabitMark
+                    view={markView(habit, dayKey, isFuture)}
+                    size="sm"
+                    onPress={onToggle ? () => onToggle(habitIndex, dayKey) : undefined}
+                  />
+                </View>
+              );
+            })}
           </View>
         );
       })}
