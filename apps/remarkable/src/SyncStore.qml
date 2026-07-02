@@ -19,12 +19,21 @@ JsonStore {
     property double lastSyncedAt: 0
 
     // Transient status for the ambient line: "" (idle/standalone), "pending" (debounce countdown),
-    // "syncing", "ok", "offline", "error". Only "error" (misconfig) is surfaced loudly; the rest
-    // stay quiet.
+    // the in-flight request phases mirroring the XHR readyState — "syncing" (started), "connecting"
+    // (OPENED), "receiving" (HEADERS_RECEIVED / LOADING) — then a terminal "ok", "offline", "error".
+    // Only "error" (misconfig) is surfaced loudly; the rest stay quiet.
     property string status: ""
     property string errorMessage: ""
     property int remainingSeconds: 0
     property bool hasSyncedSuccessfully: false
+
+    // True while a request is on the wire, across every readyState phase. The syncing guards key on
+    // this rather than a single status string so the finer phases don't slip past them.
+    readonly property bool isRequestInFlight: ["syncing", "connecting", "receiving"].indexOf(status) !== -1
+
+    // Text for the ambient status line (ADR 0003). Quiet by design: empty while standalone (no
+    // server configured), a brief phrase otherwise. Loud misconfig errors are a modal in Main.
+    readonly property string statusText: syncStore._statusText()
 
     serialize: function () {
         return {
@@ -95,7 +104,7 @@ JsonStore {
             syncStore.status = "";
             return;
         }
-        if (syncStore.status === "syncing") {
+        if (syncStore.isRequestInFlight) {
             return;
         }
         if (!syncStore.habitsStore || !syncStore.habitsStore.isLoaded) {
@@ -120,7 +129,12 @@ JsonStore {
         syncStore._activeXhr = xhr;
 
         xhr.onreadystatechange = function () {
-            if (xhr.readyState !== XMLHttpRequest.DONE || syncStore._activeXhr !== xhr) {
+            if (syncStore._activeXhr !== xhr) {
+                return;
+            }
+
+            if (xhr.readyState !== XMLHttpRequest.DONE) {
+                syncStore.status = syncStore._statusForReadyState(xhr.readyState);
                 return;
             }
 
@@ -133,6 +147,14 @@ JsonStore {
         xhr.setRequestHeader("Content-Type", "application/json");
         syncStore._timeoutTimer.restart();
         xhr.send(JSON.stringify(request));
+    }
+
+    function _statusForReadyState(readyState) {
+        if (readyState === XMLHttpRequest.HEADERS_RECEIVED || readyState === XMLHttpRequest.LOADING) {
+            return "receiving";
+        }
+
+        return "connecting";
     }
 
     function _handleDone(xhr, request, requestMonthKey) {
@@ -186,7 +208,7 @@ JsonStore {
             xhr.abort();
         }
 
-        if (syncStore.status === "syncing" || syncStore.status === "pending") {
+        if (syncStore.isRequestInFlight || syncStore.status === "pending") {
             syncStore.status = "";
         }
     }
@@ -206,6 +228,28 @@ JsonStore {
         if (syncStore.status === "error") {
             syncStore.status = "";
         }
+    }
+
+    function _statusText() {
+        if (!syncStore._serverUrl()) {
+            return "";
+        }
+
+        if (syncStore.status === "pending") {
+            return syncStore.remainingSeconds > 0
+                ? `Syncing in ${syncStore.remainingSeconds}s`
+                : "Syncing…";
+        }
+
+        if (syncStore.status === "syncing") return "Syncing…";
+        if (syncStore.status === "connecting") return "Connecting…";
+        if (syncStore.status === "receiving") return "Receiving…";
+        if (syncStore.status === "offline") return "Sync failed";
+        if (syncStore.status === "error") return "Sync error";
+
+        if (syncStore.lastSyncedAt > 0) return "Synced to server";
+
+        return "";
     }
 
     function _serverUrl() {

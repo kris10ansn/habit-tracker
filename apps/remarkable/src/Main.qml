@@ -4,21 +4,18 @@ import "components" as App
 import "js/DateUtils.js" as DateUtils
 import "js/Scroll.js" as Scroll
 import "js/SuspendStatus.js" as SuspendStatus
-import "js/SyncStatus.js" as SyncStatus
 
 Rectangle {
     id: root
     anchors.fill: parent
     color: App.Theme.bg
 
-    readonly property bool hasServerUrl: (settingsStore.serverUrl || "").trim() !== ""
     readonly property string suspendStatusText: SuspendStatus.text(suspendCanvas.phase, suspendCanvas.remainingSeconds)
-    readonly property string syncStatusText: SyncStatus.text(syncStore.status, syncStore.lastSyncedAt, hasServerUrl, syncStore.remainingSeconds)
 
     signal close
 
     function _waitForPendingOperations() {
-        const syncInProgress = syncStore.status === "syncing" || syncStore.status === "pending";
+        const syncInProgress = syncStore.isRequestInFlight || syncStore.status === "pending";
         const renderInProgress = suspendCanvas.phase === "saving" || suspendCanvas.phase === "pending";
 
         if (syncInProgress || renderInProgress) {
@@ -371,7 +368,7 @@ Rectangle {
                 editing: landscape.editing
                 loading: landscape.loading
                 suspendStatusText: root.suspendStatusText
-                syncStatusText: root.syncStatusText
+                syncStatusText: syncStore.statusText
                 onEditToggled: landscape.editing = !landscape.editing
                 onSettingsRequested: landscape.currentView = "settings"
                 onQuitRequested: quit()
@@ -394,7 +391,7 @@ Rectangle {
             visible: landscape.currentView === "settings"
             suspendImageEnabled: settingsStore.suspendImageEnabled
             serverUrl: settingsStore.serverUrl
-            syncStatusText: root.syncStatusText
+            syncStatusText: syncStore.statusText
             onApplyRequested: root.applySuspendSetting(value)
             onServerUrlApplied: {
                 settingsStore.setServerUrl(url);

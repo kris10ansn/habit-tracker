@@ -33,7 +33,6 @@
         <file>src/js/SuspendRender.js</file>
         <file>src/js/SuspendDraw.js</file>
         <file>src/js/SuspendStatus.js</file>
-        <file>src/js/SyncStatus.js</file>
         <file>src/js/Sync.js</file>
         <file>src/js/Scroll.js</file>
     </qresource>
