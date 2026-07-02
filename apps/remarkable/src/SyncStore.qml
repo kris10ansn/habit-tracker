@@ -20,7 +20,7 @@ JsonStore {
 
     // Transient status for the ambient line: "" (idle/standalone), "pending" (debounce countdown),
     // the in-flight request phases mirroring the XHR readyState — "syncing" (started), "connecting"
-    // (OPENED), "receiving" (HEADERS_RECEIVED / LOADING) — then a terminal "ok", "offline", "error".
+    // (OPENED), "headers-received" (HEADERS_RECEIVED), "loading" (LOADING) — then a terminal "ok", "offline", "error".
     // Only "error" (misconfig) is surfaced loudly; the rest stay quiet.
     property string status: ""
     property string errorMessage: ""
@@ -29,7 +29,7 @@ JsonStore {
 
     // True while a request is on the wire, across every readyState phase. The syncing guards key on
     // this rather than a single status string so the finer phases don't slip past them.
-    readonly property bool isRequestInFlight: ["syncing", "connecting", "receiving"].indexOf(status) !== -1
+    readonly property bool isRequestInFlight: ["syncing", "connecting", "headers-received", "loading"].indexOf(status) !== -1
 
     // Text for the ambient status line (ADR 0003). Quiet by design: empty while standalone (no
     // server configured), a brief phrase otherwise. Loud misconfig errors are a modal in Main.
@@ -150,8 +150,11 @@ JsonStore {
     }
 
     function _statusForReadyState(readyState) {
-        if (readyState === XMLHttpRequest.HEADERS_RECEIVED || readyState === XMLHttpRequest.LOADING) {
-            return "receiving";
+        if (readyState === XMLHttpRequest.HEADERS_RECEIVED ) {
+            return "headers-received";
+        }
+        if (readyState === XMLHttpRequest.LOADING){
+            return "loading";
         }
 
         return "connecting";
@@ -242,8 +245,9 @@ JsonStore {
         }
 
         if (syncStore.status === "syncing") return "Syncing…";
-        if (syncStore.status === "connecting") return "Connecting…";
-        if (syncStore.status === "receiving") return "Receiving…";
+        if (syncStore.status === "connecting") return "Sync: connecting…";
+        if (syncStore.status === "headers-received") return "Sync: headers received…";
+        if (syncStore.status === "loading") return "Sync: loading…";
         if (syncStore.status === "offline") return "Sync failed";
         if (syncStore.status === "error") return "Sync error";
 
