@@ -23,10 +23,10 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 export function HabitMark({ view, size = 'lg', onPress }: Props) {
   const scale = useSharedValue(1);
-  const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.get() }] }));
 
   const handlePress = () => {
-    scale.value = withSequence(withTiming(0.9, POP_TIMING_IN), withTiming(1, POP_TIMING_OUT));
+    scale.set(withSequence(withTiming(0.9, POP_TIMING_IN), withTiming(1, POP_TIMING_OUT)));
     onPress?.();
   };
 
