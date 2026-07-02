@@ -6,10 +6,12 @@ import { colors } from '@/theme/colors';
 
 import { PlatformPressable } from 'expo-router/build/react-navigation';
 import '../../global.css';
+import { StatusBar } from 'react-native';
 
 export default function RootLayout() {
   return (
     <HabitsProvider>
+      <StatusBar barStyle={'dark-content'} />
       <Tabs
         screenOptions={{
           headerShown: false,
