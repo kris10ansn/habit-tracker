@@ -1,27 +1,30 @@
-import { Text, View } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { cssInterop } from 'nativewind';
-
-import { HabitGrid } from '@/components/habit-grid';
-import { monthGrid } from '@/domain/dates';
+import { AppScreen } from '@/components/ui/app-screen';
+import { DaySummary } from '@/components/today/day-summary';
+import { HabitListItem } from '@/components/today/habit-list-item';
+import { monthGrid, todayKey, weekdayLabel, monthDayLabel } from '@/domain/dates';
 import { DEFAULT_HABITS } from '@/domain/habits';
+import { isSuccess } from '@/domain/marks';
 
-// SafeAreaView is a third-party component, so NativeWind needs to be told to map
-// `className` onto its `style` prop.
-cssInterop(SafeAreaView, { className: 'style' });
-
-export default function GridScreen() {
+// Today: the primary daily surface — log each habit at a glance.
+export default function TodayScreen() {
   const grid = monthGrid();
+  const key = todayKey(grid);
+
+  const logged = DEFAULT_HABITS.filter((habit) => isSuccess(habit, key)).length;
+  const slips = DEFAULT_HABITS.filter(
+    (habit) => habit.negative && habit.entries[key] === 'o',
+  ).length;
 
   return (
-    <SafeAreaView className="flex-1 bg-white" edges={['top', 'left', 'right']}>
-      <View className="px-3 py-3">
-        <Text className="text-[22px] font-bold text-black">{grid.monthLabel}</Text>
-        <Text className="mt-0.5 text-[13px] text-[#444]">
-          {grid.daysInMonth} days · today is the {grid.today}.
-        </Text>
-      </View>
-      <HabitGrid habits={DEFAULT_HABITS} grid={grid} />
-    </SafeAreaView>
+    <AppScreen
+      eyebrow={`${weekdayLabel(grid)} · Today`}
+      title={monthDayLabel(grid)}
+      subtitle={`${logged} of ${DEFAULT_HABITS.length} habits logged`}
+    >
+      <DaySummary logged={logged} total={DEFAULT_HABITS.length} slips={slips} />
+      {DEFAULT_HABITS.map((habit) => (
+        <HabitListItem key={habit.name} habit={habit} dateKey={key} grid={grid} />
+      ))}
+    </AppScreen>
   );
 }

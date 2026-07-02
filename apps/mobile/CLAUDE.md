@@ -7,38 +7,50 @@ styled with NativeWind (Tailwind for React Native).
 
 ## What this is
 
-A mobile habit tracker. Currently a single **static, read-only grid** (no persistence) — the plan is
-to back it with a shared backend. It renders the same Habit × Entry model as the reMarkable client,
-**transposed** for portrait: days are rows (vertical scroll), habits are columns, today's row
-highlighted.
+A mobile habit tracker with four tabs — **Today** (log), **Month** (the grid), **Habits** (edit
+roster), **Sync**. Renders the same Habit × Entry model as the reMarkable client; the Month grid is
+**transposed** for portrait (days as rows, habits as columns, today highlighted). The **design is
+built but not wired**: screens render from sample data, and controls (marks, edit, sync) are
+affordances only — no persistence yet. The plan is to back it with a shared backend.
 
 ## Domain
 
 Shared vocabulary lives in the monorepo-root [`CONTEXT.md`](../../CONTEXT.md) (Habit, Entry, X/O,
-polarity, Unmarked). The TS model in `src/domain/` (`types.ts`, `dates.ts`, `habits.ts`) mirrors the
-reMarkable client's shape — keep the `dateKey` format (`YYYY-MM-DD`) and the X/O entry semantics
-aligned so a future backend speaks one shape.
+polarity, Unmarked). The TS model in `src/domain/` (`types.ts`, `dates.ts`, `habits.ts`, `marks.ts`)
+mirrors the reMarkable client's shape — keep the `dateKey` format (`YYYY-MM-DD`) and the X/O entry
+semantics aligned so a future backend speaks one shape. The X/O → display reading (`markView`) and
+streak logic live in `marks.ts`, so components never re-derive the semantics.
 
 ## Layout
 
-- `src/app/` — expo-router routes. One route today (`index.tsx`); `_layout.tsx` is a headerless
-  `Stack` and imports `global.css` (the app-wide stylesheet entrypoint — keep this import).
-- `src/components/` — UI (e.g. `habit-grid.tsx`).
-- `src/domain/` — model + date helpers, no UI.
+- `src/app/` — expo-router routes. `_layout.tsx` is the `Tabs` navigator (headerShown false) and
+  imports `global.css` (the app-wide stylesheet entrypoint — keep this import). Routes: `index`
+  (Today), `month`, `habits`, `sync`.
+- `src/components/` — UI grouped by feature: `ui/` holds reusable primitives (`Card`, `Button`,
+  `Pill`, `IconButton`, `StatCard`, `TextField`, `AppScreen`, `ScreenHeader`); `today/`, `month/`,
+  `habits/`, `sync/` hold screen-specific pieces; `habit-mark.tsx` is the shared X/O chip.
+- `src/domain/` — model + logic, no UI. `src/theme/colors.ts` — raw palette for non-className APIs.
+  `src/lib/cn.ts` — classname joiner for conditional classes.
 - `@/*` path alias → `src/*` (see `tsconfig.json`).
-- NativeWind config lives at the app root: `tailwind.config.js` (content globs + `nativewind/preset`),
-  `global.css` (Tailwind directives), `metro.config.js` (`withNativeWind`), `babel.config.js`
-  (`jsxImportSource: 'nativewind'`), and `nativewind-env.d.ts` (types).
+- NativeWind config lives at the app root: `tailwind.config.js` (content globs + `nativewind/preset`
+  + the design tokens), `global.css` (Tailwind directives), `metro.config.js` (`withNativeWind`),
+  `babel.config.js` (`jsxImportSource: 'nativewind'`), and `nativewind-env.d.ts` (types).
 
 ## Conventions
 
 - **Styling is NativeWind only** — use `className` with Tailwind utilities; do not use
-  `StyleSheet.create` or inline `style` objects. Styling is **barebones on purpose** (functionality
-  first, visual design later), so plain utility classes are fine — no design system yet.
+  `StyleSheet.create` or inline `style` objects. **Exception:** React Navigation options that take
+  color/style values (the tab bar in `_layout.tsx`) and `placeholderTextColor` — pull those from
+  `src/theme/colors.ts`. Design tokens (colors, radii like `rounded-card`/`rounded-field`) live in
+  `tailwind.config.js`; `colors.ts` mirrors the palette for the exception above — keep them in sync.
+- **Reuse the primitives.** Build screens from `components/ui/*` (`Card`, `Button`, `AppScreen`, …)
+  and compose feature pieces; don't re-style raw `View`s ad hoc. Use `cn()` for conditional classes.
+- **No icon font is installed** (`@expo/vector-icons` is absent). Icons are tinted text glyphs
+  (see `IconButton` and the tab-bar `TabGlyph`). Add the dep before reaching for a real icon set.
 - Third-party components (e.g. `SafeAreaView` from `react-native-safe-area-context`) don't accept
-  `className` until registered with `cssInterop(Component, { className: 'style' })` — see
-  `src/app/index.tsx`. Core RN components (`View`, `Text`, `ScrollView`, …) work out of the box;
-  `ScrollView` also takes `contentContainerClassName`.
+  `className` until registered with `cssInterop(Component, { className: 'style' })` — registered in
+  `src/components/ui/app-screen.tsx`. Core RN components (`View`, `Text`, `ScrollView`, `TextInput`,
+  …) work out of the box; `ScrollView` also takes `contentContainerClassName`.
 - `babel-preset-expo` auto-configures the reanimated 4 babel plugin on SDK 56, so **never** add
   `react-native-reanimated/plugin` (or `react-native-worklets/plugin`) to `babel.config.js` — it
   duplicates the plugin and errors.

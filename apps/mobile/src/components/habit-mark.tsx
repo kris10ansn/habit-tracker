@@ -1,0 +1,72 @@
+import { Text, View } from 'react-native';
+
+import type { MarkKind, MarkView } from '@/domain/marks';
+import { cn } from '@/lib/cn';
+
+type Size = 'lg' | 'sm';
+
+interface Props {
+  view: MarkView;
+  size?: Size;
+}
+
+// Container + glyph colors per state. `lg` (Today) is a bordered tile; `sm`
+// (month grid) is a compact filled chip.
+const CONTAINER: Record<MarkKind, string> = {
+  done: 'bg-done-soft border-done',
+  missed: 'bg-slip-soft border-slip',
+  slip: 'bg-slip-soft border-slip',
+  clean: 'bg-surface border-done',
+  empty: 'bg-surface-2 border-line',
+};
+
+const GLYPH: Record<MarkKind, string> = {
+  done: 'text-done',
+  missed: 'text-slip',
+  slip: 'text-slip',
+  clean: 'text-done',
+  empty: 'text-ink-3',
+};
+
+// `sm` drops the border and softens the neutral states so the grid reads as
+// marks-on-paper rather than a wall of boxes.
+const SM_CONTAINER: Record<MarkKind, string> = {
+  done: 'bg-done-soft',
+  missed: 'bg-slip-soft',
+  slip: 'bg-slip-soft',
+  clean: 'bg-transparent',
+  empty: 'bg-transparent',
+};
+
+export function HabitMark({ view, size = 'lg' }: Props) {
+  if (size === 'sm') {
+    return (
+      <View
+        className={cn('h-7 w-7 items-center justify-center rounded-lg', SM_CONTAINER[view.kind])}
+      >
+        <Text className={cn('text-sm font-bold', GLYPH[view.kind], view.muted && 'opacity-40')}>
+          {view.glyph}
+        </Text>
+      </View>
+    );
+  }
+
+  return (
+    <View
+      className={cn(
+        'h-[52px] w-[52px] items-center justify-center rounded-2xl border-2',
+        CONTAINER[view.kind],
+        view.muted && 'opacity-40',
+      )}
+    >
+      <Text
+        className={cn(
+          view.kind === 'empty' ? 'text-base font-medium' : 'text-2xl font-bold',
+          GLYPH[view.kind],
+        )}
+      >
+        {view.glyph}
+      </Text>
+    </View>
+  );
+}

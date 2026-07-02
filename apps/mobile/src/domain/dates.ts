@@ -24,3 +24,17 @@ export const monthGrid = (date: Date = new Date()): MonthGrid => {
     monthLabel: date.toLocaleDateString(undefined, { month: 'long', year: 'numeric' }),
   };
 };
+
+export const todayKey = (grid: MonthGrid): string => dateKey(grid.year, grid.month, grid.today);
+
+export const weekdayLabel = (grid: MonthGrid): string =>
+  new Date(grid.year, grid.month, grid.today).toLocaleDateString(undefined, { weekday: 'long' });
+
+export const monthDayLabel = (grid: MonthGrid): string =>
+  new Date(grid.year, grid.month, grid.today).toLocaleDateString(undefined, {
+    month: 'long',
+    day: 'numeric',
+  });
+
+export const weekdayNarrow = (year: number, month: number, day: number): string =>
+  new Date(year, month, day).toLocaleDateString(undefined, { weekday: 'narrow' });
