@@ -4,6 +4,7 @@ import { Icon } from '@/components/ui/Icon';
 import { HabitsProvider } from '@/state/HabitsProvider';
 import { colors } from '@/theme/colors';
 
+import { PlatformPressable } from 'expo-router/build/react-navigation';
 import '../../global.css';
 
 export default function RootLayout() {
@@ -16,6 +17,9 @@ export default function RootLayout() {
           tabBarInactiveTintColor: colors.ink3,
           tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.line },
           tabBarLabelStyle: { fontSize: 11, fontWeight: '600' },
+          tabBarButton: (props) => (
+            <PlatformPressable {...props} android_ripple={{ color: null }} />
+          ),
         }}
       >
         <Tabs.Screen
