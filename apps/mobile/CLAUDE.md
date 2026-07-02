@@ -41,8 +41,9 @@ streak logic live in `marks.ts`, so components never re-derive the semantics.
 - **Styling is NativeWind only** — use `className` with Tailwind utilities; do not use
   `StyleSheet.create` or inline `style` objects. **Exception:** React Navigation options that take
   color/style values (the tab bar in `_layout.tsx`) and `placeholderTextColor` — pull those from
-  `src/theme/colors.ts`. Design tokens (colors, radii like `rounded-card`/`rounded-field`) live in
-  `tailwind.config.js`; `colors.ts` mirrors the palette for the exception above — keep them in sync.
+  `src/theme/colors.ts`. Color values have a single source in `src/theme/palette.js`, consumed by
+  both `tailwind.config.js` (shaped into the color scale) and `colors.ts` (re-exported raw); radii
+  like `rounded-card`/`rounded-field` are tokens in `tailwind.config.js`.
 - **Reuse the primitives.** Build screens from `components/ui/*` (`Card`, `Button`, `AppScreen`, …)
   and compose feature pieces; don't re-style raw `View`s ad hoc. Use `cn()` for conditional classes.
 - **No icon font is installed** (`@expo/vector-icons` is absent). Icons are tinted text glyphs

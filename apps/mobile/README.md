@@ -54,7 +54,8 @@ src/
 ├── components/   UI, grouped by feature — ui/ (primitives: Card, Button, Pill,
 │                 AppScreen, …), today/, month/, habits/, sync/, plus habit-mark.tsx.
 ├── domain/       model + logic, no UI (types.ts, dates.ts, habits.ts, marks.ts).
-├── theme/        colors.ts — raw palette for non-className APIs (the tab bar).
+├── theme/        palette.js — single source of color values; colors.ts re-exports
+│                 it raw for non-className APIs (the tab bar).
 └── lib/          cn.ts — classname joiner.
 ```
 
@@ -66,9 +67,10 @@ src/
 ## Styling
 
 NativeWind only: style with `className` and Tailwind utilities, not `StyleSheet.create` or inline
-`style`. Design tokens (colors, radii) live in `tailwind.config.js`; `src/theme/colors.ts` mirrors
-the palette for the few React Navigation APIs that take color values rather than classes — keep the
-two in sync. Config lives at the app root (`tailwind.config.js`, `global.css`, `metro.config.js`,
+`style`. Color values have a single source in `src/theme/palette.js`, consumed by both
+`tailwind.config.js` (shaped into the color scale) and `src/theme/colors.ts` (re-exported raw for the
+few React Navigation APIs that take color values rather than classes); radii are tokens in
+`tailwind.config.js`. Config lives at the app root (`tailwind.config.js`, `global.css`, `metro.config.js`,
 `babel.config.js`, `nativewind-env.d.ts`). Third-party components need
 `cssInterop(Component, { className: 'style' })` before they accept `className` (registered in
 `src/components/ui/app-screen.tsx` for `SafeAreaView`); core RN components work out of the box.

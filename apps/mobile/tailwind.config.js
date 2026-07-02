@@ -1,19 +1,20 @@
+const { palette } = require('./src/theme/palette');
+
 /** @type {import('tailwindcss').Config} */
-// Design tokens. Keep the color values in sync with `src/theme/colors.ts`, which
-// re-declares the palette for the few React Navigation APIs that take raw colors
-// (the tab bar) rather than Tailwind classes.
+// Design tokens. Color values come from the single source in `src/theme/palette.js`;
+// here they're shaped into Tailwind's nested color scale.
 module.exports = {
   content: ['./src/**/*.{js,jsx,ts,tsx}'],
   presets: [require('nativewind/preset')],
   theme: {
     extend: {
       colors: {
-        surface: { DEFAULT: '#ffffff', 2: '#f5f5f7' },
-        ink: { DEFAULT: '#16161a', 2: '#5b5b66', 3: '#9a9aa5' },
-        line: '#e4e4ea',
-        accent: { DEFAULT: '#5b5bd6', soft: '#ececfb' },
-        done: { DEFAULT: '#12a56a', soft: '#e3f5ec' },
-        slip: { DEFAULT: '#e05656', soft: '#fbe9e9' },
+        surface: { DEFAULT: palette.surface, 2: palette.surface2 },
+        ink: { DEFAULT: palette.ink, 2: palette.ink2, 3: palette.ink3 },
+        line: palette.line,
+        accent: { DEFAULT: palette.accent, soft: palette.accentSoft },
+        done: { DEFAULT: palette.done, soft: palette.doneSoft },
+        slip: { DEFAULT: palette.slip, soft: palette.slipSoft },
       },
       borderRadius: {
         card: '18px',
