@@ -2,12 +2,12 @@ import { Text, View } from 'react-native';
 
 import { HabitMark } from '@/components/HabitMark';
 import { Card } from '@/components/ui/Card';
-import { dateKey, weekdayNarrow, type MonthGrid as MonthGridMeta } from '@/domain/dates';
+import { dateKey, weekdayShort, type MonthGrid as MonthGridMeta } from '@/domain/dates';
 import { markView } from '@/domain/marks';
 import type { Habit } from '@/domain/types';
 import { cn } from '@/lib/cn';
 
-interface Props {
+interface MonthGridProps {
   habits: Habit[];
   grid: MonthGridMeta;
   onToggle?: (habitIndex: number, dateKey: string) => void;
@@ -22,7 +22,7 @@ const columnLabel = (habit: Habit): string => {
 };
 
 // Days as rows, habits as columns (portrait transpose of the reMarkable grid).
-export function MonthGrid({ habits, grid, onToggle }: Props) {
+export function MonthGrid({ habits, grid, onToggle }: MonthGridProps) {
   const days = Array.from({ length: grid.daysInMonth }, (_, i) => i + 1);
 
   return (
@@ -38,37 +38,44 @@ export function MonthGrid({ habits, grid, onToggle }: Props) {
         ))}
       </View>
 
-      {days.map((day) => {
-        const isToday = day === grid.today;
-        const isFuture = day > grid.today;
+      {days.map((day) => (
+        <MonthDayRow key={day} habits={habits} grid={grid} day={day} onToggle={onToggle} />
+      ))}
+    </Card>
+  );
+}
+
+interface MonthDayRowProps {
+  habits: Habit[];
+  grid: MonthGridMeta;
+  day: number;
+  onToggle?: (habitIndex: number, dateKey: string) => void;
+}
+
+export function MonthDayRow({ habits, grid, day, onToggle }: MonthDayRowProps) {
+  const isToday = day === grid.today;
+  const isFuture = day > grid.today;
+
+  return (
+    <View className={cn('flex-row items-center', isToday && 'rounded-lg bg-accent-soft')}>
+      <View className="w-11 items-center py-1">
+        <Text className={cn('text-xs', isToday ? 'font-bold text-accent' : 'text-ink-2')}>
+          {day}
+        </Text>
+        <Text className="text-[9px] text-ink-3">{weekdayShort(grid.year, grid.month, day)}</Text>
+      </View>
+      {habits.map((habit, habitIndex) => {
+        const dayKey = dateKey(grid.year, grid.month, day);
         return (
-          <View
-            key={day}
-            className={cn('flex-row items-center', isToday && 'rounded-lg bg-accent-soft')}
-          >
-            <View className="w-11 items-center py-1">
-              <Text className={cn('text-xs', isToday ? 'font-bold text-accent' : 'text-ink-2')}>
-                {day}
-              </Text>
-              <Text className="text-[9px] text-ink-3">
-                {weekdayNarrow(grid.year, grid.month, day)}
-              </Text>
-            </View>
-            {habits.map((habit, habitIndex) => {
-              const dayKey = dateKey(grid.year, grid.month, day);
-              return (
-                <View key={habit.name} className="flex-1 items-center py-1">
-                  <HabitMark
-                    view={markView(habit, dayKey, isFuture)}
-                    size="sm"
-                    onPress={onToggle ? () => onToggle(habitIndex, dayKey) : undefined}
-                  />
-                </View>
-              );
-            })}
+          <View key={habit.name} className="flex-1 items-center py-1">
+            <HabitMark
+              view={markView(habit, dayKey, isFuture)}
+              size="sm"
+              onPress={() => onToggle?.(habitIndex, dayKey)}
+            />
           </View>
         );
       })}
-    </Card>
+    </View>
   );
 }
