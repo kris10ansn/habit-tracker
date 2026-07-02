@@ -1,6 +1,6 @@
 import { Text, View } from 'react-native';
 
-import { IconButton } from '@/components/ui/icon-button';
+import { IconButton } from '@/components/ui/IconButton';
 
 interface Props {
   label: string;

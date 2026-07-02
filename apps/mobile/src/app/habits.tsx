@@ -1,6 +1,6 @@
-import { AppScreen } from '@/components/ui/app-screen';
-import { AddHabitRow } from '@/components/habits/add-habit-row';
-import { EditHabitRow } from '@/components/habits/edit-habit-row';
+import { AppScreen } from '@/components/ui/AppScreen';
+import { AddHabitRow } from '@/components/habits/AddHabitRow';
+import { EditHabitRow } from '@/components/habits/EditHabitRow';
 import { DEFAULT_HABITS } from '@/domain/habits';
 
 // Habits: manage the roster — rename, reorder, set polarity, add, delete.

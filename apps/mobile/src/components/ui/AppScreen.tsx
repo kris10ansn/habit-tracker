@@ -3,7 +3,7 @@ import { ScrollView, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { cssInterop } from 'nativewind';
 
-import { ScreenHeader } from './screen-header';
+import { ScreenHeader } from './ScreenHeader';
 
 // SafeAreaView is third-party, so NativeWind needs to map `className` onto its
 // `style` prop. Registered once here since AppScreen owns the safe area.

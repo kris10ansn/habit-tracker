@@ -28,7 +28,7 @@ streak logic live in `marks.ts`, so components never re-derive the semantics.
   (Today), `month`, `habits`, `sync`.
 - `src/components/` — UI grouped by feature: `ui/` holds reusable primitives (`Card`, `Button`,
   `Pill`, `IconButton`, `StatCard`, `TextField`, `AppScreen`, `ScreenHeader`); `today/`, `month/`,
-  `habits/`, `sync/` hold screen-specific pieces; `habit-mark.tsx` is the shared X/O chip.
+  `habits/`, `sync/` hold screen-specific pieces; `HabitMark.tsx` is the shared X/O chip.
 - `src/domain/` — model + logic, no UI. `src/theme/colors.ts` — raw palette for non-className APIs.
   `src/lib/cn.ts` — classname joiner for conditional classes.
 - `@/*` path alias → `src/*` (see `tsconfig.json`).
@@ -50,11 +50,16 @@ streak logic live in `marks.ts`, so components never re-derive the semantics.
   (see `IconButton` and the tab-bar `TabGlyph`). Add the dep before reaching for a real icon set.
 - Third-party components (e.g. `SafeAreaView` from `react-native-safe-area-context`) don't accept
   `className` until registered with `cssInterop(Component, { className: 'style' })` — registered in
-  `src/components/ui/app-screen.tsx`. Core RN components (`View`, `Text`, `ScrollView`, `TextInput`,
+  `src/components/ui/AppScreen.tsx`. Core RN components (`View`, `Text`, `ScrollView`, `TextInput`,
   …) work out of the box; `ScrollView` also takes `contentContainerClassName`.
 - `babel-preset-expo` auto-configures the reanimated 4 babel plugin on SDK 56, so **never** add
   `react-native-reanimated/plugin` (or `react-native-worklets/plugin`) to `babel.config.js` — it
   duplicates the plugin and errors.
+- **File names match the export's casing.** A file whose main export is capitalized (a React
+  component, e.g. `AppScreen`, `HabitMark`) is `PascalCase.tsx`; a file exporting lowercase
+  identifiers (`marks.ts`, `cn.ts`) stays camelCase/lowercase. **Exception:** `src/app/` routes keep
+  expo-router's framework-dictated lowercase names (the filename is the URL route; `index`/`_layout`
+  are special) even though they default-export a capitalized screen component.
 - Local `.prettierrc` (2-space / single-quote, plus `prettier-plugin-tailwindcss` for class sorting)
   follows expo/RN convention instead of the repo-root 4-space config.
 - `pnpm typecheck` (tsc --noEmit) to check types; `pnpm start` to run the dev server.

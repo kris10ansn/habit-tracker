@@ -1,7 +1,7 @@
 import { Text, View } from 'react-native';
 
-import { HabitMark } from '@/components/habit-mark';
-import { Card } from '@/components/ui/card';
+import { HabitMark } from '@/components/HabitMark';
+import { Card } from '@/components/ui/Card';
 import { dateKey, weekdayNarrow, type MonthGrid as MonthGridMeta } from '@/domain/dates';
 import { markView } from '@/domain/marks';
 import type { Habit } from '@/domain/types';

@@ -1,9 +1,9 @@
 import { Pressable, Text, TextInput, View } from 'react-native';
 
-import { IconButton } from '@/components/ui/icon-button';
+import { IconButton } from '@/components/ui/IconButton';
 import type { Habit } from '@/domain/types';
 
-import { PolarityToggle } from './polarity-toggle';
+import { PolarityToggle } from './PolarityToggle';
 
 interface Props {
   habit: Habit;

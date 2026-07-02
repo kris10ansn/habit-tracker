@@ -1,6 +1,6 @@
-import { AppScreen } from '@/components/ui/app-screen';
-import { SyncStatusCard } from '@/components/sync/sync-status-card';
-import { TextField } from '@/components/ui/text-field';
+import { AppScreen } from '@/components/ui/AppScreen';
+import { SyncStatusCard } from '@/components/sync/SyncStatusCard';
+import { TextField } from '@/components/ui/TextField';
 
 // Sync: point the app at a backend, or stay standalone with an empty Server URL.
 export default function SyncScreen() {

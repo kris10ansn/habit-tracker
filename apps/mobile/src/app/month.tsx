@@ -1,6 +1,6 @@
-import { AppScreen } from '@/components/ui/app-screen';
-import { MonthGrid } from '@/components/month/month-grid';
-import { MonthNav } from '@/components/month/month-nav';
+import { AppScreen } from '@/components/ui/AppScreen';
+import { MonthGrid } from '@/components/month/MonthGrid';
+import { MonthNav } from '@/components/month/MonthNav';
 import { monthGrid } from '@/domain/dates';
 import { DEFAULT_HABITS } from '@/domain/habits';
 

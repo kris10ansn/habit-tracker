@@ -1,8 +1,8 @@
 import { Text, View } from 'react-native';
 
-import { HabitMark } from '@/components/habit-mark';
-import { Card } from '@/components/ui/card';
-import { Pill } from '@/components/ui/pill';
+import { HabitMark } from '@/components/HabitMark';
+import { Card } from '@/components/ui/Card';
+import { Pill } from '@/components/ui/Pill';
 import type { MonthGrid } from '@/domain/dates';
 import { currentStreak, markView, streakLabel } from '@/domain/marks';
 import type { Habit } from '@/domain/types';

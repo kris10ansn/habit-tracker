@@ -1,6 +1,6 @@
 import { View } from 'react-native';
 
-import { StatCard } from '@/components/ui/stat-card';
+import { StatCard } from '@/components/ui/StatCard';
 
 interface Props {
   logged: number;

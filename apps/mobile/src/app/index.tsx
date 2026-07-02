@@ -1,6 +1,6 @@
-import { AppScreen } from '@/components/ui/app-screen';
-import { DaySummary } from '@/components/today/day-summary';
-import { HabitListItem } from '@/components/today/habit-list-item';
+import { AppScreen } from '@/components/ui/AppScreen';
+import { DaySummary } from '@/components/today/DaySummary';
+import { HabitListItem } from '@/components/today/HabitListItem';
 import { monthGrid, todayKey, weekdayLabel, monthDayLabel } from '@/domain/dates';
 import { DEFAULT_HABITS } from '@/domain/habits';
 import { isSuccess } from '@/domain/marks';

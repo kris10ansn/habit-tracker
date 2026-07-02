@@ -52,7 +52,7 @@ src/
 ├── app/          expo-router routes (file-based). _layout.tsx is the Tabs navigator
 │                 (imports global.css); index=Today, month, habits, sync.
 ├── components/   UI, grouped by feature — ui/ (primitives: Card, Button, Pill,
-│                 AppScreen, …), today/, month/, habits/, sync/, plus habit-mark.tsx.
+│                 AppScreen, …), today/, month/, habits/, sync/, plus HabitMark.tsx.
 ├── domain/       model + logic, no UI (types.ts, dates.ts, habits.ts, marks.ts).
 ├── theme/        palette.js — single source of color values; colors.ts re-exports
 │                 it raw for non-className APIs (the tab bar).
@@ -73,4 +73,4 @@ few React Navigation APIs that take color values rather than classes); radii are
 `tailwind.config.js`. Config lives at the app root (`tailwind.config.js`, `global.css`, `metro.config.js`,
 `babel.config.js`, `nativewind-env.d.ts`). Third-party components need
 `cssInterop(Component, { className: 'style' })` before they accept `className` (registered in
-`src/components/ui/app-screen.tsx` for `SafeAreaView`); core RN components work out of the box.
+`src/components/ui/AppScreen.tsx` for `SafeAreaView`); core RN components work out of the box.
