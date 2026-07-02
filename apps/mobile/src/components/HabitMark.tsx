@@ -40,7 +40,7 @@ export function HabitMark({ view, size = 'lg', onPress }: Props) {
       accessibilityLabel={view.label}
       className={cn(
         'items-center justify-center',
-        small ? 'h-7 w-7 rounded-lg' : 'h-[52px] w-[52px] rounded-2xl border-2',
+        small ? 'h-10 w-10 rounded-lg' : 'h-14 w-14 rounded-2xl border',
         small ? SM_CONTAINER[view.kind] : CONTAINER[view.kind],
         !small && view.muted && 'opacity-40',
         onPress && 'active:opacity-60',
