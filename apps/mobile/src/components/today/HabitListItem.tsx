@@ -20,13 +20,13 @@ interface Props {
     onToggle?: () => void;
 }
 
-// One habit on the Today screen: name, streak/polarity, and today's mark.
 export function HabitListItem({ habit, dateKey, grid, onToggle }: Props) {
     const view = markView(habit, dateKey);
 
     const success = isSuccess(habit, dateKey);
-    const existingStreak = priorStreak(habit, grid);
+
     const streak = currentStreak(habit, grid);
+    const existingStreak = priorStreak(habit, grid);
 
     return (
         <Card className="mb-3 flex-row items-center gap-3.5">
@@ -40,8 +40,7 @@ export function HabitListItem({ habit, dateKey, grid, onToggle }: Props) {
                 <View className="mt-1 h-6 flex-row items-center gap-1.5">
                     {habit.negative && <Pill label="avoid" />}
 
-                    {(streak || existingStreak) &&
-                    !["slip", "missed"].includes(view.kind) ? (
+                    {Math.max(streak, existingStreak) > 1 ? (
                         <StreakPill
                             streak={Math.max(streak, existingStreak)}
                             success={success}
