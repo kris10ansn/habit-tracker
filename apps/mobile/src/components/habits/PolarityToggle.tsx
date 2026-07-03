@@ -1,13 +1,17 @@
 import { Pressable, View } from "react-native";
 
 import { cn } from "@/lib/cn";
+import { useUpdateEffect } from "@/lib/useUpdateEffect";
 import { colors } from "@/theme/colors";
-import { useEffect } from "react";
 import Animated, {
     interpolateColor,
     useAnimatedStyle,
+    useDerivedValue,
     useSharedValue,
+    withSequence,
     withSpring,
+    WithSpringConfig,
+    withTiming,
 } from "react-native-reanimated";
 
 interface Props {
@@ -16,19 +20,34 @@ interface Props {
 }
 
 const SEGMENT_WIDTH = 4 * 20 - 10;
-const TIMING = { duration: 300 };
+
+const SLIDE_SPRING: WithSpringConfig = {
+    mass: 1,
+    damping: 20,
+    stiffness: 260,
+};
 
 export function PolarityToggle({ negative, onChange }: Props) {
     const slideTransformX = useSharedValue(negative ? SEGMENT_WIDTH : 0);
-    const negativeShared = useSharedValue(0);
+    const slidePadding = useSharedValue(0);
+
+    const negativeShared = useDerivedValue(() => negative);
+    const negativeProgress = useSharedValue(Number(negative));
 
     const slideStyle = useAnimatedStyle(() => ({
-        transform: [{ translateX: slideTransformX.get() }],
+        transform: [
+            {
+                translateX:
+                    slideTransformX.get() -
+                    (negativeShared.get() ? slidePadding.get() : 0),
+            },
+        ],
+        width: SEGMENT_WIDTH + slidePadding.get(),
     }));
 
     const positiveStyle = useAnimatedStyle(() => ({
         color: interpolateColor(
-            negativeShared.get(),
+            negativeProgress.get(),
             [0, 1],
             ["#ffffff", colors.ink],
         ),
@@ -36,15 +55,25 @@ export function PolarityToggle({ negative, onChange }: Props) {
 
     const negativeStyle = useAnimatedStyle(() => ({
         color: interpolateColor(
-            negativeShared.get(),
+            negativeProgress.get(),
             [0, 1],
             [colors.ink, "#ffffff"],
         ),
     }));
 
-    useEffect(() => {
-        slideTransformX.set(withSpring(negative ? SEGMENT_WIDTH : 0, TIMING));
-        negativeShared.set(withSpring(Number(negative), TIMING));
+    useUpdateEffect(() => {
+        slideTransformX.set(
+            withSpring(negative ? SEGMENT_WIDTH : 0, SLIDE_SPRING),
+        );
+
+        slidePadding.set(
+            withSequence(
+                withTiming(SEGMENT_WIDTH * 0.5, { duration: 100 }),
+                withTiming(0, { duration: 100 }),
+            ),
+        );
+
+        negativeProgress.set(withTiming(Number(negative), { duration: 200 }));
     }, [negative]);
 
     return (
@@ -53,7 +82,7 @@ export function PolarityToggle({ negative, onChange }: Props) {
             className="flex-row self-start overflow-hidden rounded-full border border-line"
         >
             <Animated.View
-                className={`absolute h-full w-20 bg-accent`}
+                className={`absolute h-full bg-accent`}
                 style={slideStyle}
             />
 

@@ -1,5 +1,5 @@
 import { Pill } from "@/components/ui/Pill";
-import { useEffect } from "react";
+import { useUpdateEffect } from "@/lib/useUpdateEffect";
 import Animated, {
     useAnimatedStyle,
     useSharedValue,
@@ -20,7 +20,7 @@ export function StreakPill({ streak, success }: StreakPillProps) {
         transform: [{ scale: scale.get() }],
     }));
 
-    useEffect(() => {
+    useUpdateEffect(() => {
         grayscale.set(withTiming(success ? 0 : 100, TIMING));
 
         if (success) {
