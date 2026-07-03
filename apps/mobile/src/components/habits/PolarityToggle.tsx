@@ -4,6 +4,7 @@ import { cn } from "@/lib/cn";
 import { useUpdateEffect } from "@/lib/useUpdateEffect";
 import { colors } from "@/theme/colors";
 import Animated, {
+    Easing,
     interpolateColor,
     useAnimatedStyle,
     useDerivedValue,
@@ -23,9 +24,12 @@ const SEGMENT_WIDTH = 4 * 20 - 10;
 
 const SLIDE_SPRING: WithSpringConfig = {
     mass: 1,
-    damping: 20,
-    stiffness: 260,
+    damping: 23,
+    stiffness: 340,
 };
+
+// Kick the slide off the mark instantly so there's no ease-in delay on press.
+const SLIDE_VELOCITY = 900;
 
 export function PolarityToggle({ negative, onChange }: Props) {
     const slideTransformX = useSharedValue(negative ? SEGMENT_WIDTH : 0);
@@ -63,17 +67,28 @@ export function PolarityToggle({ negative, onChange }: Props) {
 
     useUpdateEffect(() => {
         slideTransformX.set(
-            withSpring(negative ? SEGMENT_WIDTH : 0, SLIDE_SPRING),
+            withSpring(negative ? SEGMENT_WIDTH : 0, {
+                ...SLIDE_SPRING,
+                velocity: negative ? SLIDE_VELOCITY : -SLIDE_VELOCITY,
+            }),
         );
 
         slidePadding.set(
             withSequence(
-                withTiming(SEGMENT_WIDTH * 0.5, { duration: 100 }),
-                withTiming(0, { duration: 100 }),
+                withTiming(SEGMENT_WIDTH * 0.5, {
+                    duration: 70,
+                    easing: Easing.out(Easing.quad),
+                }),
+                withTiming(0, { duration: 70, easing: Easing.in(Easing.quad) }),
             ),
         );
 
-        negativeProgress.set(withTiming(Number(negative), { duration: 200 }));
+        negativeProgress.set(
+            withTiming(Number(negative), {
+                duration: 140,
+                easing: Easing.out(Easing.quad),
+            }),
+        );
     }, [negative]);
 
     return (
