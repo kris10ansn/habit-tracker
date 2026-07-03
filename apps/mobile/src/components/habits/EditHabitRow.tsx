@@ -1,6 +1,6 @@
 import { Pressable, TextInput, View } from "react-native";
 
-import { CommunityIcon, Icon } from "@/components/ui/Icon";
+import { CommunityIcon } from "@/components/ui/Icon";
 import type { Habit } from "@/domain/types";
 
 import { useHabits } from "@/state/HabitsProvider";
@@ -34,7 +34,18 @@ export function EditHabitRow({ habit }: Props) {
             </View>
 
             <Pressable className="h-8 w-8 items-center justify-center rounded-full bg-slip-soft active:opacity-70">
-                <Icon name="close" size={16} className="text-slip" />
+                <CommunityIcon
+                    name="delete-forever"
+                    size={16}
+                    className="text-slip"
+                />
+            </Pressable>
+            <Pressable className="h-8 w-8 items-center justify-center rounded-full bg-yellow-100 active:opacity-70">
+                <CommunityIcon
+                    name="archive-outline"
+                    size={16}
+                    className="text-yellow-300"
+                />
             </Pressable>
         </View>
     );

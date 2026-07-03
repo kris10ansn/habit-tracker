@@ -5,8 +5,13 @@ import { HabitsProvider } from "@/state/HabitsProvider";
 import { colors } from "@/theme/colors";
 
 import { PlatformPressable } from "expo-router/build/react-navigation";
+import React from "react";
 import { StatusBar } from "react-native";
 import "../../global.css";
+
+const TabBarButton = (
+    props: React.ComponentProps<typeof PlatformPressable>,
+) => <PlatformPressable {...props} android_ripple={{ color: null }} />;
 
 export default function RootLayout() {
     return (
@@ -19,15 +24,11 @@ export default function RootLayout() {
                     tabBarInactiveTintColor: colors.ink3,
                     tabBarStyle: {
                         backgroundColor: colors.surface,
-                        borderTopColor: colors.line,
+                        borderTopWidth: 0,
+                        elevation: 2,
                     },
                     tabBarLabelStyle: { fontSize: 11, fontWeight: "600" },
-                    tabBarButton: (props) => (
-                        <PlatformPressable
-                            {...props}
-                            android_ripple={{ color: null }}
-                        />
-                    ),
+                    tabBarButton: TabBarButton,
                 }}
             >
                 <Tabs.Screen
