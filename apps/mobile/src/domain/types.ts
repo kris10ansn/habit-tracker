@@ -7,6 +7,9 @@ export type EntryState = "x" | "o";
 export type Entries = Record<string, EntryState>;
 
 export interface Habit {
+    // Stable identity: a habit keeps its id through renames and reorders, so
+    // lists key on it. Opaque — not part of the shared cross-client vocabulary.
+    id: string;
     name: string;
     negative: boolean;
     entries: Entries;

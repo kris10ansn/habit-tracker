@@ -10,24 +10,24 @@ interface Props {
     habit: Habit;
 }
 
+// Content of one roster row — the name, polarity, and action controls. Laid
+// out by the surrounding card row in SortableHabitList.
 export function EditHabitRow({ habit }: Props) {
     const { updateHabit } = useHabits();
 
     return (
-        <View className="mb-2.5 flex-row items-center gap-3 rounded-card bg-surface px-3.5 py-3 shadow-sm">
-            <CommunityIcon name="drag" />
-
+        <>
             <View className="flex-1">
                 <TextInput
-                    defaultValue={habit.name}
+                    value={habit.name}
                     className="py-0.5 text-[15px] font-semibold text-ink"
-                    onChangeText={(name) => updateHabit(habit, { name })}
+                    onChangeText={(name) => updateHabit(habit.id, { name })}
                 />
                 <View className="mt-1">
                     <PolarityToggle
                         negative={habit.negative}
                         onChange={(negative) =>
-                            updateHabit(habit, { negative })
+                            updateHabit(habit.id, { negative })
                         }
                     />
                 </View>
@@ -47,6 +47,6 @@ export function EditHabitRow({ habit }: Props) {
                     className="text-yellow-300"
                 />
             </Pressable>
-        </View>
+        </>
     );
 }

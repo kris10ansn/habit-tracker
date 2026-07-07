@@ -28,13 +28,13 @@ export default function TodayScreen() {
             subtitle={`${logged} of ${habits.length} habits logged`}
         >
             <DaySummary logged={logged} total={habits.length} slips={slips} />
-            {habits.map((habit, index) => (
+            {habits.map((habit) => (
                 <HabitListItem
-                    key={habit.name}
+                    key={habit.id}
                     habit={habit}
                     dateKey={key}
                     grid={grid}
-                    onToggle={() => toggleEntry(index, key)}
+                    onToggle={() => toggleEntry(habit.id, key)}
                 />
             ))}
         </AppScreen>

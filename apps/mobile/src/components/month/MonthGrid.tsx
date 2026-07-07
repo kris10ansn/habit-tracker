@@ -14,7 +14,7 @@ import { cn } from "@/lib/cn";
 interface MonthGridProps {
     habits: Habit[];
     grid: MonthGridMeta;
-    onToggle?: (habitIndex: number, dateKey: string) => void;
+    onToggle?: (habitId: string, dateKey: string) => void;
 }
 
 const DAY_COLUMN = "w-11";
@@ -44,7 +44,7 @@ export function MonthGrid({ habits, grid, onToggle }: MonthGridProps) {
                         <View className={DAY_COLUMN} />
                         {habits.map((habit) => (
                             <View
-                                key={habit.name}
+                                key={habit.id}
                                 className={cn(
                                     HABIT_COLUMN,
                                     "items-center px-0.5",
@@ -79,7 +79,7 @@ interface MonthDayRowProps {
     habits: Habit[];
     grid: MonthGridMeta;
     day: number;
-    onToggle?: (habitIndex: number, dateKey: string) => void;
+    onToggle?: (habitId: string, dateKey: string) => void;
 }
 
 export function MonthDayRow({ habits, grid, day, onToggle }: MonthDayRowProps) {
@@ -110,13 +110,13 @@ export function MonthDayRow({ habits, grid, day, onToggle }: MonthDayRowProps) {
                 const dayKey = dateKey(grid.year, grid.month, day);
                 return (
                     <View
-                        key={habit.name}
+                        key={habit.id}
                         className={cn(HABIT_COLUMN, "items-center py-1")}
                     >
                         <HabitMark
                             view={markView(habit, dayKey, isFuture)}
                             size="sm"
-                            onPress={() => onToggle?.(habitIndex, dayKey)}
+                            onPress={() => onToggle?.(habit.id, dayKey)}
                         />
                     </View>
                 );

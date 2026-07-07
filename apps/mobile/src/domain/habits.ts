@@ -18,6 +18,7 @@ const buildDefaultHabits = (): Habit[] => {
 
     return [
         {
+            id: "read-20-pages",
             name: "Read 20 pages",
             negative: false,
             entries: on({
@@ -29,6 +30,7 @@ const buildDefaultHabits = (): Habit[] => {
             }),
         },
         {
+            id: "exercise",
             name: "Exercise",
             negative: false,
             entries: on({
@@ -38,21 +40,25 @@ const buildDefaultHabits = (): Habit[] => {
             }),
         },
         {
+            id: "meditate",
             name: "Meditate",
             negative: false,
             entries: on({ [today]: "x", [today - 1]: "o", [today - 2]: "x" }),
         },
         {
+            id: "drink-water",
             name: "Drink water",
             negative: false,
             entries: on({ [today]: "x", [today - 1]: "x", [today - 2]: "x" }),
         },
         {
+            id: "doomscroll",
             name: "Doomscroll",
             negative: true,
             entries: on({ [today - 2]: "o" }),
         },
         {
+            id: "late-night-snacks",
             name: "Late-night snacks",
             negative: true,
             entries: {},

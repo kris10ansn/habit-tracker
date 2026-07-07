@@ -12,8 +12,9 @@ import type { Habit } from "@/domain/types";
 
 interface HabitsContextValue {
     habits: Habit[];
-    toggleEntry: (habitIndex: number, dateKey: string) => void;
-    updateHabit: (habit: Habit, partial: Partial<Habit>) => void;
+    toggleEntry: (habitId: string, dateKey: string) => void;
+    updateHabit: (habitId: string, partial: Partial<Omit<Habit, "id">>) => void;
+    reorderHabit: (habitId: string, toIndex: number) => void;
 }
 
 const HabitsContext = createContext<HabitsContextValue | null>(null);
@@ -24,10 +25,10 @@ const HabitsContext = createContext<HabitsContextValue | null>(null);
 export function HabitsProvider({ children }: { children: ReactNode }) {
     const [habits, setHabits] = useState<Habit[]>(DEFAULT_HABITS);
 
-    const toggleEntry = useCallback((habitIndex: number, dateKey: string) => {
+    const toggleEntry = useCallback((habitId: string, dateKey: string) => {
         setHabits((current) =>
-            current.map((habit, index) => {
-                if (index !== habitIndex) return habit;
+            current.map((habit) => {
+                if (habit.id !== habitId) return habit;
                 const next = nextEntry(habit, dateKey);
                 const entries = { ...habit.entries };
                 // Unmarked is the absence of a key (see Entries), so cycling back to it
@@ -39,14 +40,34 @@ export function HabitsProvider({ children }: { children: ReactNode }) {
         );
     }, []);
 
-    const updateHabit = useCallback((habit: Habit, partial: Partial<Habit>) => {
-        setHabits((current) =>
-            current.map((h, index) => (habit === h ? { ...h, ...partial } : h)),
-        );
+    const updateHabit = useCallback(
+        (habitId: string, partial: Partial<Omit<Habit, "id">>) => {
+            setHabits((current) =>
+                current.map((habit) =>
+                    habit.id === habitId ? { ...habit, ...partial } : habit,
+                ),
+            );
+        },
+        [],
+    );
+
+    const reorderHabit = useCallback((habitId: string, toIndex: number) => {
+        setHabits((current) => {
+            const fromIndex = current.findIndex(
+                (habit) => habit.id === habitId,
+            );
+            if (fromIndex === -1 || fromIndex === toIndex) return current;
+            const next = [...current];
+            const [habit] = next.splice(fromIndex, 1);
+            next.splice(toIndex, 0, habit);
+            return next;
+        });
     }, []);
 
     return (
-        <HabitsContext.Provider value={{ habits, toggleEntry, updateHabit }}>
+        <HabitsContext.Provider
+            value={{ habits, toggleEntry, updateHabit, reorderHabit }}
+        >
             {children}
         </HabitsContext.Provider>
     );
