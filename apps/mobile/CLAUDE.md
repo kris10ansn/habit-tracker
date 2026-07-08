@@ -9,20 +9,26 @@ styled with NativeWind (Tailwind for React Native).
 
 A mobile habit tracker with four tabs — **Today** (log), **Month** (the grid), **Habits** (edit
 roster), **Sync**. Renders the same Habit × Entry model as the reMarkable client; the Month grid is
-**transposed** for portrait (days as rows, habits as columns, today highlighted). **Marks and roster edits are
-wired** to an in-memory store (`src/state/HabitsProvider.tsx`) — tapping a `HabitMark` on Today or
-Month cycles its X/O state, and the Habits tab renames, flips polarity, and drag-to-reorders (drag
-a row by its handle; see `components/habits/SortableHabitList.tsx`). The rest is affordances
-only: add/delete/archive and sync don't act yet, and nothing persists across launches. The plan is
-to back the store with a shared backend.
+**transposed** for portrait (days as rows, habits as columns, today highlighted) and **navigable to
+any month** (past editable, future view-only). Data **persists in SQLite** (`expo-sqlite`) storing
+the backend's shape (Outcome/Polarity/Position/`updatedAt`/`deleted` tombstones, UUID ids), read
+through **TanStack Query** hooks (`src/state/queries.ts`) over a thin repo (`src/db/repo.ts`).
+Tapping a `HabitMark` on Today or Month cycles its state; the Habits tab renames, flips polarity,
+and drag-to-reorders (drag a row by its handle — the generic `components/ui/SortableList` with an
+inline `HabitRow` in `app/habits.tsx`). Still affordance-only: add/delete/archive, and Sync — the
+data layer is shaped for the backend but the sync *engine* is not built yet. See
+[`docs/adr/0001-mobile-sqlite-persistence-sync-shaped.md`](./docs/adr/0001-mobile-sqlite-persistence-sync-shaped.md).
 
 ## Domain
 
 Shared vocabulary lives in the monorepo-root [`CONTEXT.md`](../../CONTEXT.md) (Habit, Entry, X/O,
-polarity, Unmarked). The TS model in `src/domain/` (`types.ts`, `dates.ts`, `habits.ts`, `marks.ts`)
-mirrors the reMarkable client's shape — keep the `dateKey` format (`YYYY-MM-DD`) and the X/O entry
-semantics aligned so a future backend speaks one shape. The X/O → display reading (`markView`) and
-streak logic live in `marks.ts`, so components never re-derive the semantics.
+polarity, Unmarked). The TS model in `src/domain/` mirrors the **backend's** shape so mobile↔backend
+sync is a near-identity map (see `docs/adr/0001`): `types.ts` holds flat `Habit`/`Entry` rows storing
+`Outcome`/`Polarity`; `marks.ts` maps Outcome → the X/O display reading (`markView`) and the tap
+cycle (`nextAction`, `isSuccess`) — components never re-derive the semantics. `dates.ts` owns the
+`dateKey` (`YYYY-MM-DD`) / `monthKey` (`YYYY-MM`) formats plus month math; `entries.ts` is the
+per-month cell lookup. The look-back **streak** query lives in `db/repo.ts` (`getStreaks`), since it
+crosses month partitions.
 
 ## Layout
 
@@ -32,14 +38,18 @@ streak logic live in `marks.ts`, so components never re-derive the semantics.
 - `src/components/` — UI grouped by feature: `ui/` holds reusable primitives (`Card`, `Button`,
   `Pill`, `Icon`, `IconButton`, `StatCard`, `TextField`, `AppScreen`, `ScreenHeader`, `SortableList`);
   `today/`, `month/`, `habits/`, `sync/` hold screen-specific pieces; `HabitMark.tsx` is the shared
-  X/O chip. `SortableList` is the generic drag-to-reorder list (equal-height rows, id-keyed
-  `onReorder`, `SortableListHandle` as the grab affordance) — `habits/SortableHabitList.tsx` is its
-  habits binding.
-- `src/domain/` — model + logic, no UI (the X/O tap cycle is `nextEntry` in `marks.ts`).
-  `src/state/HabitsProvider.tsx` — the in-memory habits store: `useHabits()` returns the roster plus
-  `toggleEntry`, `updateHabit`, and `reorderHabit`; screens read habits from here, not
-  `DEFAULT_HABITS` directly. Habits carry a stable `id` — key lists on it, never on `name` (renames
-  would remount) or the index (reorders would desync uncontrolled `TextInput`s).
+  state chip. `SortableList` is the generic drag-to-reorder list (equal-height rows, id-keyed
+  `onReorder`, `SortableListHandle` as the grab affordance); the habits binding is an inline
+  `HabitRow` in `app/habits.tsx` (there is no `SortableHabitList` component).
+- `src/domain/` — model + logic, no UI (the tap cycle is `nextAction` in `marks.ts`).
+- `src/db/` — SQLite: `schema.ts` (`migrate`, run via `<SQLiteProvider onInit>`, seeds first-run
+  data), `seed.ts` (default habits + demo entries), `repo.ts` (the only SQL — reads return alive
+  rows, writes stamp `updatedAt` and soft-delete tombstones).
+- `src/state/queries.ts` — the data seam: TanStack Query hooks `useHabits`, `useMonthEntries`,
+  `useStreaks`, and the `useToggleEntry`/`useUpdateHabit`/`useReorderHabit` mutations (optimistic +
+  invalidating). Screens read through these, never SQLite directly. Habits carry a stable `id` — key
+  lists on it, never on `name` (renames would remount) or the index (reorders would desync
+  uncontrolled `TextInput`s).
   `src/theme/colors.ts` — raw palette for non-className APIs. `src/lib/cn.ts` — classname joiner for
   conditional classes.
 - `@/*` path alias → `src/*` (see `tsconfig.json`).

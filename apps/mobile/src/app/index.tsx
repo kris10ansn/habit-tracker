@@ -1,42 +1,79 @@
 import { DaySummary } from "@/components/today/DaySummary";
 import { HabitListItem } from "@/components/today/HabitListItem";
 import { AppScreen } from "@/components/ui/AppScreen";
+import { Loading } from "@/components/ui/Loading";
 import {
+    currentMonthView,
     monthDayLabel,
-    monthGrid,
     todayKey,
     weekdayLabel,
 } from "@/domain/dates";
+import { entryIndex, outcomeAt } from "@/domain/entries";
 import { isSuccess } from "@/domain/marks";
-import { useHabits } from "@/state/HabitsProvider";
+import {
+    useHabits,
+    useMonthEntries,
+    useStreaks,
+    useToggleEntry,
+} from "@/state/queries";
 
-// Today: the primary daily surface — log each habit at a glance.
+// Today: the primary daily surface — log each habit at a glance. Always pinned to the real
+// current month, whatever the Month tab is viewing.
 export default function TodayScreen() {
-    const grid = monthGrid();
-    const key = todayKey(grid);
-    const { habits, toggleEntry } = useHabits();
+    const now = new Date();
+    const view = currentMonthView(now);
+    const today = todayKey(now);
 
-    const logged = habits.filter((habit) => isSuccess(habit, key)).length;
+    const habitsQuery = useHabits();
+    const habits = habitsQuery.data ?? [];
+    const entriesQuery = useMonthEntries(view.monthKey);
+    const streaksQuery = useStreaks(habits);
+
+    const toggle = useToggleEntry(view.monthKey);
+    const index = entryIndex(entriesQuery.data ?? []);
+    const outcomeOf = (habitId: string) => outcomeAt(index, habitId, today);
+
+    const logged = habits.filter((habit) =>
+        isSuccess(habit.polarity, outcomeOf(habit.id)),
+    ).length;
     const slips = habits.filter(
-        (habit) => habit.negative && habit.entries[key] === "o",
+        (habit) =>
+            habit.polarity === "negative" && outcomeOf(habit.id) === "failure",
     ).length;
 
     return (
         <AppScreen
-            eyebrow={`${weekdayLabel(grid)} · Today`}
-            title={monthDayLabel(grid)}
+            eyebrow={`${weekdayLabel(now)} · Today`}
+            title={monthDayLabel(now)}
             subtitle={`${logged} of ${habits.length} habits logged`}
         >
-            <DaySummary logged={logged} total={habits.length} slips={slips} />
-            {habits.map((habit) => (
-                <HabitListItem
-                    key={habit.id}
-                    habit={habit}
-                    dateKey={key}
-                    grid={grid}
-                    onToggle={() => toggleEntry(habit.id, key)}
-                />
-            ))}
+            {habitsQuery.isPending ? (
+                <Loading />
+            ) : (
+                <>
+                    <DaySummary
+                        logged={logged}
+                        total={habits.length}
+                        slips={slips}
+                    />
+                    {habits.map((habit) => (
+                        <HabitListItem
+                            key={habit.id}
+                            habit={habit}
+                            outcome={outcomeOf(habit.id)}
+                            streak={streaksQuery.data?.[habit.id]}
+                            onToggle={() =>
+                                toggle.mutate({
+                                    habitId: habit.id,
+                                    date: today,
+                                    polarity: habit.polarity,
+                                    outcome: outcomeOf(habit.id),
+                                })
+                            }
+                        />
+                    ))}
+                </>
+            )}
         </AppScreen>
     );
 }

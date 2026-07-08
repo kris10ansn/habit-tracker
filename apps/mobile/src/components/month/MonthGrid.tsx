@@ -2,19 +2,21 @@ import { ScrollView, Text, View } from "react-native";
 
 import { HabitMark } from "@/components/HabitMark";
 import { Card } from "@/components/ui/Card";
-import {
-    dateKey,
-    weekdayShort,
-    type MonthGrid as MonthGridMeta,
-} from "@/domain/dates";
-import { currentStreak, markView } from "@/domain/marks";
-import type { Habit } from "@/domain/types";
+import type { HabitStreak } from "@/db/repo";
+import { dateKey, weekdayShort, type MonthView } from "@/domain/dates";
+import { entryIndex, outcomeAt, type EntryIndex } from "@/domain/entries";
+import { markView } from "@/domain/marks";
+import type { Entry, Habit } from "@/domain/types";
 import { cn } from "@/lib/cn";
+import type { ToggleInput } from "@/state/queries";
 
 interface MonthGridProps {
     habits: Habit[];
-    grid: MonthGridMeta;
-    onToggle?: (habitId: string, dateKey: string) => void;
+    view: MonthView;
+    today: string;
+    entries: Entry[];
+    streaks: Record<string, HabitStreak>;
+    onToggle?: (input: ToggleInput) => void;
 }
 
 const DAY_COLUMN = "w-11";
@@ -24,13 +26,21 @@ const columnLabel = (habit: Habit): string => {
     const words = habit.name.split(" ").filter(Boolean);
     const base =
         words.length > 1
-            ? words.map((w) => w[0]).join("")
+            ? words.map((word) => word[0]).join("")
             : habit.name.slice(0, 3);
-    return habit.negative ? `${base}⁻` : base;
+    return habit.polarity === "negative" ? `${base}⁻` : base;
 };
 
-export function MonthGrid({ habits, grid, onToggle }: MonthGridProps) {
-    const days = Array.from({ length: grid.daysInMonth }, (_, i) => i + 1);
+export function MonthGrid({
+    habits,
+    view,
+    today,
+    entries,
+    streaks,
+    onToggle,
+}: MonthGridProps) {
+    const days = Array.from({ length: view.daysInMonth }, (_, i) => i + 1);
+    const index = entryIndex(entries);
 
     return (
         <Card className="px-2 py-2">
@@ -55,7 +65,8 @@ export function MonthGrid({ habits, grid, onToggle }: MonthGridProps) {
                                     className="text-[10px] font-semibold text-ink-2"
                                 >
                                     {columnLabel(habit)}
-                                    {currentStreak(habit, grid) > 1 && "🔥"}
+                                    {(streaks[habit.id]?.current ?? 0) > 1 &&
+                                        "🔥"}
                                 </Text>
                             </View>
                         ))}
@@ -65,8 +76,10 @@ export function MonthGrid({ habits, grid, onToggle }: MonthGridProps) {
                         <MonthDayRow
                             key={day}
                             habits={habits}
-                            grid={grid}
+                            view={view}
+                            today={today}
                             day={day}
+                            index={index}
                             onToggle={onToggle}
                         />
                     ))}
@@ -78,14 +91,25 @@ export function MonthGrid({ habits, grid, onToggle }: MonthGridProps) {
 
 interface MonthDayRowProps {
     habits: Habit[];
-    grid: MonthGridMeta;
+    view: MonthView;
+    today: string;
     day: number;
-    onToggle?: (habitId: string, dateKey: string) => void;
+    index: EntryIndex;
+    onToggle?: (input: ToggleInput) => void;
 }
 
-export function MonthDayRow({ habits, grid, day, onToggle }: MonthDayRowProps) {
-    const isToday = day === grid.today;
-    const isFuture = day > grid.today;
+export function MonthDayRow({
+    habits,
+    view,
+    today,
+    day,
+    index,
+    onToggle,
+}: MonthDayRowProps) {
+    const dayKey = dateKey(view.year, view.month, day);
+    // Date keys sort lexicographically, so plain string comparison orders the calendar.
+    const isToday = dayKey === today;
+    const isFuture = dayKey > today;
 
     return (
         <View
@@ -104,20 +128,30 @@ export function MonthDayRow({ habits, grid, day, onToggle }: MonthDayRowProps) {
                     {day}
                 </Text>
                 <Text className="text-[9px] text-ink-3">
-                    {weekdayShort(grid.year, grid.month, day)}
+                    {weekdayShort(view.year, view.month, day)}
                 </Text>
             </View>
-            {habits.map((habit, habitIndex) => {
-                const dayKey = dateKey(grid.year, grid.month, day);
+            {habits.map((habit) => {
+                const outcome = outcomeAt(index, habit.id, dayKey);
                 return (
                     <View
                         key={habit.id}
                         className={cn(HABIT_COLUMN, "items-center py-1")}
                     >
                         <HabitMark
-                            view={markView(habit, dayKey, isFuture)}
+                            view={markView(habit.polarity, outcome, isFuture)}
                             size="sm"
-                            onPress={() => onToggle?.(habit.id, dayKey)}
+                            onPress={
+                                isFuture
+                                    ? undefined
+                                    : () =>
+                                          onToggle?.({
+                                              habitId: habit.id,
+                                              date: dayKey,
+                                              polarity: habit.polarity,
+                                              outcome,
+                                          })
+                            }
                         />
                     </View>
                 );

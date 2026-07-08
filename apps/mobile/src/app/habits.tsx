@@ -3,12 +3,14 @@ import { EditHabitRow } from "@/components/habits/EditHabitRow";
 import { AppScreen } from "@/components/ui/AppScreen";
 import { Card } from "@/components/ui/Card";
 import { CommunityIcon } from "@/components/ui/Icon";
+import { Loading } from "@/components/ui/Loading";
 import { SortableList, SortableListHandle } from "@/components/ui/SortableList";
 import { Habit } from "@/domain/types";
-import { useHabits } from "@/state/HabitsProvider";
+import { useHabits, useReorderHabit } from "@/state/queries";
 
 export default function HabitsScreen() {
-    const { habits, reorderHabit } = useHabits();
+    const habitsQuery = useHabits();
+    const reorder = useReorderHabit();
 
     return (
         <AppScreen
@@ -16,15 +18,23 @@ export default function HabitsScreen() {
             title="Habits"
             subtitle="Rename, reorder, set polarity, or add"
         >
-            <SortableList
-                items={habits}
-                keyOf={(habit) => habit.id}
-                onReorder={reorderHabit}
-                renderRow={HabitRow}
-                rowClassName="pb-2.5"
-            />
+            {habitsQuery.isPending ? (
+                <Loading />
+            ) : (
+                <>
+                    <SortableList
+                        items={habitsQuery.data ?? []}
+                        keyOf={(habit) => habit.id}
+                        onReorder={(habitId, toIndex) =>
+                            reorder.mutate({ habitId, toIndex })
+                        }
+                        renderRow={HabitRow}
+                        rowClassName="pb-2.5"
+                    />
 
-            <AddHabitRow />
+                    <AddHabitRow />
+                </>
+            )}
         </AppScreen>
     );
 }

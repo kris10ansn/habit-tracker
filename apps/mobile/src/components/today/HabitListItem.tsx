@@ -4,29 +4,24 @@ import { HabitMark } from "@/components/HabitMark";
 import { StreakPill } from "@/components/today/StreakPill";
 import { Card } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
-import type { MonthGrid } from "@/domain/dates";
-import {
-    currentStreak,
-    isSuccess,
-    markView,
-    priorStreak,
-} from "@/domain/marks";
-import type { Habit } from "@/domain/types";
+import type { HabitStreak } from "@/db/repo";
+import { isSuccess, markView } from "@/domain/marks";
+import type { Habit, Outcome } from "@/domain/types";
 
 interface Props {
     habit: Habit;
-    dateKey: string;
-    grid: MonthGrid;
+    outcome: Outcome | undefined;
+    streak: HabitStreak | undefined;
     onToggle?: () => void;
 }
 
-export function HabitListItem({ habit, dateKey, grid, onToggle }: Props) {
-    const view = markView(habit, dateKey);
+export function HabitListItem({ habit, outcome, streak, onToggle }: Props) {
+    const view = markView(habit.polarity, outcome);
+    const success = isSuccess(habit.polarity, outcome);
 
-    const success = isSuccess(habit, dateKey);
-
-    const streak = currentStreak(habit, grid);
-    const existingStreak = priorStreak(habit, grid);
+    // While today is unmarked, still show the run through yesterday ("keep your streak"),
+    // greyed by the pill; once marked, `current` includes today.
+    const displayed = Math.max(streak?.current ?? 0, streak?.established ?? 0);
 
     return (
         <Card className="mb-3 flex-row items-center gap-3.5">
@@ -38,13 +33,10 @@ export function HabitListItem({ habit, dateKey, grid, onToggle }: Props) {
                     {habit.name}
                 </Text>
                 <View className="mt-1 h-6 flex-row items-center gap-1.5">
-                    {habit.negative && <Pill label="avoid" />}
+                    {habit.polarity === "negative" && <Pill label="avoid" />}
 
-                    {Math.max(streak, existingStreak) > 1 ? (
-                        <StreakPill
-                            streak={Math.max(streak, existingStreak)}
-                            success={success}
-                        />
+                    {displayed > 1 ? (
+                        <StreakPill streak={displayed} success={success} />
                     ) : (
                         <Text>Tap to {success ? "unmark" : "mark"}</Text>
                     )}
