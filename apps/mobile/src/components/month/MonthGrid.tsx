@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import { ScrollView, Text, View } from "react-native";
 
 import { HabitMark } from "@/components/HabitMark";
@@ -5,7 +6,7 @@ import { Card } from "@/components/ui/Card";
 import { dateKey, weekdayShort, type MonthView } from "@/domain/dates";
 import { entryIndex, outcomeAt, type EntryIndex } from "@/domain/entries";
 import { displayStreak, markView, type HabitStreak } from "@/domain/marks";
-import type { Entry, Habit } from "@/domain/types";
+import type { Entry, Habit, Outcome } from "@/domain/types";
 import { cn } from "@/lib/cn";
 import type { ToggleFn } from "@/state/queries";
 
@@ -39,7 +40,9 @@ export function MonthGrid({
     onToggle,
 }: MonthGridProps) {
     const days = Array.from({ length: view.daysInMonth }, (_, i) => i + 1);
-    const index = entryIndex(entries);
+    // Rebuild the O(1) cell lookup only when the month's entries actually change, not on every
+    // unrelated re-render (streak refetch, navigation).
+    const index = useMemo(() => entryIndex(entries), [entries]);
 
     return (
         <Card className="px-2 py-2">
@@ -130,15 +133,20 @@ export function MonthDayRow({
                     {weekdayShort(view.year, view.month, day)}
                 </Text>
             </View>
-            {habits.map((habit) => (
-                <MonthDayBox
-                    habit={habit}
-                    dayKey={dayKey}
-                    index={index}
-                    onToggle={onToggle}
-                    isFuture={isFuture}
-                />
-            ))}
+            {habits.map((habit) => {
+                const outcome = outcomeAt(index, habit.id, dayKey);
+
+                return (
+                    <MonthDayBox
+                        key={habit.id}
+                        habit={habit}
+                        dayKey={dayKey}
+                        outcome={outcome}
+                        onToggle={onToggle}
+                        isFuture={isFuture}
+                    />
+                );
+            })}
         </View>
     );
 }
@@ -146,7 +154,7 @@ export function MonthDayRow({
 type MonthDayBoxProps = {
     habit: Habit;
     dayKey: string;
-    index: EntryIndex;
+    outcome: Outcome | undefined;
     onToggle?: ToggleFn;
     isFuture: boolean;
 };
@@ -154,14 +162,12 @@ type MonthDayBoxProps = {
 export function MonthDayBox({
     habit,
     dayKey,
-    index,
+    outcome,
     onToggle,
     isFuture,
 }: MonthDayBoxProps) {
-    const outcome = outcomeAt(index, habit.id, dayKey);
-
     return (
-        <View key={habit.id} className={cn(HABIT_COLUMN, "items-center py-1")}>
+        <View className={cn(HABIT_COLUMN, "items-center py-1")}>
             <HabitMark
                 view={markView(habit.polarity, outcome, isFuture)}
                 size="sm"

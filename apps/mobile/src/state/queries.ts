@@ -7,6 +7,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useDatabase } from "@/db/client";
 import * as repo from "@/db/repo";
 import { nextAction, type MarkAction } from "@/domain/marks";
+import { moveByIndex } from "@/domain/roster";
 import type { Entry, Habit, Polarity } from "@/domain/types";
 
 export const habitsKey = ["habits"] as const;
@@ -155,19 +156,6 @@ export function useUpdateHabit() {
     });
 }
 
-const moveHabit = (
-    habits: Habit[],
-    habitId: string,
-    toIndex: number,
-): Habit[] => {
-    const fromIndex = habits.findIndex((habit) => habit.id === habitId);
-    if (fromIndex === -1 || fromIndex === toIndex) return habits;
-    const next = [...habits];
-    const [moved] = next.splice(fromIndex, 1);
-    next.splice(toIndex, 0, moved);
-    return next;
-};
-
 export function useReorderHabit() {
     const db = useDatabase();
     const queryClient = useQueryClient();
@@ -179,7 +167,7 @@ export function useReorderHabit() {
             await queryClient.cancelQueries({ queryKey: habitsKey });
             const previous = queryClient.getQueryData<Habit[]>(habitsKey);
             queryClient.setQueryData<Habit[]>(habitsKey, (old = []) =>
-                moveHabit(old, habitId, toIndex),
+                moveByIndex(old, habitId, toIndex),
             );
             return { previous };
         },

@@ -17,11 +17,13 @@ interface Props {
     size?: Size;
     // When set, the mark becomes a tap target that cycles the day's X/O state.
     onPress?: () => void;
+    // A non-interactive mark (e.g. a future day): no press, no pop animation, no active state.
+    disabled?: boolean;
 }
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-export function HabitMark({ view, size = "lg", onPress }: Props) {
+export function HabitMark({ view, size = "lg", onPress, disabled }: Props) {
     const scale = useSharedValue(1);
     const style = useAnimatedStyle(() => ({
         transform: [{ scale: scale.get() }],
@@ -38,11 +40,13 @@ export function HabitMark({ view, size = "lg", onPress }: Props) {
     };
 
     const small = size === "sm";
+    const interactive = Boolean(onPress) && !disabled;
 
     return (
         <AnimatedPressable
             style={style}
             onPress={handlePress}
+            disabled={!interactive}
             accessibilityRole="button"
             accessibilityLabel={view.label}
             className={cn(
@@ -50,7 +54,7 @@ export function HabitMark({ view, size = "lg", onPress }: Props) {
                 small ? "h-10 w-10 rounded-lg" : "h-14 w-14 rounded-2xl border",
                 small ? SM_CONTAINER[view.kind] : CONTAINER[view.kind],
                 !small && view.muted && "opacity-40",
-                onPress && "active:opacity-60",
+                interactive && "active:opacity-60",
             )}
         >
             <Icon

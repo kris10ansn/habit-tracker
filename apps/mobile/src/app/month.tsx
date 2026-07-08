@@ -36,8 +36,12 @@ export default function MonthScreen() {
         >
             <MonthNav
                 label={view.monthLabel}
-                onPrev={() => setCursor((c) => addMonth(c.year, c.month, -1))}
-                onNext={() => setCursor((c) => addMonth(c.year, c.month, 1))}
+                onPrev={() =>
+                    setCursor((prev) => addMonth(prev.year, prev.month, -1))
+                }
+                onNext={() =>
+                    setCursor((prev) => addMonth(prev.year, prev.month, 1))
+                }
             />
             {habitsQuery.isPending ? (
                 <Loading />

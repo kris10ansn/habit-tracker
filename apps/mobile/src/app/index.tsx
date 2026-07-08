@@ -1,3 +1,5 @@
+import { useMemo } from "react";
+
 import { DaySummary } from "@/components/today/DaySummary";
 import { HabitListItem } from "@/components/today/HabitListItem";
 import { AppScreen } from "@/components/ui/AppScreen";
@@ -30,7 +32,10 @@ export default function TodayScreen() {
     const streaksQuery = useStreaks(habits);
 
     const toggle = useToggleEntry(view.monthKey);
-    const index = entryIndex(entriesQuery.data ?? []);
+    const index = useMemo(
+        () => entryIndex(entriesQuery.data ?? []),
+        [entriesQuery.data],
+    );
     const outcomeOf = (habitId: string) => outcomeAt(index, habitId, today);
 
     const logged = habits.filter((habit) =>

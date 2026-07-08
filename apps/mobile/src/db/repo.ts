@@ -12,7 +12,8 @@ import {
     todayKey,
 } from "@/domain/dates";
 import type { HabitStreak } from "@/domain/marks";
-import type { Habit, Outcome, Polarity } from "@/domain/types";
+import { moveByIndex } from "@/domain/roster";
+import type { Entry, Habit, Outcome, Polarity } from "@/domain/types";
 
 import type { Database } from "./client";
 import { entries, habits } from "./schema";
@@ -26,7 +27,10 @@ export function getHabits(db: Database): Promise<Habit[]> {
 }
 
 // Entries for one month partition — the unit of lazy loading, keyed like the backend's SyncMonth.
-export function getMonthEntries(db: Database, monthKey: string) {
+export function getMonthEntries(
+    db: Database,
+    monthKey: string,
+): Promise<Entry[]> {
     const { start, endExclusive } = monthKeyBounds(monthKey);
     return db
         .select()
@@ -92,12 +96,8 @@ export async function reorderHabit(
     updatedAt: number = Date.now(),
 ): Promise<void> {
     const roster = await getHabits(db);
-    const fromIndex = roster.findIndex((habit) => habit.id === habitId);
-    if (fromIndex === -1 || fromIndex === toIndex) return;
-
-    const reordered = [...roster];
-    const [moved] = reordered.splice(fromIndex, 1);
-    reordered.splice(toIndex, 0, moved);
+    const reordered = moveByIndex(roster, habitId, toIndex);
+    if (reordered === roster) return; // habit absent or already at toIndex — nothing to renumber
 
     await db.transaction(async (tx) => {
         for (let position = 0; position < reordered.length; position += 1) {
