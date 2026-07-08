@@ -42,24 +42,6 @@ export const daysBetween = (fromKey: string, toKey: string): number =>
 export const earlierKey = (a: string, b: string): string => (a < b ? a : b);
 export const laterKey = (a: string, b: string): string => (a > b ? a : b);
 
-// Length of the run of consecutive days ending at `endKey` (inclusive) that appear in
-// `datesDesc` (a descending list of date keys). Dates after `endKey` are ignored; the first gap
-// ends the run. Used for positive-habit streaks — see db/repo.getStreaks.
-export const consecutiveEndingAt = (
-    datesDesc: string[],
-    endKey: string,
-): number => {
-    let expected = endKey;
-    let count = 0;
-    for (const date of datesDesc) {
-        if (date > endKey) continue;
-        if (date !== expected) break;
-        count += 1;
-        expected = shiftDay(expected, -1);
-    }
-    return count;
-};
-
 // The [start, endExclusive) date-key range covering a month partition, for range queries.
 export const monthKeyBounds = (
     key: string,

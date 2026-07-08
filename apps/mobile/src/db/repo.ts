@@ -2,10 +2,21 @@
 // an epoch-ms `updatedAt` and, for clears/deletes, leave a tombstone rather than removing the row
 // (see docs/adr/0001). Drizzle's column modes make results already match the domain types, so there
 // are no row mappers or casts. Screens go through the TanStack Query hooks in state/queries.ts.
-import { and, asc, desc, eq, gte, lt, lte, max, min } from "drizzle-orm";
+import {
+    and,
+    asc,
+    count,
+    eq,
+    gte,
+    inArray,
+    lt,
+    lte,
+    max,
+    min,
+    sql,
+} from "drizzle-orm";
 
 import {
-    consecutiveEndingAt,
     dateKeyOf,
     daysBetween,
     earlierKey,
@@ -137,6 +148,9 @@ export async function getStreaks(
     return Object.fromEntries(streaks);
 }
 
+// Positive-habit streak via SQL gaps-and-islands: `julianday(date) - row_number()` is constant
+// across an unbroken run, so grouping by it yields each run's length (COUNT) and end (MAX date);
+// we take the runs ending today (→ current) and yesterday (→ established).
 const getStreaksPositive = async (
     db: Database,
     habit: Habit,
@@ -144,28 +158,43 @@ const getStreaksPositive = async (
 ): Promise<[string, HabitStreak]> => {
     const yesterday = shiftDay(today, -1);
 
-    const rows = await db
-        .select({ date: entries.date })
-        .from(entries)
-        .where(
-            and(
-                eq(entries.habitId, habit.id),
-                eq(entries.outcome, "success"),
-                eq(entries.deleted, false),
-                lte(entries.date, today),
-            ),
-        )
-        .orderBy(desc(entries.date))
-        .limit(400);
-    const dates = rows.map((row) => row.date);
+    const islandKey = sql<number>`julianday(${entries.date}) - row_number() over (order by ${entries.date})`;
 
-    return [
-        habit.id,
-        {
-            current: consecutiveEndingAt(dates, today),
-            established: consecutiveEndingAt(dates, yesterday),
-        },
-    ];
+    const successes = db.$with("successes").as(
+        db
+            .select({
+                date: entries.date,
+                islandKey: islandKey.as("islandKey"),
+            })
+            .from(entries)
+            .where(
+                and(
+                    eq(entries.habitId, habit.id),
+                    eq(entries.outcome, "success"),
+                    eq(entries.deleted, false),
+                    lte(entries.date, today),
+                ),
+            ),
+    );
+
+    const runs = await db
+        .with(successes)
+        .select({ length: count(), endsAt: max(successes.date) })
+        .from(successes)
+        .groupBy(sql`${successes.islandKey}`)
+        .having(inArray(max(successes.date), [today, yesterday]));
+
+    const runEndingToday = runs.find((run) => run.endsAt === today);
+    const runEndingYesterday = runs.find((run) => run.endsAt === yesterday);
+
+    // When today is a success its run absorbs yesterday's, so `established` is just one shorter.
+    // Otherwise the run (if any) ended yesterday and today contributes nothing.
+    const current = runEndingToday?.length ?? 0;
+    const established = runEndingToday
+        ? current - 1
+        : (runEndingYesterday?.length ?? 0);
+
+    return [habit.id, { current, established }];
 };
 
 const getStreaksNegative = async (
