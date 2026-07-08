@@ -1,6 +1,7 @@
 import { cssInterop } from "nativewind";
 import type { ReactNode } from "react";
 import { ScrollView, View } from "react-native";
+import { KeyboardAwareScrollView } from "react-native-keyboard-controller";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { ScreenHeader } from "./ScreenHeader";
@@ -8,12 +9,22 @@ import { ScreenHeader } from "./ScreenHeader";
 // SafeAreaView is third-party, so NativeWind needs to map `className` onto its
 // `style` prop. Registered once here since AppScreen owns the safe area.
 cssInterop(SafeAreaView, { className: "style" });
+// Same for the keyboard-aware scroll view — map both the scroll style and its
+// content container so it stays a drop-in for ScrollView.
+cssInterop(KeyboardAwareScrollView, {
+    className: "style",
+    contentContainerClassName: "contentContainerStyle",
+});
 
 interface Props {
     title: string;
     eyebrow?: string;
     subtitle?: string;
     scroll?: boolean;
+    // Scroll a focused input above the keyboard (e.g. the add-habit row at the
+    // bottom of the Habits list). Uses react-native-keyboard-controller, which
+    // also handles Android edge-to-edge, where the OS window no longer resizes.
+    avoidKeyboard?: boolean;
     children: ReactNode;
 }
 
@@ -24,6 +35,7 @@ export function AppScreen({
     eyebrow,
     subtitle,
     scroll = true,
+    avoidKeyboard = false,
     children,
 }: Props) {
     return (
@@ -33,12 +45,23 @@ export function AppScreen({
         >
             <ScreenHeader eyebrow={eyebrow} title={title} subtitle={subtitle} />
             {scroll ? (
-                <ScrollView
-                    className="flex-1"
-                    contentContainerClassName="px-4 pb-8"
-                >
-                    {children}
-                </ScrollView>
+                avoidKeyboard ? (
+                    <KeyboardAwareScrollView
+                        className="flex-1"
+                        contentContainerClassName="px-4 pb-8"
+                        keyboardShouldPersistTaps="handled"
+                        bottomOffset={16}
+                    >
+                        {children}
+                    </KeyboardAwareScrollView>
+                ) : (
+                    <ScrollView
+                        className="flex-1"
+                        contentContainerClassName="px-4 pb-8"
+                    >
+                        {children}
+                    </ScrollView>
+                )
             ) : (
                 <View className="flex-1 px-4">{children}</View>
             )}

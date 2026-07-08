@@ -17,6 +17,7 @@ export default function HabitsScreen() {
             eyebrow="Manage"
             title="Habits"
             subtitle="Rename, reorder, set polarity, or add"
+            avoidKeyboard
         >
             {habitsQuery.isPending ? (
                 <Loading />
