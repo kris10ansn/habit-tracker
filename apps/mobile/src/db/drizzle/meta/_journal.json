@@ -8,6 +8,13 @@
       "when": 1783511472760,
       "tag": "0000_free_thundra",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1783518841498,
+      "tag": "0001_bouncy_vargas",
+      "breakpoints": true
     }
   ]
 }

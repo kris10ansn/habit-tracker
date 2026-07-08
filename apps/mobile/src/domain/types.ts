@@ -6,13 +6,15 @@ export type Outcome = "success" | "failure";
 export type Polarity = "positive" | "negative";
 
 // A tracked behaviour. Mirrors the backend Habit / SyncHabit: a stable client-minted id (== the
-// backend Guid PK), an explicit sort position, an epoch-ms edit-time (the last-write-wins merge
-// key), and a soft-delete flag whose `updatedAt` doubles as the delete-time on a tombstone.
+// backend Guid PK), an explicit sort position, an epoch-ms create-time and edit-time (the latter the
+// last-write-wins merge key), and a soft-delete flag whose `updatedAt` doubles as the delete-time on
+// a tombstone. `createdAt` anchors a negative habit's streak (see marks.ts / repo.getStreaks).
 export interface Habit {
     id: string;
     name: string;
     polarity: Polarity;
     position: number;
+    createdAt: number;
     updatedAt: number;
     deleted: boolean;
 }

@@ -9,8 +9,13 @@ export const dateKey = (year: number, month: number, day: number): string =>
 export const monthKey = (year: number, month: number): string =>
     `${year}-${pad2(month + 1)}`;
 
-export const todayKey = (now: Date = new Date()): string =>
-    dateKey(now.getFullYear(), now.getMonth(), now.getDate());
+// The calendar day an instant falls on, as a date key (local calendar, so an instant created "now"
+// keys to today). createdAt/updatedAt are epoch-ms instants while streak math is in date keys, so
+// this is the bridge between them — see db/repo.getStreaks.
+export const dateKeyOf = (instant: Date): string =>
+    dateKey(instant.getFullYear(), instant.getMonth(), instant.getDate());
+
+export const todayKey = (now: Date = new Date()): string => dateKeyOf(now);
 
 // A calendar date is timezone-agnostic, so key arithmetic is done in UTC to sidestep DST shifts.
 export const shiftDay = (key: string, deltaDays: number): string => {
@@ -31,6 +36,11 @@ export const daysBetween = (fromKey: string, toKey: string): number =>
             Date.parse(`${fromKey}T00:00:00Z`)) /
             MS_PER_DAY,
     );
+
+// The earlier / later of two date keys. Plain string comparison is safe because keys are
+// fixed-width YYYY-MM-DD (see dateKey), so lexicographic order matches chronological order.
+export const earlierKey = (a: string, b: string): string => (a < b ? a : b);
+export const laterKey = (a: string, b: string): string => (a > b ? a : b);
 
 // Length of the run of consecutive days ending at `endKey` (inclusive) that appear in
 // `datesDesc` (a descending list of date keys). Dates after `endKey` are ignored; the first gap

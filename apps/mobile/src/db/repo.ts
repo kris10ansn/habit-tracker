@@ -2,11 +2,14 @@
 // an epoch-ms `updatedAt` and, for clears/deletes, leave a tombstone rather than removing the row
 // (see docs/adr/0001). Drizzle's column modes make results already match the domain types, so there
 // are no row mappers or casts. Screens go through the TanStack Query hooks in state/queries.ts.
-import { and, asc, desc, eq, gte, lt, lte, max } from "drizzle-orm";
+import { and, asc, desc, eq, gte, lt, lte, max, min } from "drizzle-orm";
 
 import {
     consecutiveEndingAt,
+    dateKeyOf,
     daysBetween,
+    earlierKey,
+    laterKey,
     monthKeyBounds,
     shiftDay,
     todayKey,
@@ -111,61 +114,104 @@ export async function reorderHabit(
 }
 
 // A dedicated cross-month look-back, independent of the viewed month (see docs/adr/0001). Positive
-// habits count consecutive `success` days from a bounded window; negative habits count days since
-// their last slip (0 if never slipped — there is no honest earlier anchor without a createdAt).
+// habits count consecutive `success` days from a bounded window. Negative habits count the clean run
+// ending today: it starts the day after the last slip, or — with no slip — at the habit's anchor.
+// The anchor is `createdAt`, pulled back to the earliest recorded entry when data proves the habit
+// predates it (an entry can't occur before the habit existed, so it's the more honest origin; the
+// pull-back can only lengthen a run, never break it).
 export async function getStreaks(
     db: Database,
     roster: Habit[],
     today: string = todayKey(),
 ): Promise<Record<string, HabitStreak>> {
-    const yesterday = shiftDay(today, -1);
-
     const streaks = await Promise.all(
         roster.map(async (habit): Promise<[string, HabitStreak]> => {
             if (habit.polarity === "positive") {
-                const rows = await db
-                    .select({ date: entries.date })
-                    .from(entries)
-                    .where(
-                        and(
-                            eq(entries.habitId, habit.id),
-                            eq(entries.outcome, "success"),
-                            eq(entries.deleted, false),
-                            lte(entries.date, today),
-                        ),
-                    )
-                    .orderBy(desc(entries.date))
-                    .limit(400);
-                const dates = rows.map((row) => row.date);
-                return [
-                    habit.id,
-                    {
-                        current: consecutiveEndingAt(dates, today),
-                        established: consecutiveEndingAt(dates, yesterday),
-                    },
-                ];
+                return getStreaksPositive(db, habit, today);
             }
 
-            const [row] = await db
-                .select({ lastSlip: max(entries.date) })
-                .from(entries)
-                .where(
-                    and(
-                        eq(entries.habitId, habit.id),
-                        eq(entries.outcome, "failure"),
-                        eq(entries.deleted, false),
-                        lte(entries.date, today),
-                    ),
-                );
-            const current = row?.lastSlip
-                ? Math.max(0, daysBetween(row.lastSlip, today))
-                : 0;
-            return [
-                habit.id,
-                { current, established: Math.max(0, current - 1) },
-            ];
+            return getStreaksNegative(db, habit, today);
         }),
     );
 
     return Object.fromEntries(streaks);
 }
+
+const getStreaksPositive = async (
+    db: Database,
+    habit: Habit,
+    today: string,
+): Promise<[string, HabitStreak]> => {
+    const yesterday = shiftDay(today, -1);
+
+    const rows = await db
+        .select({ date: entries.date })
+        .from(entries)
+        .where(
+            and(
+                eq(entries.habitId, habit.id),
+                eq(entries.outcome, "success"),
+                eq(entries.deleted, false),
+                lte(entries.date, today),
+            ),
+        )
+        .orderBy(desc(entries.date))
+        .limit(400);
+    const dates = rows.map((row) => row.date);
+
+    return [
+        habit.id,
+        {
+            current: consecutiveEndingAt(dates, today),
+            established: consecutiveEndingAt(dates, yesterday),
+        },
+    ];
+};
+
+const getStreaksNegative = async (
+    db: Database,
+    habit: Habit,
+    today: string,
+): Promise<[string, HabitStreak]> => {
+    const [{ earliest: earliestEntryDate }] = await db
+        .select({ earliest: min(entries.date) })
+        .from(entries)
+        .where(
+            and(
+                eq(entries.habitId, habit.id),
+                eq(entries.deleted, false),
+                lte(entries.date, today),
+            ),
+        );
+
+    const [{ lastSlip: lastSlipDate }] = await db
+        .select({ lastSlip: max(entries.date) })
+        .from(entries)
+        .where(
+            and(
+                eq(entries.habitId, habit.id),
+                eq(entries.outcome, "failure"),
+                eq(entries.deleted, false),
+                lte(entries.date, today),
+            ),
+        );
+
+    const habitCreationDate = dateKeyOf(new Date(habit.createdAt));
+
+    // Anchor: the creation day, pulled back to the earliest recorded entry when the data predates
+    // it (proof the habit is older than its createdAt).
+    const habitStartDate = earliestEntryDate
+        ? earlierKey(earliestEntryDate, habitCreationDate)
+        : habitCreationDate;
+
+    // The current clean run begins the day after the last slip, but never before the anchor.
+    const streakStartDate = lastSlipDate
+        ? laterKey(shiftDay(lastSlipDate, 1), habitStartDate)
+        : habitStartDate;
+
+    // +1 counts today inclusively, matching the positive branch (a first clean day reads "1 day").
+    const current = Math.max(0, daysBetween(streakStartDate, today) + 1);
+    const established = Math.max(0, current - 1);
+
+    return [habit.id, { current, established }];
+};

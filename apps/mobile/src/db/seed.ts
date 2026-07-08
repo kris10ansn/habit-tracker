@@ -54,6 +54,9 @@ export async function seedIfEmpty(db: Database): Promise<void> {
 
     const now = Date.now();
     const today = todayKey();
+    // Backdate creation so the clean negative demo habit ("Late-night snacks", no slips) shows a
+    // streak off its createdAt anchor — the case the anchor exists for (see repo.getStreaks).
+    const createdAt = now - 30 * 86_400_000;
 
     await db.transaction(async (tx) => {
         for (let position = 0; position < SEED_HABITS.length; position += 1) {
@@ -65,6 +68,7 @@ export async function seedIfEmpty(db: Database): Promise<void> {
                 name: seed.name,
                 polarity: seed.polarity,
                 position,
+                createdAt,
                 updatedAt: now,
             });
 
