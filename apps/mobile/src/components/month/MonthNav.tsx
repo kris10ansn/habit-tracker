@@ -1,23 +1,35 @@
 import { Pressable, Text, View } from "react-native";
 
 import { Icon } from "@/components/ui/Icon";
+import { SlideTransition } from "@/components/ui/SlideTransition";
 import { cn } from "@/lib/cn";
 import React from "react";
 
 interface Props {
     label: string;
+    // Sign of the last navigation (+1 next / -1 prev), so the title slides in from the matching side.
+    direction: number;
     onPrev?: () => void;
     onNext?: () => void;
 }
 
-export function MonthNav({ label, onPrev, onNext }: Props) {
+export function MonthNav({ label, direction, onPrev, onNext }: Props) {
     return (
         <View className="my-2 mb-3 flex-row items-center justify-between">
             <NavButton onPress={onPrev}>
                 <Icon name="chevron-left" />
             </NavButton>
 
-            <Text className="text-[17px] font-semibold text-ink">{label}</Text>
+            <SlideTransition
+                transitionKey={label}
+                direction={direction}
+                distance={20}
+                fade
+            >
+                <Text className="text-[17px] font-semibold text-ink">
+                    {label}
+                </Text>
+            </SlideTransition>
 
             <NavButton onPress={onNext}>
                 <Icon name="chevron-right" />

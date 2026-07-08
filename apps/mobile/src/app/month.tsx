@@ -4,6 +4,7 @@ import { MonthGrid } from "@/components/month/MonthGrid";
 import { MonthNav } from "@/components/month/MonthNav";
 import { AppScreen } from "@/components/ui/AppScreen";
 import { Loading } from "@/components/ui/Loading";
+import { SlideTransition } from "@/components/ui/SlideTransition";
 import { addMonth, monthView, todayKey } from "@/domain/dates";
 import {
     useHabits,
@@ -20,7 +21,14 @@ export default function MonthScreen() {
         const now = new Date();
         return { year: now.getFullYear(), month: now.getMonth() };
     });
+    // Sign of the last navigation: +1 next, -1 prev — drives which side the grid slides in from.
+    const [direction, setDirection] = useState(1);
     const view = monthView(cursor.year, cursor.month);
+
+    const navigate = (delta: number) => {
+        setDirection(delta);
+        setCursor((prev) => addMonth(prev.year, prev.month, delta));
+    };
 
     const habitsQuery = useHabits();
     const habits = habitsQuery.data ?? [];
@@ -36,24 +44,26 @@ export default function MonthScreen() {
         >
             <MonthNav
                 label={view.monthLabel}
-                onPrev={() =>
-                    setCursor((prev) => addMonth(prev.year, prev.month, -1))
-                }
-                onNext={() =>
-                    setCursor((prev) => addMonth(prev.year, prev.month, 1))
-                }
+                direction={direction}
+                onPrev={() => navigate(-1)}
+                onNext={() => navigate(1)}
             />
             {habitsQuery.isPending ? (
                 <Loading />
             ) : (
-                <MonthGrid
-                    habits={habits}
-                    view={view}
-                    today={today}
-                    entries={entriesQuery.data ?? []}
-                    streaks={streaksQuery.data ?? {}}
-                    onToggle={toggle}
-                />
+                <SlideTransition
+                    transitionKey={view.monthKey}
+                    direction={direction}
+                >
+                    <MonthGrid
+                        habits={habits}
+                        view={view}
+                        today={today}
+                        entries={entriesQuery.data ?? []}
+                        streaks={streaksQuery.data ?? {}}
+                        onToggle={toggle}
+                    />
+                </SlideTransition>
             )}
         </AppScreen>
     );
