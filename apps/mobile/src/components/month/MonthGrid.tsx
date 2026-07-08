@@ -7,7 +7,7 @@ import {
     weekdayShort,
     type MonthGrid as MonthGridMeta,
 } from "@/domain/dates";
-import { markView } from "@/domain/marks";
+import { currentStreak, markView } from "@/domain/marks";
 import type { Habit } from "@/domain/types";
 import { cn } from "@/lib/cn";
 
@@ -55,6 +55,7 @@ export function MonthGrid({ habits, grid, onToggle }: MonthGridProps) {
                                     className="text-[10px] font-semibold text-ink-2"
                                 >
                                     {columnLabel(habit)}
+                                    {currentStreak(habit, grid) > 1 && "🔥"}
                                 </Text>
                             </View>
                         ))}
