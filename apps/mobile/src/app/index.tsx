@@ -63,12 +63,7 @@ export default function TodayScreen() {
                             outcome={outcomeOf(habit.id)}
                             streak={streaksQuery.data?.[habit.id]}
                             onToggle={() =>
-                                toggle.mutate({
-                                    habitId: habit.id,
-                                    date: today,
-                                    polarity: habit.polarity,
-                                    outcome: outcomeOf(habit.id),
-                                })
+                                toggle(habit.id, today, habit.polarity)
                             }
                         />
                     ))}

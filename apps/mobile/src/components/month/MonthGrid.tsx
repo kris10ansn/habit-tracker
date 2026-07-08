@@ -8,7 +8,7 @@ import { entryIndex, outcomeAt, type EntryIndex } from "@/domain/entries";
 import { markView } from "@/domain/marks";
 import type { Entry, Habit } from "@/domain/types";
 import { cn } from "@/lib/cn";
-import type { ToggleInput } from "@/state/queries";
+import type { ToggleFn } from "@/state/queries";
 
 interface MonthGridProps {
     habits: Habit[];
@@ -16,7 +16,7 @@ interface MonthGridProps {
     today: string;
     entries: Entry[];
     streaks: Record<string, HabitStreak>;
-    onToggle?: (input: ToggleInput) => void;
+    onToggle?: ToggleFn;
 }
 
 const DAY_COLUMN = "w-11";
@@ -95,7 +95,7 @@ interface MonthDayRowProps {
     today: string;
     day: number;
     index: EntryIndex;
-    onToggle?: (input: ToggleInput) => void;
+    onToggle?: ToggleFn;
 }
 
 export function MonthDayRow({
@@ -145,12 +145,11 @@ export function MonthDayRow({
                                 isFuture
                                     ? undefined
                                     : () =>
-                                          onToggle?.({
-                                              habitId: habit.id,
-                                              date: dayKey,
-                                              polarity: habit.polarity,
-                                              outcome,
-                                          })
+                                          onToggle?.(
+                                              habit.id,
+                                              dayKey,
+                                              habit.polarity,
+                                          )
                             }
                         />
                     </View>

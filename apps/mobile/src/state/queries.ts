@@ -6,8 +6,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { useDatabase } from "@/db/client";
 import * as repo from "@/db/repo";
-import { nextAction } from "@/domain/marks";
-import type { Entry, Habit, Outcome, Polarity } from "@/domain/types";
+import { nextAction, type MarkAction } from "@/domain/marks";
+import type { Entry, Habit, Polarity } from "@/domain/types";
 
 export const habitsKey = ["habits"] as const;
 export const entriesKey = (monthKey: string) => ["entries", monthKey] as const;
@@ -27,12 +27,14 @@ export function useMonthEntries(monthKey: string) {
 }
 
 // Streaks depend on the roster's ids and polarities (not order), so those form the query key —
-// a polarity flip or add/delete refetches, a reorder does not. Mutations that change marks
-// invalidate the ["streaks"] prefix explicitly.
+// a polarity flip or add/delete refetches, a reorder does not. The pairs are sorted before joining
+// so the key is order-independent; otherwise a reorder would change it and force a needless refetch
+// (streak pills/🔥 flashing out and back). Mark mutations invalidate the ["streaks"] prefix.
 export function useStreaks(habits: Habit[]) {
     const db = useDatabase();
     const signature = habits
         .map((habit) => `${habit.id}:${habit.polarity}`)
+        .sort()
         .join(",");
     return useQuery({
         queryKey: [...streaksKey, signature],
@@ -41,25 +43,36 @@ export function useStreaks(habits: Habit[]) {
     });
 }
 
-export interface ToggleInput {
+// A resolved tap: the storage action is decided once (from the live cache, see useToggleEntry) and
+// carried through both the optimistic write and the DB write, so the two can never diverge.
+interface ToggleVariables {
     habitId: string;
     date: string;
-    polarity: Polarity;
-    outcome: Outcome | undefined;
+    action: MarkAction;
 }
 
-const applyToggle = (entries: Entry[], input: ToggleInput): Entry[] => {
+// Toggle a habit's mark for a day. Callers pass the habit + polarity, not an outcome snapshot.
+export type ToggleFn = (
+    habitId: string,
+    date: string,
+    polarity: Polarity,
+) => void;
+
+const applyAction = (
+    entries: Entry[],
+    habitId: string,
+    date: string,
+    action: MarkAction,
+): Entry[] => {
     const rest = entries.filter(
-        (entry) =>
-            !(entry.habitId === input.habitId && entry.date === input.date),
+        (entry) => !(entry.habitId === habitId && entry.date === date),
     );
-    const action = nextAction(input.polarity, input.outcome);
     if (action.type === "clear") return rest;
     return [
         ...rest,
         {
-            habitId: input.habitId,
-            date: input.date,
+            habitId,
+            date,
             outcome: action.outcome,
             updatedAt: Date.now(),
             deleted: false,
@@ -68,28 +81,30 @@ const applyToggle = (entries: Entry[], input: ToggleInput): Entry[] => {
 };
 
 // Toggling writes to the viewed month's cache optimistically, then invalidates that month and the
-// streaks (which a mark can extend or break).
-export function useToggleEntry(monthKey: string) {
+// streaks (which a mark can extend or break). The returned `toggle` derives the next action from
+// the *live cache* at tap time — not a render-time outcome snapshot — so a rapid double-tap
+// advances the cycle (unmarked→success→failure→clear) instead of computing the same step twice
+// from a stale value. A shared mutation scope serialises the writes so SQLite lands in tap order.
+export function useToggleEntry(monthKey: string): ToggleFn {
     const db = useDatabase();
     const queryClient = useQueryClient();
     const key = entriesKey(monthKey);
 
-    return useMutation({
-        mutationFn: (input: ToggleInput) => {
-            const action = nextAction(input.polarity, input.outcome);
-            return action.type === "set"
-                ? repo.setOutcome(db, input.habitId, input.date, action.outcome)
-                : repo.clearEntry(db, input.habitId, input.date);
-        },
-        onMutate: async (input) => {
+    const mutation = useMutation({
+        scope: { id: "toggle-entry" },
+        mutationFn: ({ habitId, date, action }: ToggleVariables) =>
+            action.type === "set"
+                ? repo.setOutcome(db, habitId, date, action.outcome)
+                : repo.clearEntry(db, habitId, date),
+        onMutate: async ({ habitId, date, action }) => {
             await queryClient.cancelQueries({ queryKey: key });
             const previous = queryClient.getQueryData<Entry[]>(key);
             queryClient.setQueryData<Entry[]>(key, (old = []) =>
-                applyToggle(old, input),
+                applyAction(old, habitId, date, action),
             );
             return { previous };
         },
-        onError: (_error, _input, context) => {
+        onError: (_error, _variables, context) => {
             if (context) queryClient.setQueryData(key, context.previous);
         },
         onSettled: () => {
@@ -97,6 +112,18 @@ export function useToggleEntry(monthKey: string) {
             queryClient.invalidateQueries({ queryKey: streaksKey });
         },
     });
+
+    return (habitId, date, polarity) => {
+        const entries = queryClient.getQueryData<Entry[]>(key) ?? [];
+        const current = entries.find(
+            (entry) => entry.habitId === habitId && entry.date === date,
+        )?.outcome;
+        mutation.mutate({
+            habitId,
+            date,
+            action: nextAction(polarity, current),
+        });
+    };
 }
 
 export function useUpdateHabit() {

@@ -10,7 +10,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useMigrations } from "drizzle-orm/expo-sqlite/migrator";
 import { PlatformPressable } from "expo-router/build/react-navigation";
 import { SQLiteProvider, type SQLiteDatabase } from "expo-sqlite";
-import React, { useEffect, useState, type ReactNode } from "react";
+import React, { useEffect, useRef, useState, type ReactNode } from "react";
 import { ActivityIndicator, StatusBar, Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import "../../global.css";
@@ -36,14 +36,37 @@ function DatabaseGate({ children }: { children: ReactNode }) {
     const db = useDatabase();
     const { success, error } = useMigrations(db, migrations);
     const [seeded, setSeeded] = useState(false);
+    const [seedError, setSeedError] = useState<Error | null>(null);
+    // Seed exactly once: guards against the effect double-firing (StrictMode / Fast Refresh),
+    // which could otherwise let two seedIfEmpty runs both pass the emptiness check and double-seed.
+    const seedStarted = useRef(false);
 
     useEffect(() => {
-        if (success) seedIfEmpty(db).then(() => setSeeded(true));
+        if (!success || seedStarted.current) {
+            return;
+        }
+
+        seedStarted.current = true;
+
+        seedIfEmpty(db)
+            .then(() => setSeeded(true))
+            .catch((cause) =>
+                setSeedError(
+                    cause instanceof Error ? cause : new Error(String(cause)),
+                ),
+            );
     }, [success, db]);
 
-    if (error)
-        return <BootScreen>{`Database error: ${error.message}`}</BootScreen>;
-    if (!success || !seeded) return <BootScreen />;
+    // Surface a seed failure instead of hanging on the spinner forever.
+    const failure = error ?? seedError;
+    if (failure) {
+        return <BootScreen>{`Database error: ${failure.message}`}</BootScreen>;
+    }
+
+    if (!success || !seeded) {
+        return <BootScreen />;
+    }
+
     return <>{children}</>;
 }
 

@@ -48,7 +48,7 @@ export default function MonthScreen() {
                     today={today}
                     entries={entriesQuery.data ?? []}
                     streaks={streaksQuery.data ?? {}}
-                    onToggle={(input) => toggle.mutate(input)}
+                    onToggle={toggle}
                 />
             )}
         </AppScreen>
