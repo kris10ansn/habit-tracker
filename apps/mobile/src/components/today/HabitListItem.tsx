@@ -4,8 +4,12 @@ import { HabitMark } from "@/components/HabitMark";
 import { StreakPill } from "@/components/today/StreakPill";
 import { Card } from "@/components/ui/Card";
 import { Pill } from "@/components/ui/Pill";
-import type { HabitStreak } from "@/db/repo";
-import { isSuccess, markView } from "@/domain/marks";
+import {
+    displayStreak,
+    isSuccess,
+    markView,
+    type HabitStreak,
+} from "@/domain/marks";
 import type { Habit, Outcome } from "@/domain/types";
 
 interface Props {
@@ -19,9 +23,7 @@ export function HabitListItem({ habit, outcome, streak, onToggle }: Props) {
     const view = markView(habit.polarity, outcome);
     const success = isSuccess(habit.polarity, outcome);
 
-    // While today is unmarked, still show the run through yesterday ("keep your streak"),
-    // greyed by the pill; once marked, `current` includes today.
-    const displayed = Math.max(streak?.current ?? 0, streak?.established ?? 0);
+    const displayed = displayStreak(streak);
 
     return (
         <Card className="mb-3 flex-row items-center gap-3.5">

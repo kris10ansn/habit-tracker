@@ -2,10 +2,9 @@ import { ScrollView, Text, View } from "react-native";
 
 import { HabitMark } from "@/components/HabitMark";
 import { Card } from "@/components/ui/Card";
-import type { HabitStreak } from "@/db/repo";
 import { dateKey, weekdayShort, type MonthView } from "@/domain/dates";
 import { entryIndex, outcomeAt, type EntryIndex } from "@/domain/entries";
-import { markView } from "@/domain/marks";
+import { displayStreak, markView, type HabitStreak } from "@/domain/marks";
 import type { Entry, Habit } from "@/domain/types";
 import { cn } from "@/lib/cn";
 import type { ToggleFn } from "@/state/queries";
@@ -65,7 +64,7 @@ export function MonthGrid({
                                     className="text-[10px] font-semibold text-ink-2"
                                 >
                                     {columnLabel(habit)}
-                                    {(streaks[habit.id]?.current ?? 0) > 1 &&
+                                    {displayStreak(streaks[habit.id]) > 1 &&
                                         "🔥"}
                                 </Text>
                             </View>
@@ -131,30 +130,43 @@ export function MonthDayRow({
                     {weekdayShort(view.year, view.month, day)}
                 </Text>
             </View>
-            {habits.map((habit) => {
-                const outcome = outcomeAt(index, habit.id, dayKey);
-                return (
-                    <View
-                        key={habit.id}
-                        className={cn(HABIT_COLUMN, "items-center py-1")}
-                    >
-                        <HabitMark
-                            view={markView(habit.polarity, outcome, isFuture)}
-                            size="sm"
-                            onPress={
-                                isFuture
-                                    ? undefined
-                                    : () =>
-                                          onToggle?.(
-                                              habit.id,
-                                              dayKey,
-                                              habit.polarity,
-                                          )
-                            }
-                        />
-                    </View>
-                );
-            })}
+            {habits.map((habit) => (
+                <MonthDayBox
+                    habit={habit}
+                    dayKey={dayKey}
+                    index={index}
+                    onToggle={onToggle}
+                    isFuture={isFuture}
+                />
+            ))}
+        </View>
+    );
+}
+
+type MonthDayBoxProps = {
+    habit: Habit;
+    dayKey: string;
+    index: EntryIndex;
+    onToggle?: ToggleFn;
+    isFuture: boolean;
+};
+
+export function MonthDayBox({
+    habit,
+    dayKey,
+    index,
+    onToggle,
+    isFuture,
+}: MonthDayBoxProps) {
+    const outcome = outcomeAt(index, habit.id, dayKey);
+
+    return (
+        <View key={habit.id} className={cn(HABIT_COLUMN, "items-center py-1")}>
+            <HabitMark
+                view={markView(habit.polarity, outcome, isFuture)}
+                size="sm"
+                onPress={() => onToggle?.(habit.id, dayKey, habit.polarity)}
+            />
         </View>
     );
 }

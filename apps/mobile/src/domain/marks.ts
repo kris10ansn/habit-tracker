@@ -20,16 +20,22 @@ export const markView = (
     outcome: Outcome | undefined,
     isFuture = false,
 ): MarkView => {
+    if (polarity === "negative" && outcome === "failure") {
+        return { kind: "slip", label: "Slipped", muted: false };
+    }
+
     if (polarity === "negative") {
-        if (outcome === "failure")
-            return { kind: "slip", label: "Slipped", muted: false };
         return { kind: "clean", label: "Clean", muted: isFuture };
     }
 
-    if (outcome === "success")
+    if (polarity === "positive" && outcome === "success") {
         return { kind: "done", label: "Done", muted: false };
-    if (outcome === "failure")
+    }
+
+    if (polarity === "positive" && outcome === "failure") {
         return { kind: "missed", label: "Missed", muted: false };
+    }
+
     return { kind: "empty", label: "Not yet", muted: false };
 };
 
@@ -59,3 +65,17 @@ export const isSuccess = (
     outcome: Outcome | undefined,
 ): boolean =>
     polarity === "negative" ? outcome !== "failure" : outcome === "success";
+
+// A habit's streak, computed by the cross-month look-back in db/repo.getStreaks.
+export interface HabitStreak {
+    // Consecutive successful days ending today (inclusive); 0 if today isn't (yet) a success.
+    current: number;
+    // The same run ending yesterday — the "established" streak, shown while today is unmarked.
+    established: number;
+}
+
+// The streak number a surface shows: the run through today, or — while today is still unmarked —
+// the run through yesterday, so an unmarked day still reads "keep your N-day streak". One
+// definition used by every surface, so Today and Month never disagree on the number.
+export const displayStreak = (streak: HabitStreak | undefined): number =>
+    streak ? Math.max(streak.current, streak.established) : 0;

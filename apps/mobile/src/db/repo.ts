@@ -11,6 +11,7 @@ import {
     shiftDay,
     todayKey,
 } from "@/domain/dates";
+import type { HabitStreak } from "@/domain/marks";
 import type { Habit, Outcome, Polarity } from "@/domain/types";
 
 import type { Database } from "./client";
@@ -107,13 +108,6 @@ export async function reorderHabit(
                 .where(eq(habits.id, reordered[position].id));
         }
     });
-}
-
-export interface HabitStreak {
-    // Consecutive successful days ending today (inclusive); 0 if today isn't (yet) a success.
-    current: number;
-    // The same run ending yesterday — the "established" streak, shown while today is unmarked.
-    established: number;
 }
 
 // A dedicated cross-month look-back, independent of the viewed month (see docs/adr/0001). Positive
