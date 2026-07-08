@@ -3,8 +3,8 @@
 // state, and optimistic mutations. It is also where a future server sync would slot in. See
 // docs/adr/0001.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useSQLiteContext } from "expo-sqlite";
 
+import { useDatabase } from "@/db/client";
 import * as repo from "@/db/repo";
 import { nextAction } from "@/domain/marks";
 import type { Entry, Habit, Outcome, Polarity } from "@/domain/types";
@@ -14,12 +14,12 @@ export const entriesKey = (monthKey: string) => ["entries", monthKey] as const;
 const streaksKey = ["streaks"] as const;
 
 export function useHabits() {
-    const db = useSQLiteContext();
+    const db = useDatabase();
     return useQuery({ queryKey: habitsKey, queryFn: () => repo.getHabits(db) });
 }
 
 export function useMonthEntries(monthKey: string) {
-    const db = useSQLiteContext();
+    const db = useDatabase();
     return useQuery({
         queryKey: entriesKey(monthKey),
         queryFn: () => repo.getMonthEntries(db, monthKey),
@@ -30,7 +30,7 @@ export function useMonthEntries(monthKey: string) {
 // a polarity flip or add/delete refetches, a reorder does not. Mutations that change marks
 // invalidate the ["streaks"] prefix explicitly.
 export function useStreaks(habits: Habit[]) {
-    const db = useSQLiteContext();
+    const db = useDatabase();
     const signature = habits
         .map((habit) => `${habit.id}:${habit.polarity}`)
         .join(",");
@@ -70,7 +70,7 @@ const applyToggle = (entries: Entry[], input: ToggleInput): Entry[] => {
 // Toggling writes to the viewed month's cache optimistically, then invalidates that month and the
 // streaks (which a mark can extend or break).
 export function useToggleEntry(monthKey: string) {
-    const db = useSQLiteContext();
+    const db = useDatabase();
     const queryClient = useQueryClient();
     const key = entriesKey(monthKey);
 
@@ -100,7 +100,7 @@ export function useToggleEntry(monthKey: string) {
 }
 
 export function useUpdateHabit() {
-    const db = useSQLiteContext();
+    const db = useDatabase();
     const queryClient = useQueryClient();
 
     return useMutation({
@@ -142,7 +142,7 @@ const moveHabit = (
 };
 
 export function useReorderHabit() {
-    const db = useSQLiteContext();
+    const db = useDatabase();
     const queryClient = useQueryClient();
 
     return useMutation({

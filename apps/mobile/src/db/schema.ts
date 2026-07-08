@@ -1,47 +1,35 @@
-import type { SQLiteDatabase } from "expo-sqlite";
+import {
+    index,
+    integer,
+    primaryKey,
+    sqliteTable,
+    text,
+} from "drizzle-orm/sqlite-core";
 
-import { seedDefaultData } from "./seed";
+// SQLite tables mirroring the backend's normalized shape (see docs/adr/0001): a roster plus a
+// (habitId, date)-keyed entry log, each carrying an epoch-ms `updatedAt` merge key and a `deleted`
+// soft-delete tombstone. The `enum` and `boolean` column modes make Drizzle infer the domain types
+// (Polarity/Outcome unions, boolean `deleted`) directly, so reads need no row mappers or casts.
+export const habits = sqliteTable("habits", {
+    id: text().primaryKey(),
+    name: text().notNull(),
+    polarity: text({ enum: ["positive", "negative"] }).notNull(),
+    position: integer().notNull(),
+    updatedAt: integer().notNull(),
+    deleted: integer({ mode: "boolean" }).notNull().default(false),
+});
 
-// Bump this and add a matching `if (version === N)` block for each schema change. The tables mirror
-// the backend's normalized shape (see docs/adr/0001): a roster plus a (habitId, date)-keyed entry
-// log, both carrying an epoch-ms `updatedAt` merge key and a `deleted` soft-delete tombstone flag.
-const DATABASE_VERSION = 1;
-
-// Passed to <SQLiteProvider onInit>, so it runs once before any screen queries the database.
-export async function migrate(db: SQLiteDatabase): Promise<void> {
-    const result = await db.getFirstAsync<{ user_version: number }>(
-        "PRAGMA user_version",
-    );
-    let version = result?.user_version ?? 0;
-    if (version >= DATABASE_VERSION) return;
-
-    if (version === 0) {
-        await db.execAsync(`
-            PRAGMA journal_mode = 'wal';
-
-            CREATE TABLE habits (
-                id TEXT PRIMARY KEY NOT NULL,
-                name TEXT NOT NULL,
-                polarity TEXT NOT NULL,
-                position INTEGER NOT NULL,
-                updatedAt INTEGER NOT NULL,
-                deleted INTEGER NOT NULL DEFAULT 0
-            );
-
-            CREATE TABLE entries (
-                habitId TEXT NOT NULL,
-                date TEXT NOT NULL,
-                outcome TEXT NOT NULL,
-                updatedAt INTEGER NOT NULL,
-                deleted INTEGER NOT NULL DEFAULT 0,
-                PRIMARY KEY (habitId, date)
-            );
-
-            CREATE INDEX idx_entries_date ON entries (date);
-        `);
-        await seedDefaultData(db);
-        version = 1;
-    }
-
-    await db.execAsync(`PRAGMA user_version = ${DATABASE_VERSION}`);
-}
+export const entries = sqliteTable(
+    "entries",
+    {
+        habitId: text().notNull(),
+        date: text().notNull(),
+        outcome: text({ enum: ["success", "failure"] }).notNull(),
+        updatedAt: integer().notNull(),
+        deleted: integer({ mode: "boolean" }).notNull().default(false),
+    },
+    (table) => [
+        primaryKey({ columns: [table.habitId, table.date] }),
+        index("idx_entries_date").on(table.date),
+    ],
+);

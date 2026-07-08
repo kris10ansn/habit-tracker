@@ -1,13 +1,15 @@
 import * as Crypto from "expo-crypto";
-import type { SQLiteDatabase } from "expo-sqlite";
 
 import { shiftDay, todayKey } from "@/domain/dates";
 import type { Outcome, Polarity } from "@/domain/types";
 
+import type { Database } from "./client";
+import { entries, habits } from "./schema";
+
 // First-run roster, with demo entries so the app opens populated. `marks` is keyed by day-offset
 // back from the seed date (0 = today), covering every display state — a streak, a miss, a
-// negative habit's clean run, and a slip. Seeded once into an empty database (see schema.migrate);
-// thereafter these are ordinary user rows.
+// negative habit's clean run, and a slip. Seeded once into an empty database; thereafter these are
+// ordinary user rows.
 interface SeedHabit {
     name: string;
     polarity: Polarity;
@@ -45,33 +47,36 @@ const SEED_HABITS: SeedHabit[] = [
     { name: "Late-night snacks", polarity: "negative", marks: {} },
 ];
 
-export async function seedDefaultData(db: SQLiteDatabase): Promise<void> {
+// Seed the defaults only into a fresh database (run after migrations, see _layout).
+export async function seedIfEmpty(db: Database): Promise<void> {
+    const [existing] = await db.select({ id: habits.id }).from(habits).limit(1);
+    if (existing) return;
+
     const now = Date.now();
     const today = todayKey();
 
-    await db.withTransactionAsync(async () => {
+    await db.transaction(async (tx) => {
         for (let position = 0; position < SEED_HABITS.length; position += 1) {
             const seed = SEED_HABITS[position];
             const id = Crypto.randomUUID();
 
-            await db.runAsync(
-                "INSERT INTO habits (id, name, polarity, position, updatedAt) VALUES (?, ?, ?, ?, ?)",
+            await tx.insert(habits).values({
                 id,
-                seed.name,
-                seed.polarity,
+                name: seed.name,
+                polarity: seed.polarity,
                 position,
-                now,
-            );
+                updatedAt: now,
+            });
 
-            for (const [offset, outcome] of Object.entries(seed.marks)) {
-                await db.runAsync(
-                    "INSERT INTO entries (habitId, date, outcome, updatedAt) VALUES (?, ?, ?, ?)",
-                    id,
-                    shiftDay(today, -Number(offset)),
+            const rows = Object.entries(seed.marks).map(
+                ([offset, outcome]) => ({
+                    habitId: id,
+                    date: shiftDay(today, -Number(offset)),
                     outcome,
-                    now,
-                );
-            }
+                    updatedAt: now,
+                }),
+            );
+            if (rows.length > 0) await tx.insert(entries).values(rows);
         }
     });
 }

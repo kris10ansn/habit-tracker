@@ -1,7 +1,8 @@
-// The only place that speaks SQL. Every read returns alive rows (deleted = 0); every write stamps
-// an epoch-ms `updatedAt` and, for clears/deletes, leaves a tombstone rather than removing the row
-// (see docs/adr/0001). Screens go through the TanStack Query hooks in state/queries.ts, not here.
-import type { SQLiteDatabase } from "expo-sqlite";
+// The only place that speaks the database. Reads return alive rows (deleted = false); writes stamp
+// an epoch-ms `updatedAt` and, for clears/deletes, leave a tombstone rather than removing the row
+// (see docs/adr/0001). Drizzle's column modes make results already match the domain types, so there
+// are no row mappers or casts. Screens go through the TanStack Query hooks in state/queries.ts.
+import { and, asc, desc, eq, gte, lt, lte, max } from "drizzle-orm";
 
 import {
     consecutiveEndingAt,
@@ -10,147 +11,100 @@ import {
     shiftDay,
     todayKey,
 } from "@/domain/dates";
-import type { Entry, Habit, Outcome, Polarity } from "@/domain/types";
+import type { Habit, Outcome, Polarity } from "@/domain/types";
 
-interface HabitRow {
-    id: string;
-    name: string;
-    polarity: string;
-    position: number;
-    updatedAt: number;
-    deleted: number;
-}
+import type { Database } from "./client";
+import { entries, habits } from "./schema";
 
-const toHabit = (row: HabitRow): Habit => ({
-    id: row.id,
-    name: row.name,
-    polarity: row.polarity as Polarity,
-    position: row.position,
-    updatedAt: row.updatedAt,
-    deleted: row.deleted !== 0,
-});
-
-interface EntryRow {
-    habitId: string;
-    date: string;
-    outcome: string;
-    updatedAt: number;
-    deleted: number;
-}
-
-const toEntry = (row: EntryRow): Entry => ({
-    habitId: row.habitId,
-    date: row.date,
-    outcome: row.outcome as Outcome,
-    updatedAt: row.updatedAt,
-    deleted: row.deleted !== 0,
-});
-
-export async function getHabits(db: SQLiteDatabase): Promise<Habit[]> {
-    const rows = await db.getAllAsync<HabitRow>(
-        "SELECT id, name, polarity, position, updatedAt, deleted FROM habits WHERE deleted = 0 ORDER BY position ASC",
-    );
-    return rows.map(toHabit);
+export function getHabits(db: Database): Promise<Habit[]> {
+    return db
+        .select()
+        .from(habits)
+        .where(eq(habits.deleted, false))
+        .orderBy(asc(habits.position));
 }
 
 // Entries for one month partition — the unit of lazy loading, keyed like the backend's SyncMonth.
-export async function getMonthEntries(
-    db: SQLiteDatabase,
-    monthKey: string,
-): Promise<Entry[]> {
+export function getMonthEntries(db: Database, monthKey: string) {
     const { start, endExclusive } = monthKeyBounds(monthKey);
-    const rows = await db.getAllAsync<EntryRow>(
-        "SELECT habitId, date, outcome, updatedAt, deleted FROM entries WHERE deleted = 0 AND date >= ? AND date < ?",
-        start,
-        endExclusive,
-    );
-    return rows.map(toEntry);
+    return db
+        .select()
+        .from(entries)
+        .where(
+            and(
+                eq(entries.deleted, false),
+                gte(entries.date, start),
+                lt(entries.date, endExclusive),
+            ),
+        );
 }
 
 // Upsert an alive entry, resurrecting a tombstone if one exists at (habitId, date).
 export async function setOutcome(
-    db: SQLiteDatabase,
+    db: Database,
     habitId: string,
     date: string,
     outcome: Outcome,
     updatedAt: number = Date.now(),
 ): Promise<void> {
-    await db.runAsync(
-        `INSERT INTO entries (habitId, date, outcome, updatedAt, deleted) VALUES (?, ?, ?, ?, 0)
-         ON CONFLICT(habitId, date) DO UPDATE SET outcome = excluded.outcome, updatedAt = excluded.updatedAt, deleted = 0`,
-        habitId,
-        date,
-        outcome,
-        updatedAt,
-    );
+    await db
+        .insert(entries)
+        .values({ habitId, date, outcome, updatedAt, deleted: false })
+        .onConflictDoUpdate({
+            target: [entries.habitId, entries.date],
+            set: { outcome, updatedAt, deleted: false },
+        });
 }
 
 // Clearing a cell is a soft-delete: keep the row as a tombstone whose `updatedAt` is the clear-time.
 export async function clearEntry(
-    db: SQLiteDatabase,
+    db: Database,
     habitId: string,
     date: string,
     updatedAt: number = Date.now(),
 ): Promise<void> {
-    await db.runAsync(
-        "UPDATE entries SET deleted = 1, updatedAt = ? WHERE habitId = ? AND date = ?",
-        updatedAt,
-        habitId,
-        date,
-    );
+    await db
+        .update(entries)
+        .set({ deleted: true, updatedAt })
+        .where(and(eq(entries.habitId, habitId), eq(entries.date, date)));
 }
 
 export async function updateHabit(
-    db: SQLiteDatabase,
+    db: Database,
     id: string,
     patch: { name?: string; polarity?: Polarity },
     updatedAt: number = Date.now(),
 ): Promise<void> {
-    const assignments: string[] = [];
-    const args: (string | number)[] = [];
-    if (patch.name !== undefined) {
-        assignments.push("name = ?");
-        args.push(patch.name);
-    }
-    if (patch.polarity !== undefined) {
-        assignments.push("polarity = ?");
-        args.push(patch.polarity);
-    }
-    if (assignments.length === 0) return;
-
-    assignments.push("updatedAt = ?");
-    args.push(updatedAt, id);
-    await db.runAsync(
-        `UPDATE habits SET ${assignments.join(", ")} WHERE id = ?`,
-        ...args,
-    );
+    if (patch.name === undefined && patch.polarity === undefined) return;
+    await db
+        .update(habits)
+        .set({ ...patch, updatedAt })
+        .where(eq(habits.id, id));
 }
 
 // Move a habit to `toIndex` and renumber positions densely, bumping `updatedAt` only on the rows
 // whose position actually changed (position is LWW per habit for sync).
 export async function reorderHabit(
-    db: SQLiteDatabase,
+    db: Database,
     habitId: string,
     toIndex: number,
     updatedAt: number = Date.now(),
 ): Promise<void> {
-    const habits = await getHabits(db);
-    const fromIndex = habits.findIndex((habit) => habit.id === habitId);
+    const roster = await getHabits(db);
+    const fromIndex = roster.findIndex((habit) => habit.id === habitId);
     if (fromIndex === -1 || fromIndex === toIndex) return;
 
-    const reordered = [...habits];
+    const reordered = [...roster];
     const [moved] = reordered.splice(fromIndex, 1);
     reordered.splice(toIndex, 0, moved);
 
-    await db.withTransactionAsync(async () => {
+    await db.transaction(async (tx) => {
         for (let position = 0; position < reordered.length; position += 1) {
             if (reordered[position].position === position) continue;
-            await db.runAsync(
-                "UPDATE habits SET position = ?, updatedAt = ? WHERE id = ?",
-                position,
-                updatedAt,
-                reordered[position].id,
-            );
+            await tx
+                .update(habits)
+                .set({ position, updatedAt })
+                .where(eq(habits.id, reordered[position].id));
         }
     });
 }
@@ -166,20 +120,28 @@ export interface HabitStreak {
 // habits count consecutive `success` days from a bounded window; negative habits count days since
 // their last slip (0 if never slipped — there is no honest earlier anchor without a createdAt).
 export async function getStreaks(
-    db: SQLiteDatabase,
-    habits: Habit[],
+    db: Database,
+    roster: Habit[],
     today: string = todayKey(),
 ): Promise<Record<string, HabitStreak>> {
     const yesterday = shiftDay(today, -1);
 
     const streaks = await Promise.all(
-        habits.map(async (habit): Promise<[string, HabitStreak]> => {
+        roster.map(async (habit): Promise<[string, HabitStreak]> => {
             if (habit.polarity === "positive") {
-                const rows = await db.getAllAsync<{ date: string }>(
-                    "SELECT date FROM entries WHERE habitId = ? AND outcome = 'success' AND deleted = 0 AND date <= ? ORDER BY date DESC LIMIT 400",
-                    habit.id,
-                    today,
-                );
+                const rows = await db
+                    .select({ date: entries.date })
+                    .from(entries)
+                    .where(
+                        and(
+                            eq(entries.habitId, habit.id),
+                            eq(entries.outcome, "success"),
+                            eq(entries.deleted, false),
+                            lte(entries.date, today),
+                        ),
+                    )
+                    .orderBy(desc(entries.date))
+                    .limit(400);
                 const dates = rows.map((row) => row.date);
                 return [
                     habit.id,
@@ -190,11 +152,17 @@ export async function getStreaks(
                 ];
             }
 
-            const row = await db.getFirstAsync<{ lastSlip: string | null }>(
-                "SELECT MAX(date) AS lastSlip FROM entries WHERE habitId = ? AND outcome = 'failure' AND deleted = 0 AND date <= ?",
-                habit.id,
-                today,
-            );
+            const [row] = await db
+                .select({ lastSlip: max(entries.date) })
+                .from(entries)
+                .where(
+                    and(
+                        eq(entries.habitId, habit.id),
+                        eq(entries.outcome, "failure"),
+                        eq(entries.deleted, false),
+                        lte(entries.date, today),
+                    ),
+                );
             const current = row?.lastSlip
                 ? Math.max(0, daysBetween(row.lastSlip, today))
                 : 0;

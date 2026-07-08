@@ -7,5 +7,8 @@ module.exports = function (api) {
             ["babel-preset-expo", { jsxImportSource: "nativewind" }],
             "nativewind/babel",
         ],
+        // Inline Drizzle's generated .sql migration files as strings so the expo migrator can
+        // bundle them (paired with metro.config.js's `sql` sourceExt).
+        plugins: [["inline-import", { extensions: [".sql"] }]],
     };
 };

@@ -42,9 +42,15 @@ crosses month partitions.
   `onReorder`, `SortableListHandle` as the grab affordance); the habits binding is an inline
   `HabitRow` in `app/habits.tsx` (there is no `SortableHabitList` component).
 - `src/domain/` — model + logic, no UI (the tap cycle is `nextAction` in `marks.ts`).
-- `src/db/` — SQLite: `schema.ts` (`migrate`, run via `<SQLiteProvider onInit>`, seeds first-run
-  data), `seed.ts` (default habits + demo entries), `repo.ts` (the only SQL — reads return alive
-  rows, writes stamp `updatedAt` and soft-delete tombstones).
+- `src/db/` — SQLite via **Drizzle**: `schema.ts` (Drizzle table defs — `enum`/`boolean` column
+  modes make results match the domain types), `drizzle/` (drizzle-kit–generated migrations —
+  regenerate with `pnpm db:generate` after editing the schema; committed, not ignored), `client.ts`
+  (`useDatabase` — the typed Drizzle handle), `migrations.ts` (wraps the generated bundle), `seed.ts`
+  (`seedIfEmpty` — default habits + demo entries), `repo.ts` (the only DB access — Drizzle query
+  builder, reads return alive rows, writes stamp `updatedAt` and soft-delete tombstones). Migrations
+  run at startup via `useMigrations` in `_layout.tsx`'s `DatabaseGate`. Build glue: `babel.config.js`
+  inlines `.sql`, `metro.config.js` adds the `sql` sourceExt (both required by Drizzle's expo
+  migrator).
 - `src/state/queries.ts` — the data seam: TanStack Query hooks `useHabits`, `useMonthEntries`,
   `useStreaks`, and the `useToggleEntry`/`useUpdateHabit`/`useReorderHabit` mutations (optimistic +
   invalidating). Screens read through these, never SQLite directly. Habits carry a stable `id` — key
