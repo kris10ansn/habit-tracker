@@ -65,6 +65,11 @@ export function MonthGrid({
                                 <Text
                                     numberOfLines={1}
                                     className="text-[10px] font-semibold text-ink-2"
+                                    style={
+                                        streaks[habit.id].current === 0
+                                            ? { filter: "grayscale(100%)" }
+                                            : {}
+                                    }
                                 >
                                     {columnLabel(habit)}
                                     {displayStreak(streaks[habit.id]) > 1 &&
