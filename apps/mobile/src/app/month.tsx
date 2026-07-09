@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 
 import { MonthGrid } from "@/components/month/MonthGrid";
 import { MonthNav } from "@/components/month/MonthNav";
@@ -23,7 +23,11 @@ export default function MonthScreen() {
     });
     // Sign of the last navigation: +1 next, -1 prev — drives which side the grid slides in from.
     const [direction, setDirection] = useState(1);
-    const view = monthView(cursor.year, cursor.month);
+    // Stable per cursor so the memoized MonthGrid/rows aren't rebuilt on unrelated re-renders.
+    const view = useMemo(
+        () => monthView(cursor.year, cursor.month),
+        [cursor.year, cursor.month],
+    );
 
     const navigate = (delta: number) => {
         setDirection(delta);

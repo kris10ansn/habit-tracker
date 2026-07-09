@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { memo, useMemo } from "react";
 import { ScrollView, Text, View } from "react-native";
 
 import { HabitMark } from "@/components/HabitMark";
@@ -31,7 +31,7 @@ const columnLabel = (habit: Habit): string => {
     return habit.polarity === "negative" ? `${base}⁻` : base;
 };
 
-export function MonthGrid({
+export const MonthGrid = memo(function MonthGrid({
     habits,
     view,
     today,
@@ -40,8 +40,6 @@ export function MonthGrid({
     onToggle,
 }: MonthGridProps) {
     const days = Array.from({ length: view.daysInMonth }, (_, i) => i + 1);
-    // Rebuild the O(1) cell lookup only when the month's entries actually change, not on every
-    // unrelated re-render (streak refetch, navigation).
     const index = useMemo(() => entryIndex(entries), [entries]);
 
     return (
@@ -94,7 +92,7 @@ export function MonthGrid({
             </ScrollView>
         </Card>
     );
-}
+});
 
 interface MonthDayRowProps {
     habits: Habit[];
@@ -105,7 +103,7 @@ interface MonthDayRowProps {
     onToggle?: ToggleFn;
 }
 
-export function MonthDayRow({
+export const MonthDayRow = memo(function MonthDayRow({
     habits,
     view,
     today,
@@ -154,7 +152,7 @@ export function MonthDayRow({
             })}
         </View>
     );
-}
+});
 
 type MonthDayBoxProps = {
     habit: Habit;
@@ -164,7 +162,7 @@ type MonthDayBoxProps = {
     isFuture: boolean;
 };
 
-export function MonthDayBox({
+export const MonthDayBox = memo(function MonthDayBox({
     habit,
     dayKey,
     outcome,
@@ -180,4 +178,4 @@ export function MonthDayBox({
             />
         </View>
     );
-}
+});

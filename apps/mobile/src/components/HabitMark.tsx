@@ -23,11 +23,26 @@ interface Props {
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-export function HabitMark({ view, size = "lg", onPress, disabled }: Props) {
+// `lg` (Today) tiles pop on tap via a Reanimated shared value. The `sm` grid variant deliberately
+// does *not*: the Month grid renders one mark per day×habit (dozens per screen, two full grids
+// mounted at once during a navigation transition), and a shared value + animated node per cell made
+// building the grid the JS-thread bottleneck when paging months. So `sm` is a plain Pressable and
+// the two paths are separate components — the animation hooks only ever run for the handful of `lg`
+// tiles.
+export function HabitMark(props: Props) {
+    return props.size === "sm" ? (
+        <PlainMark {...props} />
+    ) : (
+        <PoppingMark {...props} />
+    );
+}
+
+function PoppingMark({ view, onPress, disabled }: Props) {
     const scale = useSharedValue(1);
     const style = useAnimatedStyle(() => ({
         transform: [{ scale: scale.get() }],
     }));
+    const interactive = Boolean(onPress) && !disabled;
 
     const handlePress = () => {
         scale.set(
@@ -39,9 +54,6 @@ export function HabitMark({ view, size = "lg", onPress, disabled }: Props) {
         onPress?.();
     };
 
-    const small = size === "sm";
-    const interactive = Boolean(onPress) && !disabled;
-
     return (
         <AnimatedPressable
             style={style}
@@ -49,23 +61,48 @@ export function HabitMark({ view, size = "lg", onPress, disabled }: Props) {
             disabled={!interactive}
             accessibilityRole="button"
             accessibilityLabel={view.label}
-            className={cn(
-                "items-center justify-center",
-                small ? "h-10 w-10 rounded-lg" : "h-14 w-14 rounded-2xl border",
-                small ? SM_CONTAINER[view.kind] : CONTAINER[view.kind],
-                !small && view.muted && "opacity-40",
-                interactive && "active:opacity-60",
-            )}
+            className={markClassName(view, false, interactive)}
         >
-            <Icon
-                name={ICON[view.kind]}
-                size={small ? 18 : view.kind === "empty" ? 22 : 28}
-                className={cn(
-                    GLYPH[view.kind],
-                    small && view.muted && "opacity-40",
-                )}
-            />
+            <MarkGlyph view={view} small={false} />
         </AnimatedPressable>
+    );
+}
+
+function PlainMark({ view, onPress, disabled }: Props) {
+    const interactive = Boolean(onPress) && !disabled;
+
+    return (
+        <Pressable
+            onPress={onPress}
+            disabled={!interactive}
+            accessibilityRole="button"
+            accessibilityLabel={view.label}
+            className={markClassName(view, true, interactive)}
+        >
+            <MarkGlyph view={view} small={true} />
+        </Pressable>
+    );
+}
+
+const markClassName = (view: MarkView, small: boolean, interactive: boolean) =>
+    cn(
+        "items-center justify-center",
+        small ? "h-10 w-10 rounded-lg" : "h-14 w-14 rounded-2xl border",
+        small ? SM_CONTAINER[view.kind] : CONTAINER[view.kind],
+        !small && view.muted && "opacity-40",
+        interactive && "active:opacity-60",
+    );
+
+function MarkGlyph({ view, small }: { view: MarkView; small: boolean }) {
+    return (
+        <Icon
+            name={ICON[view.kind]}
+            size={small ? 18 : view.kind === "empty" ? 22 : 28}
+            className={cn(
+                GLYPH[view.kind],
+                small && view.muted && "opacity-40",
+            )}
+        />
     );
 }
 

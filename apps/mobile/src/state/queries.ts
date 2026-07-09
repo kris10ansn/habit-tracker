@@ -3,6 +3,7 @@
 // state, and optimistic mutations. It is also where a future server sync would slot in. See
 // docs/adr/0001.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useCallback } from "react";
 
 import { useDatabase } from "@/db/client";
 import * as repo from "@/db/repo";
@@ -114,17 +115,21 @@ export function useToggleEntry(monthKey: string): ToggleFn {
         },
     });
 
-    return (habitId, date, polarity) => {
-        const entries = queryClient.getQueryData<Entry[]>(key) ?? [];
-        const current = entries.find(
-            (entry) => entry.habitId === habitId && entry.date === date,
-        )?.outcome;
-        mutation.mutate({
-            habitId,
-            date,
-            action: nextAction(polarity, current),
-        });
-    };
+    return useCallback<ToggleFn>(
+        (habitId, date, polarity) => {
+            const entries =
+                queryClient.getQueryData<Entry[]>(entriesKey(monthKey)) ?? [];
+            const current = entries.find(
+                (entry) => entry.habitId === habitId && entry.date === date,
+            )?.outcome;
+            mutation.mutate({
+                habitId,
+                date,
+                action: nextAction(polarity, current),
+            });
+        },
+        [queryClient, monthKey, mutation],
+    );
 }
 
 export function useUpdateHabit() {
