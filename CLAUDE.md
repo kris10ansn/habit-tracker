@@ -47,7 +47,8 @@ the device, describe what to run and wait. This applies even when a `make` targe
 - **Aggregates** (run in every app that defines the script): `pnpm format`, `pnpm lint`,
   `pnpm typecheck`.
 - **Per-app delegators** (root scripts that call into one app):
-  - `pnpm mobile:start` (also `mobile:android` / `mobile:ios` / `mobile:web`).
+  - `pnpm mobile:start` (also `mobile:android` / `mobile:ios`; there is deliberately no web
+    target — never run the mobile app on web, see `apps/mobile/CLAUDE.md`).
   - `pnpm remarkable:build` (also `remarkable:clean` / `remarkable:deploy` / `remarkable:remove`,
     which shell out to `make` — `deploy`/`remove` touch the device, so user-only).
 - Anything not wired above: `pnpm --filter @habit-tracker/<app> run <script>`.

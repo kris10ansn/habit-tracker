@@ -5,6 +5,14 @@
 The `apps/mobile/` client of the habit-tracker monorepo: Expo (SDK 56) + expo-router + TypeScript,
 styled with NativeWind (Tailwind for React Native).
 
+## Hard rule: never run the app on web
+
+Never run `expo start --web` (or any command that serves the app to a browser) — the web target
+was deliberately removed from `package.json` and `app.json`; do not add it back or bypass it with
+`pnpm exec expo start --web`. This app is native-only: verify with `pnpm typecheck` / `pnpm lint`,
+and leave running the app on a device or emulator to the user — describe what to check and wait
+for their report.
+
 ## What this is
 
 A mobile habit tracker with four tabs — **Today** (log), **Month** (the grid), **Habits** (edit
