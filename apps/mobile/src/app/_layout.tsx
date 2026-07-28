@@ -1,5 +1,7 @@
 import { Tabs } from "expo-router";
 
+import { Toaster } from "sonner-native";
+
 import { AppProviders } from "@/components/AppProviders";
 import { Icon } from "@/components/ui/Icon";
 import { colors } from "@/theme/colors";
@@ -83,6 +85,8 @@ export default function RootLayout() {
                     }}
                 />
             </Tabs>
+
+            <Toaster position="bottom-center" />
         </AppProviders>
     );
 }
