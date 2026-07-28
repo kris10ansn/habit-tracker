@@ -36,7 +36,12 @@ export default function SyncScreen() {
             title="Sync"
             subtitle="Keep every device in step"
         >
-            <SyncStatusCard online lastSynced="2 min ago" />
+            <SyncStatusCard
+                state={
+                    settings.data?.syncServerUrl ? "connected" : "standalone"
+                }
+                lastSynced="2 min ago"
+            />
 
             <Card className="flex-col">
                 <TextInputLabel>Server URL</TextInputLabel>
