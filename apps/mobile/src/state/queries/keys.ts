@@ -4,3 +4,4 @@
 export const habitsKey = ["habits"] as const;
 export const entriesKey = (monthKey: string) => ["entries", monthKey] as const;
 export const streaksKey = ["streaks"] as const;
+export const settingsKey = ["settings"] as const;

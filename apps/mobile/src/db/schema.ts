@@ -1,4 +1,6 @@
+import { sql } from "drizzle-orm";
 import {
+    check,
     index,
     integer,
     primaryKey,
@@ -33,4 +35,18 @@ export const entries = sqliteTable(
         primaryKey({ columns: [table.habitId, table.date] }),
         index("idx_entries_date").on(table.date),
     ],
+);
+
+export const settings = sqliteTable(
+    "settings",
+    {
+        id: integer().notNull().default(0).primaryKey(),
+
+        syncServerUrl: text().notNull().default(""),
+
+        updatedAt: integer()
+            .notNull()
+            .$defaultFn(() => Date.now()),
+    },
+    (table) => [check("settings_singleton", sql`${table.id} = 0`)],
 );
