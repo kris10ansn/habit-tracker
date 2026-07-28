@@ -12,11 +12,11 @@ roster), **Sync**. Renders the same Habit × Entry model as the reMarkable clien
 **transposed** for portrait (days as rows, habits as columns, today highlighted) and **navigable to
 any month** (past editable, future view-only). Data **persists in SQLite** (`expo-sqlite`) storing
 the backend's shape (Outcome/Polarity/Position/`updatedAt`/`deleted` tombstones, UUID ids), read
-through **TanStack Query** hooks (`src/state/queries.ts`) over a thin repo (`src/db/repo.ts`).
+through **TanStack Query** hooks (`src/state/queries/`) over a thin repo (`src/db/repo/`).
 Tapping a `HabitMark` on Today or Month cycles its state; the Habits tab renames, flips polarity,
 and drag-to-reorders (drag a row by its handle — the generic `components/ui/SortableList` with an
 inline `HabitRow` in `app/habits.tsx`). Still affordance-only: add/delete/archive, and Sync — the
-data layer is shaped for the backend but the sync *engine* is not built yet. See
+data layer is shaped for the backend but the sync _engine_ is not built yet. See
 [`docs/adr/0001-mobile-sqlite-persistence-sync-shaped.md`](./docs/adr/0001-mobile-sqlite-persistence-sync-shaped.md).
 
 ## Domain
@@ -27,8 +27,8 @@ sync is a near-identity map (see `docs/adr/0001`): `types.ts` holds flat `Habit`
 `Outcome`/`Polarity`; `marks.ts` maps Outcome → the X/O display reading (`markView`) and the tap
 cycle (`nextAction`, `isSuccess`) — components never re-derive the semantics. `dates.ts` owns the
 `dateKey` (`YYYY-MM-DD`) / `monthKey` (`YYYY-MM`) formats plus month math; `entries.ts` is the
-per-month cell lookup. The look-back **streak** query lives in `db/repo.ts` (`getStreaks`), since it
-crosses month partitions.
+per-month cell lookup. The look-back **streak** query lives in `db/repo/streaks.ts` (`getStreaks`),
+since it crosses month partitions.
 
 ## Layout
 
@@ -46,14 +46,17 @@ crosses month partitions.
   modes make results match the domain types), `drizzle/` (drizzle-kit–generated migrations —
   regenerate with `pnpm db:generate` after editing the schema; committed, not ignored), `client.ts`
   (`useDatabase` — the typed Drizzle handle), `migrations.ts` (wraps the generated bundle), `seed.ts`
-  (`seedIfEmpty` — default habits + demo entries), `repo.ts` (the only DB access — Drizzle query
-  builder, reads return alive rows, writes stamp `updatedAt` and soft-delete tombstones). Migrations
-  run at startup via `useMigrations` in `_layout.tsx`'s `DatabaseGate`. Build glue: `babel.config.js`
-  inlines `.sql`, `metro.config.js` adds the `sql` sourceExt (both required by Drizzle's expo
-  migrator).
-- `src/state/queries.ts` — the data seam: TanStack Query hooks `useHabits`, `useMonthEntries`,
+  (`seedIfEmpty` — default habits + demo entries), `repo/` (the only DB access — Drizzle query
+  builder, split per entity into `habits.ts`/`entries.ts`/`streaks.ts` behind an `index.ts` barrel
+  so `import * as repo` keeps working; reads return alive rows, writes stamp `updatedAt` and
+  soft-delete tombstones). Migrations run at startup via `useMigrations` in `_layout.tsx`'s
+  `DatabaseGate`. Build glue: `babel.config.js` inlines `.sql`, `metro.config.js` adds the `sql`
+  sourceExt (both required by Drizzle's expo migrator).
+- `src/state/queries/` — the data seam: TanStack Query hooks `useHabits`, `useMonthEntries`,
   `useStreaks`, and the `useToggleEntry`/`useUpdateHabit`/`useReorderHabit` mutations (optimistic +
-  invalidating). Screens read through these, never SQLite directly. Habits carry a stable `id` — key
+  invalidating), split per entity into `habits.ts`/`entries.ts`/`streaks.ts` with the query keys in
+  `keys.ts`; `index.ts` is the public surface — import from `@/state/queries` (`streaksKey` stays
+  internal). Screens read through these, never SQLite directly. Habits carry a stable `id` — key
   lists on it, never on `name` (renames would remount) or the index (reorders would desync
   uncontrolled `TextInput`s).
   `src/theme/colors.ts` — raw palette for non-className APIs. `src/lib/cn.ts` — classname joiner for

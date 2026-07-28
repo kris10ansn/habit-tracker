@@ -1,128 +1,18 @@
-// The only place that speaks the database. Reads return alive rows (deleted = false); writes stamp
-// an epoch-ms `updatedAt` and, for clears/deletes, leave a tombstone rather than removing the row
-// (see docs/adr/0001). Drizzle's column modes make results already match the domain types, so there
-// are no row mappers or casts. Screens go through the TanStack Query hooks in state/queries.ts.
-import {
-    and,
-    asc,
-    count,
-    eq,
-    gte,
-    inArray,
-    lt,
-    lte,
-    max,
-    min,
-    sql,
-} from "drizzle-orm";
+import { and, count, eq, inArray, lte, max, min, sql } from "drizzle-orm";
 
 import {
     dateKeyOf,
     daysBetween,
     earlierKey,
     laterKey,
-    monthKeyBounds,
     shiftDay,
     todayKey,
 } from "@/domain/dates";
 import type { HabitStreak } from "@/domain/marks";
-import { moveByIndex } from "@/domain/roster";
-import type { Entry, Habit, Outcome, Polarity } from "@/domain/types";
+import type { Habit } from "@/domain/types";
 
-import type { Database } from "./client";
-import { entries, habits } from "./schema";
-
-export function getHabits(db: Database): Promise<Habit[]> {
-    return db
-        .select()
-        .from(habits)
-        .where(eq(habits.deleted, false))
-        .orderBy(asc(habits.position));
-}
-
-// Entries for one month partition — the unit of lazy loading, keyed like the backend's SyncMonth.
-export function getMonthEntries(
-    db: Database,
-    monthKey: string,
-): Promise<Entry[]> {
-    const { start, endExclusive } = monthKeyBounds(monthKey);
-    return db
-        .select()
-        .from(entries)
-        .where(
-            and(
-                eq(entries.deleted, false),
-                gte(entries.date, start),
-                lt(entries.date, endExclusive),
-            ),
-        );
-}
-
-// Upsert an alive entry, resurrecting a tombstone if one exists at (habitId, date).
-export async function setOutcome(
-    db: Database,
-    habitId: string,
-    date: string,
-    outcome: Outcome,
-    updatedAt: number = Date.now(),
-): Promise<void> {
-    await db
-        .insert(entries)
-        .values({ habitId, date, outcome, updatedAt, deleted: false })
-        .onConflictDoUpdate({
-            target: [entries.habitId, entries.date],
-            set: { outcome, updatedAt, deleted: false },
-        });
-}
-
-// Clearing a cell is a soft-delete: keep the row as a tombstone whose `updatedAt` is the clear-time.
-export async function clearEntry(
-    db: Database,
-    habitId: string,
-    date: string,
-    updatedAt: number = Date.now(),
-): Promise<void> {
-    await db
-        .update(entries)
-        .set({ deleted: true, updatedAt })
-        .where(and(eq(entries.habitId, habitId), eq(entries.date, date)));
-}
-
-export async function updateHabit(
-    db: Database,
-    id: string,
-    patch: { name?: string; polarity?: Polarity },
-    updatedAt: number = Date.now(),
-): Promise<void> {
-    if (patch.name === undefined && patch.polarity === undefined) return;
-    await db
-        .update(habits)
-        .set({ ...patch, updatedAt })
-        .where(eq(habits.id, id));
-}
-
-// Move a habit to `toIndex` and renumber positions densely, bumping `updatedAt` only on the rows
-// whose position actually changed (position is LWW per habit for sync).
-export async function reorderHabit(
-    db: Database,
-    habitId: string,
-    toIndex: number,
-    updatedAt: number = Date.now(),
-): Promise<void> {
-    const roster = await getHabits(db);
-    const reordered = moveByIndex(roster, habitId, toIndex);
-    if (reordered === roster) return; // habit absent or already at toIndex — nothing to renumber
-
-    await db.transaction(async (tx) => {
-        for (let position = 0; position < reordered.length; position += 1) {
-            if (reordered[position].position === position) continue;
-            await tx
-                .update(habits)
-                .set({ position, updatedAt })
-                .where(eq(habits.id, reordered[position].id));
-        }
-    });
-}
+import type { Database } from "../client";
+import { entries } from "../schema";
 
 // A dedicated cross-month look-back, independent of the viewed month (see docs/adr/0001). Positive
 // habits count consecutive `success` days from a bounded window. Negative habits count the clean run
