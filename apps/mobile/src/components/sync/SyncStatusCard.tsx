@@ -5,25 +5,30 @@ import { Icon, type MaterialIconName } from "@/components/ui/Icon";
 import { colors } from "@/theme/colors";
 import { twMerge } from "tailwind-merge";
 
-export type SyncState = "connected" | "standalone" | "syncing" | "error";
+export type SyncState =
+    | "connected"
+    | "standalone"
+    | "syncing"
+    | "error"
+    | "not-synced";
 
-interface Props {
+export type SyncStatusCardProps = {
     state: SyncState;
     lastSynced?: string;
     syncDetail?: string;
     errorReason?: string;
     onSyncNow?: () => void;
-}
+};
 
-interface StateView {
+export type StateView = {
     icon: MaterialIconName;
     medallionClass: string;
     iconClass: string;
     dotClass: string;
     label: string;
-    detail: (props: Props) => string;
+    detail: (props: SyncStatusCardProps) => string;
     action: { label: string; enabled: boolean; busy?: boolean };
-}
+};
 
 const stateViews: Record<SyncState, StateView> = {
     connected: {
@@ -62,9 +67,18 @@ const stateViews: Record<SyncState, StateView> = {
         detail: ({ errorReason }) => errorReason ?? "Check your connection",
         action: { label: "Try again", enabled: true },
     },
+    ["not-synced"]: {
+        icon: "cloud-sync",
+        medallionClass: "bg-yellow-50",
+        iconClass: "text-yellow-500",
+        dotClass: "bg-yellow-500",
+        label: "Not up to date",
+        detail: ({ lastSynced }) => `Last synced ${lastSynced}`,
+        action: { label: "Sync now", enabled: true, busy: false },
+    },
 };
 
-export function SyncStatusCard(props: Props) {
+export function SyncStatusCard(props: SyncStatusCardProps) {
     const view = stateViews[props.state];
 
     return (

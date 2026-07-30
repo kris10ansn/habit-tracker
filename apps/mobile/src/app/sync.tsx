@@ -38,7 +38,7 @@ export default function SyncScreen() {
         >
             <SyncStatusCard
                 state={
-                    settings.data?.syncServerUrl ? "connected" : "standalone"
+                    settings.data?.syncServerUrl ? "not-synced" : "standalone"
                 }
                 lastSynced="2 min ago"
             />
