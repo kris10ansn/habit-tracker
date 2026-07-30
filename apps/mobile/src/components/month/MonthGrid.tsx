@@ -28,7 +28,7 @@ const columnLabel = (habit: Habit): string => {
         words.length > 1
             ? words.map((word) => word[0]).join("")
             : habit.name.slice(0, 3);
-    return habit.polarity === "negative" ? `${base}⁻` : base;
+    return habit.polarity === "Negative" ? `${base}⁻` : base;
 };
 
 export const MonthGrid = memo(function MonthGrid({

@@ -35,7 +35,7 @@ export function HabitListItem({ habit, outcome, streak, onToggle }: Props) {
                     {habit.name}
                 </Text>
                 <View className="mt-1 h-6 flex-row items-center gap-1.5">
-                    {habit.polarity === "negative" && <Pill label="avoid" />}
+                    {habit.polarity === "Negative" && <Pill label="avoid" />}
 
                     {displayed > 1 ? (
                         <StreakPill streak={displayed} success={success} />

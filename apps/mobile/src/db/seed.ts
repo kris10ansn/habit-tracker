@@ -19,32 +19,32 @@ interface SeedHabit {
 const SEED_HABITS: SeedHabit[] = [
     {
         name: "Read 20 pages",
-        polarity: "positive",
+        polarity: "Positive",
         marks: {
-            0: "success",
-            1: "success",
-            2: "success",
-            3: "success",
-            6: "failure",
+            0: "Success",
+            1: "Success",
+            2: "Success",
+            3: "Success",
+            6: "Failure",
         },
     },
     {
         name: "Exercise",
-        polarity: "positive",
-        marks: { 1: "success", 3: "success", 4: "success" },
+        polarity: "Positive",
+        marks: { 1: "Success", 3: "Success", 4: "Success" },
     },
     {
         name: "Meditate",
-        polarity: "positive",
-        marks: { 0: "success", 1: "failure", 2: "success" },
+        polarity: "Positive",
+        marks: { 0: "Success", 1: "Failure", 2: "Success" },
     },
     {
         name: "Drink water",
-        polarity: "positive",
-        marks: { 0: "success", 1: "success", 2: "success" },
+        polarity: "Positive",
+        marks: { 0: "Success", 1: "Success", 2: "Success" },
     },
-    { name: "Doomscroll", polarity: "negative", marks: { 2: "failure" } },
-    { name: "Late-night snacks", polarity: "negative", marks: {} },
+    { name: "Doomscroll", polarity: "Negative", marks: { 2: "Failure" } },
+    { name: "Late-night snacks", polarity: "Negative", marks: {} },
 ];
 
 // Seed the defaults only into a fresh database (run after migrations, see _layout).

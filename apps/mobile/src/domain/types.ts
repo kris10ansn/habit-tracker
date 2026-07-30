@@ -5,8 +5,13 @@
 // format (whose `UpdatedAt` field carries the edit-time — it maps to `editedAt`, not an audit
 // stamp), so there is no local counterpart to it.
 
-export type Outcome = "success" | "failure";
-export type Polarity = "positive" | "negative";
+// These spellings are the backend's enum member names verbatim (apps/backend Entities/Outcome.cs,
+// Entities/Polarity.cs). The API serialises enums with a bare `JsonStringEnumConverter` — no naming
+// policy — so `"Success"`/`"Positive"` is exactly what the wire carries and what Postgres stores.
+// Matching it byte-for-byte is what keeps sync a mapping-free identity. Client-local unions that
+// never leave the device (`MarkKind`, `MarkAction["type"]` in marks.ts) stay lowercase per TS idiom.
+export type Outcome = "Success" | "Failure";
+export type Polarity = "Positive" | "Negative";
 
 // A tracked behaviour. Mirrors the backend Habit / SyncHabit: a stable client-minted id (== the
 // backend Guid PK), an explicit sort position, an epoch-ms create-time, an edit-time (the

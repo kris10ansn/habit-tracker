@@ -17,7 +17,7 @@ import {
 export const habits = sqliteTable("habits", {
     id: text().primaryKey(),
     name: text().notNull(),
-    polarity: text({ enum: ["positive", "negative"] }).notNull(),
+    polarity: text({ enum: ["Positive", "Negative"] }).notNull(),
     position: integer().notNull(),
     createdAt: integer().notNull(),
     editedAt: integer().notNull(),
@@ -29,7 +29,7 @@ export const entries = sqliteTable(
     {
         habitId: text().notNull(),
         date: text().notNull(),
-        outcome: text({ enum: ["success", "failure"] }).notNull(),
+        outcome: text({ enum: ["Success", "Failure"] }).notNull(),
         editedAt: integer().notNull(),
         deletedAt: integer(),
     },

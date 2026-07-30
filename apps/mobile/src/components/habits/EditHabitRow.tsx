@@ -47,14 +47,14 @@ export function EditHabitRow({ habit }: Props) {
                 />
                 <View className="mt-1">
                     <PolarityToggle
-                        negative={habit.polarity === "negative"}
+                        negative={habit.polarity === "Negative"}
                         onChange={(negative) =>
                             update.mutate({
                                 id: habit.id,
                                 patch: {
                                     polarity: negative
-                                        ? "negative"
-                                        : "positive",
+                                        ? "Negative"
+                                        : "Positive",
                                 },
                             })
                         }

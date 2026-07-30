@@ -20,19 +20,19 @@ export const markView = (
     outcome: Outcome | undefined,
     isFuture = false,
 ): MarkView => {
-    if (polarity === "negative" && outcome === "failure") {
+    if (polarity === "Negative" && outcome === "Failure") {
         return { kind: "slip", label: "Slipped", muted: false };
     }
 
-    if (polarity === "negative") {
+    if (polarity === "Negative") {
         return { kind: "clean", label: "Clean", muted: isFuture };
     }
 
-    if (polarity === "positive" && outcome === "success") {
+    if (polarity === "Positive" && outcome === "Success") {
         return { kind: "done", label: "Done", muted: false };
     }
 
-    if (polarity === "positive" && outcome === "failure") {
+    if (polarity === "Positive" && outcome === "Failure") {
         return { kind: "missed", label: "Missed", muted: false };
     }
 
@@ -49,13 +49,13 @@ export const nextAction = (
     polarity: Polarity,
     outcome: Outcome | undefined,
 ): MarkAction => {
-    if (polarity === "negative")
-        return outcome === "failure"
+    if (polarity === "Negative")
+        return outcome === "Failure"
             ? { type: "clear" }
-            : { type: "set", outcome: "failure" };
-    if (outcome === undefined) return { type: "set", outcome: "success" };
-    return outcome === "success"
-        ? { type: "set", outcome: "failure" }
+            : { type: "set", outcome: "Failure" };
+    if (outcome === undefined) return { type: "set", outcome: "Success" };
+    return outcome === "Success"
+        ? { type: "set", outcome: "Failure" }
         : { type: "clear" };
 };
 
@@ -64,7 +64,7 @@ export const isSuccess = (
     polarity: Polarity,
     outcome: Outcome | undefined,
 ): boolean =>
-    polarity === "negative" ? outcome !== "failure" : outcome === "success";
+    polarity === "Negative" ? outcome !== "Failure" : outcome === "Success";
 
 // A habit's streak, computed by the cross-month look-back in db/repo.getStreaks.
 export interface HabitStreak {

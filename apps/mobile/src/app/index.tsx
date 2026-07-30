@@ -43,7 +43,7 @@ export default function TodayScreen() {
     ).length;
     const slips = habits.filter(
         (habit) =>
-            habit.polarity === "negative" && outcomeOf(habit.id) === "failure",
+            habit.polarity === "Negative" && outcomeOf(habit.id) === "Failure",
     ).length;
 
     return (

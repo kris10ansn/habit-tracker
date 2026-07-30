@@ -37,7 +37,7 @@ export async function getStreaks(
 ): Promise<Record<string, HabitStreak>> {
     const streaks = await Promise.all(
         roster.map(async (habit): Promise<[string, HabitStreak]> => {
-            if (habit.polarity === "positive") {
+            if (habit.polarity === "Positive") {
                 return getStreaksPositive(db, habit, today);
             }
 
@@ -70,7 +70,7 @@ const getStreaksPositive = async (
             .where(
                 and(
                     eq(entries.habitId, habit.id),
-                    eq(entries.outcome, "success"),
+                    eq(entries.outcome, "Success"),
                     isNull(entries.deletedAt),
                     lte(entries.date, today),
                 ),
@@ -119,7 +119,7 @@ const getStreaksNegative = async (
         .where(
             and(
                 eq(entries.habitId, habit.id),
-                eq(entries.outcome, "failure"),
+                eq(entries.outcome, "Failure"),
                 isNull(entries.deletedAt),
                 lte(entries.date, today),
             ),
