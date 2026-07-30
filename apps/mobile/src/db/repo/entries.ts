@@ -1,4 +1,4 @@
-import { and, eq, gte, lt } from "drizzle-orm";
+import { and, eq, gte, isNull, lt } from "drizzle-orm";
 
 import { monthKeyBounds } from "@/domain/dates";
 import type { Entry, Outcome } from "@/domain/types";
@@ -17,7 +17,7 @@ export function getMonthEntries(
         .from(entries)
         .where(
             and(
-                eq(entries.deleted, false),
+                isNull(entries.deletedAt),
                 gte(entries.date, start),
                 lt(entries.date, endExclusive),
             ),
@@ -30,26 +30,26 @@ export async function setOutcome(
     habitId: string,
     date: string,
     outcome: Outcome,
-    updatedAt: number = Date.now(),
+    now: number = Date.now(),
 ): Promise<void> {
     await db
         .insert(entries)
-        .values({ habitId, date, outcome, updatedAt, deleted: false })
+        .values({ habitId, date, outcome, editedAt: now, deletedAt: null })
         .onConflictDoUpdate({
             target: [entries.habitId, entries.date],
-            set: { outcome, updatedAt, deleted: false },
+            set: { outcome, editedAt: now, deletedAt: null },
         });
 }
 
-// Clearing a cell is a soft-delete: keep the row as a tombstone whose `updatedAt` is the clear-time.
+// Clearing a cell is a soft-delete: keep the row as a tombstone whose `deletedAt` holds the clear-time.
 export async function clearEntry(
     db: Database,
     habitId: string,
     date: string,
-    updatedAt: number = Date.now(),
+    now: number = Date.now(),
 ): Promise<void> {
     await db
         .update(entries)
-        .set({ deleted: true, updatedAt })
+        .set({ deletedAt: now, editedAt: now })
         .where(and(eq(entries.habitId, habitId), eq(entries.date, date)));
 }

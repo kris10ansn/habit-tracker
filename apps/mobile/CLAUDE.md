@@ -19,7 +19,7 @@ A mobile habit tracker with four tabs — **Today** (log), **Month** (the grid),
 roster), **Sync**. Renders the same Habit × Entry model as the reMarkable client; the Month grid is
 **transposed** for portrait (days as rows, habits as columns, today highlighted) and **navigable to
 any month** (past editable, future view-only). Data **persists in SQLite** (`expo-sqlite`) storing
-the backend's shape (Outcome/Polarity/Position/`updatedAt`/`deleted` tombstones, UUID ids), read
+the backend's shape (Outcome/Polarity/Position/`editedAt`/`deletedAt` tombstones, UUID ids), read
 through **TanStack Query** hooks (`src/state/queries/`) over a thin repo (`src/db/repo/`).
 Tapping a `HabitMark` on Today or Month cycles its state; the Habits tab renames, flips polarity,
 and drag-to-reorders (drag a row by its handle — the generic `components/ui/SortableList` with an
@@ -55,10 +55,11 @@ since it crosses month partitions.
   (`useDatabase` — the typed Drizzle handle), `migrations.ts` (wraps the generated bundle), `seed.ts`
   (`seedIfEmpty` — default habits + demo entries), `repo/` (the only DB access — Drizzle query
   builder, split per entity into `habits.ts`/`entries.ts`/`streaks.ts` behind an `index.ts` barrel
-  so `import * as repo` keeps working; reads return alive rows, writes stamp `updatedAt` and
-  soft-delete tombstones). Migrations run at startup via `useMigrations` in `_layout.tsx`'s
-  `DatabaseGate`. Build glue: `babel.config.js` inlines `.sql`, `metro.config.js` adds the `sql`
-  sourceExt (both required by Drizzle's expo migrator).
+  so `import * as repo` keeps working; reads return alive rows, writes stamp `editedAt` (the merge
+  key — the backend's audit `UpdatedAt` is server-owned, never on the wire, and deliberately not
+  mirrored here) and set `deletedAt` on soft-delete). Migrations run at startup via `useMigrations`
+  in `_layout.tsx`'s `DatabaseGate`. Build glue: `babel.config.js` inlines `.sql`,
+  `metro.config.js` adds the `sql` sourceExt (both required by Drizzle's expo migrator).
 - `src/state/queries/` — the data seam: TanStack Query hooks `useHabits`, `useMonthEntries`,
   `useStreaks`, and the `useToggleEntry`/`useUpdateHabit`/`useReorderHabit` mutations (optimistic +
   invalidating), split per entity into `habits.ts`/`entries.ts`/`streaks.ts` with the query keys in

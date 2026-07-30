@@ -9,17 +9,19 @@ import {
 } from "drizzle-orm/sqlite-core";
 
 // SQLite tables mirroring the backend's normalized shape: a roster plus a
-// (habitId, date)-keyed entry log, each carrying an epoch-ms `updatedAt` merge key and a `deleted`
-// soft-delete tombstone. The `enum` and `boolean` column modes make Drizzle infer the domain types
-// (Polarity/Outcome unions, boolean `deleted`) directly, so reads need no row mappers or casts.
+// (habitId, date)-keyed entry log. Both carry `editedAt` (the client-stamped last-write-wins merge
+// key — the one timestamp the sync wire format exchanges) and `deletedAt` (null when alive,
+// timestamp on tombstone). The backend's audit `UpdatedAt` is server-owned and never crosses the
+// wire, so there is deliberately no local mirror of it. The `enum` column mode makes Drizzle infer
+// domain types (Polarity/Outcome) directly, so reads need no mappers or casts.
 export const habits = sqliteTable("habits", {
     id: text().primaryKey(),
     name: text().notNull(),
     polarity: text({ enum: ["positive", "negative"] }).notNull(),
     position: integer().notNull(),
     createdAt: integer().notNull(),
-    updatedAt: integer().notNull(),
-    deleted: integer({ mode: "boolean" }).notNull().default(false),
+    editedAt: integer().notNull(),
+    deletedAt: integer(),
 });
 
 export const entries = sqliteTable(
@@ -28,8 +30,8 @@ export const entries = sqliteTable(
         habitId: text().notNull(),
         date: text().notNull(),
         outcome: text({ enum: ["success", "failure"] }).notNull(),
-        updatedAt: integer().notNull(),
-        deleted: integer({ mode: "boolean" }).notNull().default(false),
+        editedAt: integer().notNull(),
+        deletedAt: integer(),
     },
     (table) => [
         primaryKey({ columns: [table.habitId, table.date] }),

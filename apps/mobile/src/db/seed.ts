@@ -69,7 +69,8 @@ export async function seedIfEmpty(db: Database): Promise<void> {
                 polarity: seed.polarity,
                 position,
                 createdAt,
-                updatedAt: now,
+                editedAt: now,
+                deletedAt: null,
             });
 
             const rows = Object.entries(seed.marks).map(
@@ -77,7 +78,8 @@ export async function seedIfEmpty(db: Database): Promise<void> {
                     habitId: id,
                     date: shiftDay(today, -Number(offset)),
                     outcome,
-                    updatedAt: now,
+                    editedAt: now,
+                    deletedAt: null,
                 }),
             );
             if (rows.length > 0) await tx.insert(entries).values(rows);

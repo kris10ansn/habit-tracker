@@ -47,8 +47,8 @@ const applyAction = (
             habitId,
             date,
             outcome: action.outcome,
-            updatedAt: Date.now(),
-            deleted: false,
+            editedAt: Date.now(),
+            deletedAt: null,
         },
     ];
 };

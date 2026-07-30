@@ -10,7 +10,7 @@ export const monthKey = (year: number, month: number): string =>
     `${year}-${pad2(month + 1)}`;
 
 // The calendar day an instant falls on, as a date key (local calendar, so an instant created "now"
-// keys to today). createdAt/updatedAt are epoch-ms instants while streak math is in date keys, so
+// keys to today). createdAt/editedAt are epoch-ms instants while streak math is in date keys, so
 // this is the bridge between them — see db/repo.getStreaks.
 export const dateKeyOf = (instant: Date): string =>
     dateKey(instant.getFullYear(), instant.getMonth(), instant.getDate());

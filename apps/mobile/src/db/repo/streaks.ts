@@ -1,4 +1,14 @@
-import { and, count, eq, inArray, lte, max, min, sql } from "drizzle-orm";
+import {
+    and,
+    count,
+    eq,
+    inArray,
+    isNull,
+    lte,
+    max,
+    min,
+    sql,
+} from "drizzle-orm";
 
 import {
     dateKeyOf,
@@ -61,7 +71,7 @@ const getStreaksPositive = async (
                 and(
                     eq(entries.habitId, habit.id),
                     eq(entries.outcome, "success"),
-                    eq(entries.deleted, false),
+                    isNull(entries.deletedAt),
                     lte(entries.date, today),
                 ),
             ),
@@ -98,7 +108,7 @@ const getStreaksNegative = async (
         .where(
             and(
                 eq(entries.habitId, habit.id),
-                eq(entries.deleted, false),
+                isNull(entries.deletedAt),
                 lte(entries.date, today),
             ),
         );
@@ -110,7 +120,7 @@ const getStreaksNegative = async (
             and(
                 eq(entries.habitId, habit.id),
                 eq(entries.outcome, "failure"),
-                eq(entries.deleted, false),
+                isNull(entries.deletedAt),
                 lte(entries.date, today),
             ),
         );

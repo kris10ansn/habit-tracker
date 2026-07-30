@@ -1,4 +1,4 @@
-import { asc, eq } from "drizzle-orm";
+import { asc, eq, isNull } from "drizzle-orm";
 
 import { moveByIndex } from "@/domain/roster";
 import type { Habit, Polarity } from "@/domain/types";
@@ -10,7 +10,7 @@ export function getHabits(db: Database): Promise<Habit[]> {
     return db
         .select()
         .from(habits)
-        .where(eq(habits.deleted, false))
+        .where(isNull(habits.deletedAt))
         .orderBy(asc(habits.position));
 }
 
@@ -18,22 +18,22 @@ export async function updateHabit(
     db: Database,
     id: string,
     patch: { name?: string; polarity?: Polarity },
-    updatedAt: number = Date.now(),
+    now: number = Date.now(),
 ): Promise<void> {
     if (patch.name === undefined && patch.polarity === undefined) return;
     await db
         .update(habits)
-        .set({ ...patch, updatedAt })
+        .set({ ...patch, editedAt: now })
         .where(eq(habits.id, id));
 }
 
-// Move a habit to `toIndex` and renumber positions densely, bumping `updatedAt` only on the rows
+// Move a habit to `toIndex` and renumber positions densely, bumping `editedAt` only on the rows
 // whose position actually changed (position is LWW per habit for sync).
 export async function reorderHabit(
     db: Database,
     habitId: string,
     toIndex: number,
-    updatedAt: number = Date.now(),
+    now: number = Date.now(),
 ): Promise<void> {
     const roster = await getHabits(db);
     const reordered = moveByIndex(roster, habitId, toIndex);
@@ -44,7 +44,7 @@ export async function reorderHabit(
             if (reordered[position].position === position) continue;
             await tx
                 .update(habits)
-                .set({ position, updatedAt })
+                .set({ position, editedAt: now })
                 .where(eq(habits.id, reordered[position].id));
         }
     });

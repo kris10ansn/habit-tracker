@@ -22,6 +22,20 @@
       "when": 1785269619923,
       "tag": "0002_curious_nocturne",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1785409600000,
+      "tag": "0003_add_editedAt_deletedAt",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "6",
+      "when": 1785413486017,
+      "tag": "0004_sturdy_next_avengers",
+      "breakpoints": true
     }
   ]
 }
