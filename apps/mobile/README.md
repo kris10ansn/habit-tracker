@@ -1,27 +1,35 @@
 # Habit Tracker — mobile
 
-> Part of the **habit-tracker** monorepo — this is the `apps/mobile/` client. The sibling reMarkable
-> client lives in `apps/remarkable/`. Shared habit vocabulary is in the
-> [root `CONTEXT.md`](../../CONTEXT.md).
+> Part of the **habit-tracker** monorepo — this is the `apps/mobile/` client. Its contract partner is
+> the backend in [`apps/backend/`](../backend/), which owns the canonical records and Sync;
+> `apps/remarkable/` is an independent peer client, not a reference. Shared habit vocabulary is in
+> the [root `CONTEXT.md`](../../CONTEXT.md), the sync terms in the
+> [backend glossary](../backend/CONTEXT.md).
 
 The mobile client of the habit tracker: an [Expo](https://expo.dev) (SDK 56) app built with
 expo-router and TypeScript, styled with [NativeWind](https://www.nativewind.dev) (Tailwind for
 React Native).
 
-It renders the same Habit × Entry model as the reMarkable client over a mobile-native, tabbed UI:
+It renders the Habit × Entry model in the backend's shape over a mobile-native, tabbed UI:
 
 - **Today** — the primary daily surface: one card per habit with today's mark and its streak.
 - **Month** — the whole grid at review scale, **transposed** for portrait: days are rows (vertical
   scroll), habits are columns, today's row highlighted.
-- **Habits** — manage the roster: rename, reorder, set polarity, add, delete.
+- **Habits** — manage the roster: rename, reorder, set polarity.
 - **Sync** — point the app at a backend, or stay standalone with an empty Server URL.
 
 ## Status
 
-**Design implemented, functionality pending.** The four screens are built from a small design system
-and rendered from sample data; there is no
-persistence, editing, or real sync yet — controls are affordances only. The plan is to back it with a
-shared backend that owns the canonical habits and syncs them to both clients.
+**Persistent and editable; sync in progress.** Habits and entries live in on-device SQLite
+(`expo-sqlite` + Drizzle) read through TanStack Query, so marking a day, renaming a habit, flipping
+its polarity, and reordering the roster all persist across restarts. Rows already carry the fields a
+Sync needs — `editedAt` (the last-write-wins merge key) and `deletedAt` tombstones — and the Sync
+screen stores a **Server URL** (blank = standalone).
+
+Still to build: the sync engine itself (gather local state → `POST` to the backend → apply the
+authoritative result), and adding/deleting habits, which remain affordances. The backend at
+[`apps/backend/`](../backend/) owns the merge — this client submits its state and accepts the
+result rather than resolving conflicts itself.
 
 ## Run it
 
@@ -51,17 +59,24 @@ src/
 ├── app/          expo-router routes (file-based). _layout.tsx is the Tabs navigator
 │                 (imports global.css); index=Today, month, habits, sync.
 ├── components/   UI, grouped by feature — ui/ (primitives: Card, Button, Pill,
-│                 AppScreen, …), today/, month/, habits/, sync/, plus HabitMark.tsx.
+│                 AppScreen, SortableList, …), today/, month/, habits/, sync/,
+│                 plus HabitMark.tsx and AppProviders.tsx (query client + DatabaseGate).
+├── db/           SQLite via Drizzle — schema.ts, drizzle/ (generated migrations),
+│                 client.ts, migrations.ts, seed.ts, repo/ (the only DB access).
+├── state/        queries/ — TanStack Query hooks + mutations; the seam screens read
+│                 through. Screens never touch SQLite directly.
 ├── domain/       model + logic, no UI (types.ts, dates.ts, entries.ts, roster.ts, marks.ts).
 ├── theme/        palette.js — single source of color values; colors.ts re-exports
 │                 it raw for non-className APIs (the tab bar).
-└── lib/          cn.ts — classname joiner.
+└── lib/          cn.ts — classname joiner; useUpdateEffect.ts.
 ```
 
 - `@/*` is a path alias for `src/*` (see `tsconfig.json`).
-- The domain types mirror the reMarkable client's shape — same `YYYY-MM-DD` date keys and X/O entry
-  semantics — so a future backend speaks one shape across clients. The X/O → display reading lives in
-  `domain/marks.ts` (`markView`) so components stay presentational.
+- The domain types mirror the **backend's** shape — `Outcome`/`Polarity`/`Position`, `YYYY-MM-DD`
+  date keys, UUID ids — so mobile↔backend sync is a near-identity map. X/O is a _display_ reading,
+  not storage: the mapping lives in `domain/marks.ts` (`markView`) so components stay presentational.
+- Edit the schema, then run `pnpm db:generate` to regenerate the Drizzle migrations (they're
+  committed, not ignored).
 
 ## Styling
 
@@ -72,4 +87,5 @@ few React Navigation APIs that take color values rather than classes); radii are
 `tailwind.config.js`. Config lives at the app root (`tailwind.config.js`, `global.css`, `metro.config.js`,
 `babel.config.js`, `nativewind-env.d.ts`). Third-party components need
 `cssInterop(Component, { className: 'style' })` before they accept `className` (registered in
-`src/components/ui/AppScreen.tsx` for `SafeAreaView`); core RN components work out of the box.
+`src/components/ui/AppScreen.tsx` for `SafeAreaView` and `src/components/ui/Icon.tsx` for
+`MaterialIcons`); core RN components work out of the box.

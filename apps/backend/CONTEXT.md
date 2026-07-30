@@ -1,9 +1,9 @@
 # Backend — Persistence & Sync Context
 
-The C# / ASP.NET Core + EF Core service that will own the canonical Habit/Entry records and
-(eventually) sync them to every client. The shared habit vocabulary (Habit, Polarity, Entry,
-X/O marks, Unmarked, Default habits) lives in the [root glossary](../../CONTEXT.md). This file covers only terms the backend adds or
-reframes.
+The C# / ASP.NET Core + EF Core service that owns the canonical Habit/Entry records and syncs them
+to every client. The shared habit vocabulary (Habit, Polarity, Entry, X/O marks, Unmarked, Default
+habits) lives in the [root glossary](../../CONTEXT.md). This file covers only terms the backend adds
+or reframes, and is the source of truth for the sync contract both clients speak.
 
 ## Language
 

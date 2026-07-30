@@ -1,9 +1,13 @@
 # Habit Tracker — Shared Domain
 
-The vocabulary every client (and the future backend) shares: what a habit is, how a day's
-state is recorded, and what the marks mean. Presentation concerns — grid orientation, e-ink
-rendering, the suspend image — are **not** here; each client documents those in its own
-`CONTEXT.md`. This file is a glossary and nothing else.
+The vocabulary every client and the backend share: what a habit is, how a day's state is recorded,
+and what the marks mean. Presentation concerns — grid orientation, e-ink rendering, the suspend
+image — are **not** here; each app documents those in its own `CONTEXT.md`. This file is a glossary
+and nothing else.
+
+The backend reframes some of this for storage and sync (Outcome, Position, Edit-time, Tombstone) —
+those terms live in [`apps/backend/CONTEXT.md`](./apps/backend/CONTEXT.md), which is the source of
+truth for the shared model and the sync contract.
 
 ## Language
 
@@ -13,8 +17,8 @@ _Avoid_: task, goal, item.
 
 **Habit id**:
 A habit's stable, unique identifier — minted once when the habit is created and never changed,
-surviving rename and reorder. It is the key entries and the future backend use to reference a
-habit; because ids are minted client-side, they are random so two offline clients never collide.
+surviving rename and reorder. It is the key entries and the backend use to reference a habit;
+because ids are minted client-side, they are random so two offline clients never collide.
 _Avoid_: index, position, slug.
 
 **Polarity**:
@@ -48,5 +52,6 @@ The default entry state. Positive habits cycle Unmarked → X → O → Unmarked
 cycle Unmarked (shown as X) → O → Unmarked.
 
 **Default habits**:
-The seed list a client uses the first time it runs with no saved data yet. Each client carries
-its own copy until the backend owns the canonical list.
+The seed list a client uses the first time it runs with no saved data yet. Each client carries its
+own copy — the backend seeds no habits, so a first Sync from a fresh client is what populates the
+canonical store.

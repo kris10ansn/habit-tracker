@@ -1,8 +1,9 @@
 # Backend — Habit Tracker API
 
-ASP.NET Core (.NET 10) Web API over EF Core + PostgreSQL. Owns the canonical Habit/Entry records
-and (eventually) sync. It does **not** mirror the clients' on-device shape — it stores the same data
-reframed for a relational API. See the vocabulary in [`CONTEXT.md`](./CONTEXT.md).
+ASP.NET Core (.NET 10) Web API over EF Core + PostgreSQL. Owns the canonical Habit/Entry records and
+performs Sync — it is the one place the clients' state is reconciled. It does **not** mirror the
+clients' on-device shape; it stores the same data reframed for a relational API. See the vocabulary
+in [`CONTEXT.md`](./CONTEXT.md) and the agent guidance in [`CLAUDE.md`](./CLAUDE.md).
 
 ## Layout
 

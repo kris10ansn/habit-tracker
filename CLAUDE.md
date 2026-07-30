@@ -11,12 +11,13 @@ guidance.
 
 ## What this is
 
-A **habit tracker** built as a pnpm monorepo with two clients over one shared habit domain, and a
-backend planned to own persistence and sync:
+A **habit tracker** built as a pnpm monorepo: two clients over one shared habit domain, plus the
+backend that owns the canonical records and reconciles them:
 
 ```
 /
 ├── apps/
+│   ├── backend/      ASP.NET Core (.NET 10) + EF Core + PostgreSQL. Canonical store + Sync.
 │   ├── remarkable/   QML scene for the reMarkable 1 (XOVI + rm-appload). Built with make.
 │   └── mobile/       expo (React Native, TypeScript) app. Built with pnpm/expo.
 └── CONTEXT.md        shared habit glossary (Habit, Entry, X/O, polarity, …)
@@ -24,6 +25,20 @@ backend planned to own persistence and sync:
 
 The shared habit vocabulary lives in the root [`CONTEXT.md`](./CONTEXT.md); each app adds its own
 `CONTEXT.md` for terms only it uses. Use those terms in code, comments, and docs.
+
+## Hard rule: the backend is the only cross-app contract
+
+The two clients are **independent peers**, not references for each other. When working in one client,
+do not read the other to decide its domain model, storage shape, sync behaviour, or naming — their
+on-device shapes differ on purpose (reMarkable persists month-partitioned JSON with X/O marks;
+mobile persists SQLite rows in the backend's Outcome/Polarity shape). Neither is a spec.
+
+**Unification, merge, and conflict resolution are the backend's job**, never a client's. When a
+client question is about the shared model or the sync contract, the answer is in
+[`apps/backend/CONTEXT.md`](./apps/backend/CONTEXT.md) (Outcome, Position, Sync, Edit-time,
+Tombstone) and [`apps/backend/README.md`](./apps/backend/README.md) (`Entities/`, `Dtos/`,
+`Controllers/`) — plus the root glossary above. Where a client and the backend disagree, the backend
+wins. "The other client does it this way" is never a justification for a change.
 
 ## Hard rule: never SSH to the device
 
@@ -34,9 +49,13 @@ the device, describe what to run and wait. This applies even when a `make` targe
 
 ## Per-app guidance
 
+- **`apps/backend/`** — C# / ASP.NET Core + EF Core, the canonical store and the owner of Sync.
+  Source of truth for the shared model and the sync contract.
+  See [`apps/backend/CLAUDE.md`](./apps/backend/CLAUDE.md).
 - **`apps/remarkable/`** — pure-QML, built by `make` (run from that dir). Qt 5.15 / e-ink display
   constraints, apploader loading quirks, never-SSH. See [`apps/remarkable/CLAUDE.md`](./apps/remarkable/CLAUDE.md).
-- **`apps/mobile/`** — expo + TypeScript. See `apps/mobile/` for its README and conventions.
+- **`apps/mobile/`** — expo + TypeScript, SQLite (Drizzle) + TanStack Query.
+  See [`apps/mobile/CLAUDE.md`](./apps/mobile/CLAUDE.md).
 
 ## Workspace commands
 
@@ -45,14 +64,22 @@ the device, describe what to run and wait. This applies even when a `make` targe
 - **Aggregates** (run in every app that defines the script): `pnpm format`, `pnpm lint`,
   `pnpm typecheck`.
 - **Per-app delegators** (root scripts that call into one app):
-  - `pnpm mobile:start` (also `mobile:android` / `mobile:ios`; there is deliberately no web
-    target — never run the mobile app on web, see `apps/mobile/CLAUDE.md`).
-  - `pnpm remarkable:build` (also `remarkable:clean` / `remarkable:deploy` / `remarkable:remove`,
-    which shell out to `make` — `deploy`/`remove` touch the device, so user-only).
+    - `pnpm mobile:start` (also `mobile:android` / `mobile:ios`; there is deliberately no web
+      target — never run the mobile app on web, see `apps/mobile/CLAUDE.md`). `pnpm mobile:db:generate`
+      regenerates the Drizzle migrations after a schema edit.
+    - `pnpm remarkable:build` (also `remarkable:clean` / `remarkable:backup` / `remarkable:deploy` /
+      `remarkable:remove`, which shell out to `make` — `deploy`/`remove` touch the device, so
+      user-only).
+    - `pnpm backend:start` (also `backend:build` / `backend:watch` / `backend:test`), plus the
+      database targets `backend:db:up` / `backend:db:down` / `backend:migrate` / `backend:db:clear`.
+      `db:up` needs Docker; `migrate` applies the EF Core migrations.
 - Anything not wired above: `pnpm --filter @habit-tracker/<app> run <script>`.
 
 ## Code style
 
-Shared `.prettierrc.json` applies repo-wide. Prefer verbose, descriptive names in code and
-persisted/domain data; avoid single-letter or cryptic names except for very small local indices.
-Language-specific style rules live per app (QML/JS conventions in `apps/remarkable/CLAUDE.md`).
+Shared `.prettierrc.json` applies repo-wide to the JS/TS/QML/Markdown side (mobile overrides it with
+its own `.prettierrc.json`); C# is formatted by `dotnet format` instead. Prefer verbose, descriptive
+names in code and persisted/domain data; avoid single-letter or cryptic names except for very small
+local indices. Language-specific rules live per app — QML/JS conventions in
+`apps/remarkable/CLAUDE.md`, layering and migration rules in `apps/backend/CLAUDE.md`, NativeWind and
+file-naming rules in `apps/mobile/CLAUDE.md`.
