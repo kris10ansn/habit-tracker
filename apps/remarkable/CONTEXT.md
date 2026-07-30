@@ -69,17 +69,33 @@ visible save failure, never silent loss.
 _Avoid_: data folder, storage dir.
 
 **Roster**:
-The ordered list of habits with their config — id, name, polarity, suspend visibility — and
-nothing about their entries. Array order is display order.
+The ordered list of habits with their config — id, name, polarity, suspend visibility, create-time,
+edit-time — and nothing about their entries. Array order is display order.
 _Avoid_: habit list, config.
 
 **Roster file**:
-`data/roster.json`, the `{ "habits": [...] }` envelope that persists the roster.
+`data/roster.json`, the `{ "habits": [...] }` envelope that persists the roster. Holds the alive
+habits followed by their tombstones, the same split the sync request uses.
 _Avoid_: habits.json (the legacy single-file name).
 
+**Habit tombstone**:
+A soft-deleted habit: the row it had, with `deletedAt` stamped. Deleting removes the habit from the
+in-memory model — so the grid and every index-based store call forget it — and keeps this row in the
+roster file until a sync confirms the server owns the delete. Without it another client's stale copy
+would resurrect the habit on the next merge.
+_Avoid_: deleted habit, trash, archive.
+
+**Entry row**:
+One marked day as stored and sent: `{ habitId, date, outcome, updatedAt, deletedAt }`, the backend's
+`SyncEntry` shape. `deletedAt` is null while alive and holds the clear's edit-time on a tombstone —
+a cleared day keeps a row rather than dropping the key, so the next sync can push the clear. See
+[ADR 0005](docs/adr/0005-backend-shaped-entry-rows.md).
+_Avoid_: cell, entry object, state object.
+
 **Month file**:
-`data/YYYY-MM.json`, persisting one calendar month's entries keyed by habit id. Exactly one
-month's file — the viewed month — is loaded at a time; navigating re-points to another.
+`data/YYYY-MM.json`, `{ "month": "2026-07", "entries": [ …entry rows ] }` — one calendar month's
+entry rows, which is exactly the wire format's month payload. Exactly one month's file — the viewed
+month — is loaded at a time; navigating re-points to another.
 _Avoid_: entries file, day file.
 
 ### Sync

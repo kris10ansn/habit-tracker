@@ -2,10 +2,11 @@ import QtQuick 2.15
 import "js/HabitsModel.js" as HabitsModel
 import "js/Sync.js" as Sync
 
-// Offline-first sync sidecar + engine. Persists pending habit tombstones and the
-// last-sync time to data/sync.json, and runs the one-call merge against the configured server.
-// Standalone when no server URL is set: syncNow is a no-op. Reads/writes the habits model via the
-// references Main wires in. All network failures are non-fatal — the app keeps running locally.
+// Offline-first sync sidecar + engine. Persists the last-sync time to data/sync.json and runs the
+// one-call merge against the configured server. Standalone when no server URL is set: syncNow is a
+// no-op. Reads/writes the habits model via the references Main wires in — including the habit
+// tombstones, which the roster owns. All network failures are non-fatal — the app keeps running
+// locally.
 JsonStore {
     id: syncStore
 
@@ -15,7 +16,6 @@ JsonStore {
     property string monthKey: ""
 
     // Persisted sidecar state.
-    property var habitTombstones: []
     property double lastSyncedAt: 0
 
     // Transient status for the ambient line: "" (idle/standalone), "pending" (debounce countdown),
@@ -37,7 +37,6 @@ JsonStore {
 
     serialize: function () {
         return {
-            tombstones: syncStore.habitTombstones,
             lastSyncedAt: syncStore.lastSyncedAt
         };
     }
@@ -47,23 +46,7 @@ JsonStore {
             return;
         }
 
-        syncStore.habitTombstones = Array.isArray(data.tombstones) ? data.tombstones : [];
         syncStore.lastSyncedAt = typeof data.lastSyncedAt === "number" ? data.lastSyncedAt : 0;
-    }
-
-    function addHabitTombstone(id) {
-        if (!id) {
-            return;
-        }
-
-        syncStore.habitTombstones = syncStore.habitTombstones.concat([
-            {
-                id: id,
-                deletedAt: Date.now()
-            }
-        ]);
-        syncStore.scheduleSave();
-        syncStore.scheduleSync();
     }
 
     property Timer _syncTimer: Timer {
@@ -117,9 +100,9 @@ JsonStore {
         syncStore.status = "syncing";
 
         const roster = HabitsModel.toRoster(syncStore.habitsStore.habits);
-        const monthEntries = HabitsModel.toMonthEntries(syncStore.habitsStore.habits);
+        const entryRows = HabitsModel.toMonthEntryRows(syncStore.habitsStore.habits);
         const requestMonthKey = syncStore.monthKey;
-        const request = Sync.buildRequest(roster, monthEntries, requestMonthKey, syncStore.habitTombstones);
+        const request = Sync.buildRequest(roster, syncStore.habitsStore.habitTombstones, entryRows, requestMonthKey);
 
         syncStore._send(syncStore._endpoint(url), request, requestMonthKey);
     }
@@ -191,7 +174,7 @@ JsonStore {
         }
 
         // The server now owns the tombstones we pushed, so drop them locally.
-        syncStore.habitTombstones = [];
+        syncStore.habitsStore.purgeHabitTombstones();
         syncStore.lastSyncedAt = Date.now();
         syncStore.errorMessage = "";
         syncStore.status = "ok";

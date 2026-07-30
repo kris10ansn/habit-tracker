@@ -1,18 +1,22 @@
 import QtQuick 2.15
 import ".." as App
+import "../js/Polarity.js" as Polarity
 
 Row {
     id: habitRow
 
     property string name: ""
-    property bool negative: false
+    property string polarity: Polarity.POSITIVE
     property bool hideFromSleep: false
     property bool editing: false
     property bool suspendImageEnabled: false
     property bool canMoveUp: false
     property bool canMoveDown: false
+
+    readonly property bool isNegative: Polarity.isNegative(habitRow.polarity)
+
     signal removeClicked
-    signal negativeToggled
+    signal polarityToggled
     signal hideFromSleepToggled
     signal nameEdited(string newName)
     signal moveUpClicked
@@ -67,7 +71,7 @@ Row {
         Text {
             anchors.fill: parent
             visible: !habitRow.editing
-            text: habitRow.negative ? habitRow.name + " (-)" : habitRow.name
+            text: habitRow.isNegative ? habitRow.name + " (-)" : habitRow.name
             font.pixelSize: App.Theme.labelFont
             color: App.Theme.fg
             verticalAlignment: Text.AlignVCenter
@@ -105,14 +109,14 @@ Row {
     }
 
     AppButton {
-        id: negativeButton
+        id: polarityButton
         width: App.Theme.deleteButtonSize
         height: App.Theme.deleteButtonSize
         anchors.verticalCenter: parent.verticalCenter
         visible: habitRow.editing
         text: "−"
-        active: habitRow.negative
-        onClicked: habitRow.negativeToggled()
+        active: habitRow.isNegative
+        onClicked: habitRow.polarityToggled()
     }
 
     AppButton {

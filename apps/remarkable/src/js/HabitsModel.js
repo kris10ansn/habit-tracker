@@ -1,10 +1,11 @@
-// Projections of the in-memory habits ListModel onto serializable shapes. The model is the
-// single source of truth; each store serializes its own slice. Since sync, entries are inline
-// { state, updatedAt } objects and habits carry an updatedAt edit-time.
+.import "Entries.js" as Entries
 
-// Suspend-canvas projection: entries flattened to date -> state string. Drawing and the dedup
-// signature only care about the visible state, never timestamps — so this keeps SuspendDraw
-// unchanged and naturally drops cleared (state: "") tombstone markers.
+// Projections of the in-memory habits ListModel onto serializable shapes. The model is the single
+// source of truth; each store serializes its own slice. Habit rows carry identity + config +
+// create-time + an updatedAt edit-time; entries are normalized rows held per habit by date key.
+
+// Suspend-canvas projection: entries flattened to dateKey -> outcome, dropping the tombstones and
+// timestamps the drawing and its dedup signature never look at.
 function toArray(model) {
     if (!model || typeof model.count !== "number") return [];
 
@@ -13,51 +14,50 @@ function toArray(model) {
         const habit = model.get(i);
         out.push({
             name: habit.name,
-            negative: !!habit.negative,
+            polarity: habit.polarity,
             hideFromSleep: !!habit.hideFromSleep,
-            entries: statesOf(habit.entries),
+            entries: Entries.outcomesByDate(habit.entriesByDate),
         });
     }
     return out;
 }
 
-const statesOf = (entries) => {
-    const src = entries || {};
-    return Object.keys(src).reduce((out, date) => {
-        const state = src[date] && src[date].state ? src[date].state : "";
-        if (state) out[date] = state;
-        return out;
-    }, {});
-};
+// One habit as the roster file persists it and the wire format sends it, mirroring the backend's
+// Habit. Model rows are always alive, so `deletedAt` is null for them; HabitsStore keeps tombstoned
+// rows of this same shape in habitTombstones.
+function rosterRow(habit) {
+    return {
+        id: habit.id,
+        name: habit.name,
+        polarity: habit.polarity,
+        hideFromSleep: !!habit.hideFromSleep,
+        createdAt: habit.createdAt,
+        updatedAt: habit.updatedAt,
+        deletedAt: habit.deletedAt || null,
+    };
+}
 
-// Roster projection: identity + config + edit-time, no entries. Array order is display order.
+// Roster projection: the alive habits in display order, no entries. Array order is Position.
 function toRoster(model) {
     if (!model || typeof model.count !== "number") return [];
 
     const out = [];
     for (let i = 0; i < model.count; i++) {
-        const habit = model.get(i);
-        out.push({
-            id: habit.id,
-            name: habit.name,
-            negative: !!habit.negative,
-            hideFromSleep: !!habit.hideFromSleep,
-            updatedAt: habit.updatedAt,
-        });
+        out.push(rosterRow(model.get(i)));
     }
     return out;
 }
 
-// Month projection: { habitId: { dateKey: { state, updatedAt } } }. Cleared cells
-// (state: "") are kept as tombstone markers for sync; habits with no cells are omitted.
-function toMonthEntries(model) {
-    if (!model || typeof model.count !== "number") return {};
+// Month projection: every loaded entry row, flat. Tombstones are kept — they are what the next sync
+// pushes. Rows whose habit is no longer in the roster are dropped, which is how a deleted habit's
+// entries eventually leave the month files (see ADR 0002).
+function toMonthEntryRows(model) {
+    if (!model || typeof model.count !== "number") return [];
 
-    const out = {};
+    const rows = [];
     for (let i = 0; i < model.count; i++) {
-        const habit = model.get(i);
-        const entries = habit.entries || {};
-        if (Object.keys(entries).length > 0) out[habit.id] = entries;
+        const entriesByDate = model.get(i).entriesByDate || {};
+        Object.keys(entriesByDate).forEach((dateKey) => rows.push(entriesByDate[dateKey]));
     }
-    return out;
+    return rows;
 }

@@ -1,11 +1,12 @@
 import QtQuick 2.15
 import ".." as App
+import "../js/Polarity.js" as Polarity
 
 Row {
     id: addRow
 
-    property bool negative: false
-    signal addRequested(string name, bool negative)
+    property string polarity: Polarity.POSITIVE
+    signal addRequested(string name, string polarity)
 
     width: App.Theme.habitsWidth
     height: App.Theme.boxSize
@@ -14,7 +15,7 @@ Row {
     onVisibleChanged: if (!visible) {
         input.focus = false;
         Qt.inputMethod.hide();
-        addRow.negative = false;
+        addRow.polarity = Polarity.POSITIVE;
     }
 
     function submit() {
@@ -22,13 +23,13 @@ Row {
             return;
         }
 
-        addRow.addRequested(input.text, addRow.negative);
+        addRow.addRequested(input.text, addRow.polarity);
         input.text = "";
-        addRow.negative = false;
+        addRow.polarity = Polarity.POSITIVE;
     }
 
     Rectangle {
-        width: addRow.width - addButton.width - addRow.spacing - negativeButton.width - addRow.spacing
+        width: addRow.width - addButton.width - addRow.spacing - polarityButton.width - addRow.spacing
         height: addRow.height
         color: App.Theme.bg
         border.color: App.Theme.fg
@@ -58,12 +59,12 @@ Row {
     }
 
     AppButton {
-        id: negativeButton
+        id: polarityButton
         width: App.Theme.deleteButtonSize
         height: addRow.height
         text: "−"
-        active: addRow.negative
-        onClicked: addRow.negative = !addRow.negative
+        active: Polarity.isNegative(addRow.polarity)
+        onClicked: addRow.polarity = Polarity.toggled(addRow.polarity)
     }
 
     AppButton {

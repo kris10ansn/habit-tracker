@@ -105,9 +105,6 @@ Rectangle {
                 suspendCanvas.scheduleRender();
             syncStore.scheduleSync();
         }
-        function onHabitRemoved(id) {
-            syncStore.addHabitTombstone(id);
-        }
         function onIsLoadedChanged() {
             root._maybeSyncOnLoad();
         }
@@ -286,11 +283,11 @@ Rectangle {
                         viewportHeight: landscape.viewportHeight
                         scrollY: landscape.scrollY
                         onRemoveRequested: landscape.pendingDeleteIndex = index
-                        onNegativeToggled: habitsStore.setNegative(index, !habitsStore.habits.get(index).negative)
+                        onPolarityToggled: habitsStore.togglePolarity(index)
                         onHideFromSleepToggled: habitsStore.setHideFromSleep(index, !habitsStore.habits.get(index).hideFromSleep)
                         onNameEdited: habitsStore.setName(index, newName)
                         onMoveRequested: habitsStore.move(from, to)
-                        onAddRequested: habitsStore.add(name, negative)
+                        onAddRequested: habitsStore.add(name, polarity)
                     }
 
                     App.SideScrollButton {

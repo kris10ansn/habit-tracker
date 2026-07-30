@@ -1,6 +1,8 @@
 import QtQuick 2.15
 import ".." as App
 import "../js/DateUtils.js" as DateUtils
+import "../js/Entries.js" as Entries
+import "../js/Polarity.js" as Polarity
 
 Row {
     id: gridRow
@@ -10,10 +12,16 @@ Row {
     property int lastNonFutureDay: 0
     property int year: 0
     property int month: 0
-    property bool negative: false
-    property var entries: ({})
+    property string polarity: Polarity.POSITIVE
+
+    // This habit's slice of the viewed month: dateKey -> entry row. Replacing it re-evaluates only
+    // this row's cells, which is why the slice lives on the habit's ListModel row (see Entries.js).
+    property var entriesByDate: ({})
+
     property real boxSize: App.Theme.boxSize
     property real boxSpacing: App.Theme.boxSpacing
+
+    readonly property bool isNegative: Polarity.isNegative(gridRow.polarity)
 
     signal dayClicked(int day)
 
@@ -32,15 +40,10 @@ Row {
 
             readonly property int day: index + 1
             readonly property bool isFuture: day > gridRow.lastNonFutureDay
-            readonly property var cell: (gridRow.entries || {})[DateUtils.dateKey(gridRow.year, gridRow.month, day)]
-            readonly property string entry: cell && cell.state ? cell.state : ""
-            readonly property bool isMarkedPositive: entry === "x"
-            readonly property bool isMarkedNegative: entry === "o"
-            readonly property bool shouldShowDefaultX: gridRow.negative && !isFuture
-            readonly property string mark: isMarkedPositive ? "X"
-                                         : isMarkedNegative ? "O"
-                                         : shouldShowDefaultX ? "X"
-                                         : ""
+            readonly property var row: (gridRow.entriesByDate || {})[DateUtils.dateKey(gridRow.year, gridRow.month, day)]
+            readonly property string outcome: Entries.outcomeOf(row)
+            readonly property bool showsImplicitX: gridRow.isNegative && !isFuture
+            readonly property string mark: Entries.markFor(outcome, showsImplicitX)
             readonly property bool faded: mark === "O" || isFuture
 
             Rectangle {

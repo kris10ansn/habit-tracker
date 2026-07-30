@@ -26,8 +26,10 @@
         <file>src/components/SettingsPage.qml</file>
         <file>src/components/GridBottomBar.qml</file>
         <file>src/js/DateUtils.js</file>
+        <file>src/js/Entries.js</file>
         <file>src/js/habits.js</file>
         <file>src/js/HabitsModel.js</file>
+        <file>src/js/Polarity.js</file>
         <file>src/js/Ids.js</file>
         <file>src/js/Storage.js</file>
         <file>src/js/SuspendRender.js</file>

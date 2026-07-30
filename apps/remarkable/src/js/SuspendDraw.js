@@ -1,4 +1,5 @@
 .import "DateUtils.js" as DateUtils
+.import "Polarity.js" as Polarity
 
 function computeSignature(habits, today) {
     const currentDay = today.getDate();
@@ -15,7 +16,7 @@ function computeSignature(habits, today) {
         for (let d = 1; d <= currentDay; d++) {
             entryParts.push(entries[DateUtils.dateKey(year, month, d)] || "");
         }
-        parts.push(`${h.name}|${h.negative ? 1 : 0}|${entryParts.join(",")}`);
+        parts.push(`${h.name}|${h.polarity}|${entryParts.join(",")}`);
     }
 
     return parts.join("\n");
@@ -122,8 +123,8 @@ const drawHabitCells = (ctx, x, y, habit, daysIn, currentDay, year, month, cfg) 
 
         if (d > currentDay) continue;
 
-        const entry = entries[DateUtils.dateKey(year, month, d)] || "";
-        const mark = entry === "x" || (habit.negative && entry !== "o") ? "X" : "";
+        const outcome = entries[DateUtils.dateKey(year, month, d)] || "";
+        const mark = outcome === "x" || (Polarity.isNegative(habit.polarity) && outcome !== "o") ? "X" : "";
         if (!mark) continue;
 
         ctx.fillStyle = cfg.fg;

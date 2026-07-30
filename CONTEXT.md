@@ -30,8 +30,9 @@ marked otherwise.
 _Avoid_: bad habit.
 
 **Entry**:
-A habit's recorded state for a single day, keyed by date. Absence of an entry for a day is
-the unmarked state — entries only exist for days the user has marked.
+A habit's recorded state for a single day, keyed by date. Entries exist only for days the user has
+marked; a day with no entry is unmarked. Clearing a day leaves a tombstone rather than dropping the
+entry, so the clear can be synced — see the backend glossary.
 _Avoid_: mark, check, log, record.
 
 **X mark** (stored `"x"`):
@@ -42,7 +43,7 @@ entry is *shown* as an X meaning "stayed clean today" — X is not a stored valu
 An entry state. On a positive habit it means **explicitly not done**. On a negative habit it
 means **slipped up** (the only state the user actively records).
 
-**Unmarked** (no stored entry):
+**Unmarked** (no entry, or a tombstoned one):
 The default entry state. Positive habits cycle Unmarked → X → O → Unmarked. Negative habits
 cycle Unmarked (shown as X) → O → Unmarked.
 

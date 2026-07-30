@@ -34,7 +34,7 @@ Journal                 ▢ ▢ ▢ ▢ ▣ ▢ ▢ ▢ ▢ ▢ …
 - **Settings.** A small settings page (button next to **Quit**) with the suspend-image-writing `On` / `Off` toggle and a **Sync server** address field. Changes are staged and applied on **Done**, which returns to the grid and runs the backup/restore — its progress shows in the grid's status line. **Back** discards staged changes (with a confirmation if you've changed anything).
 - **Optional offline-first sync.** Leave the **Sync server** blank and the app is fully local. Enter a server address and it syncs your roster and the month you're viewing with that server — on open, whenever you navigate to a month, a few seconds after edits, and via a **Sync now** button. Conflicts resolve last-write-wins per habit and per day; deletes propagate as tombstones. It's offline-tolerant: when the server is unreachable you keep working and a quiet status line (below the suspend status) counts the debounce down ("Syncing in 3s" → "Syncing…"), tracks the request as it runs ("Connecting…" → "Receiving…"), and then shows the outcome ("Synced to server" / "Sync failed: offline"). The endpoint is unauthenticated, so run it on a trusted network (home LAN / Tailscale / VPN), not the open internet.
 - **In-app editing.** Reorder, rename, delete, toggle positive/negative, toggle suspend visibility, add new habits — all from the device. No editing JSON by SSH.
-- **Local persistence.** Habit data lives under a `data/` folder on the device: `roster.json` (the habit list + config) plus one `YYYY-MM.json` per month (that month's entries); `sync.json` holds sync bookkeeping. App preferences stay in `settings.json`. A single tap rewrites only the current month, not all of history. Saves fail loudly — if `data/` is missing, a dialog says so rather than dropping your entries silently.
+- **Local persistence.** Habit data lives under a `data/` folder on the device: `roster.json` (the habit list + config) plus one `YYYY-MM.json` per month (that month's entries, one row per marked day); `sync.json` holds sync bookkeeping. App preferences stay in `settings.json`. A single tap rewrites only the current month, not all of history. Saves fail loudly — if `data/` is missing, a dialog says so rather than dropping your entries silently.
 
 ## Install
 
@@ -65,13 +65,7 @@ On the tablet, hold the middle button for ~3 seconds to open apploader, then tap
 
 State is saved under `/home/root/xovi/exthome/appload/habit-tracker/data/` — `roster.json` plus a `YYYY-MM.json` per month. First launch seeds the roster from the defaults in `src/js/habits.js`. The `data/` folder must exist (the deploy creates it); if it's missing, saves surface a visible error instead of failing silently. To reset, delete the files and relaunch.
 
-To migrate an older off-device backup to the sync-ready format, run:
-
-```sh
-pnpm --filter @habit-tracker/remarkable run migrate:sync -- <legacy-habits.json-or-data-dir> <output-data-dir>
-```
-
-The script accepts either the original `habits.json` array or an existing `data/` directory, then writes a fresh `roster.json` plus month files with UUID ids and timestamped entry cells shaped as `{ "state": "x", "updatedAt": 1782148800000 }`. Use `--edited-at <epoch-ms-or-iso-time>` when you need deterministic migration timestamps.
+A habit is stored as `{ id, name, polarity, hideFromSleep, createdAt, updatedAt, deletedAt }` and a month as `{ "month": "2026-07", "entries": [ { habitId, date, outcome, updatedAt, deletedAt }, … ] }` — the same shape the sync server speaks, so no translation happens on the way out. Older files (which spelled polarity as `negative` and nested entries under habit id) are read and converted automatically, then rewritten in the new shape on the next save.
 
 ## How it's built
 
@@ -98,7 +92,7 @@ This app is the QML scene. It's packaged as a Qt binary resource (`.rcc`) plus a
 
 **Cheap re-renders.** Saving a 1404×1872 PNG for every trivial edit is wasteful, so renders are _debounced_ (a 3-second timer restarts after each change while editing) and _deduplicated_ via a content signature persisted alongside the PNG — if nothing visible changed, nothing is written. A small status line on the grid ("Saving suspend image in 3s…" → "Suspend image saved", and the backup/restore phases) makes the pipeline visible. On quit, the latest state is flushed synchronously so the suspend image never lags a tap behind.
 
-**Pure QML + plain JS.** State lives in JSON-backed QML stores sharing a `JsonStore.qml` base for the load/debounced-save plumbing. `HabitsStore.qml` is a facade that splits persistence across two files — a `roster.json` (identity + config) and a per-month entries file keyed by a stable habit id — so a single toggle rewrites only the current month, not all history, and corruption is isolated to one month. Components forward signals upward; only the store mutates state. Updates are immutable (array spread, `Object.assign`) — the V4 engine handles re-bindings from there. Optional sync is a separate `SyncStore.qml` (the network engine + a `sync.json` sidecar) over a pure-JS `Sync.js` translation layer; the merge itself runs server-side, so the client just sends its state and accepts the authoritative result.
+**Pure QML + plain JS.** State lives in JSON-backed QML stores sharing a `JsonStore.qml` base for the load/debounced-save plumbing. `HabitsStore.qml` is a facade that splits persistence across two files — a `roster.json` (identity + config, plus tombstones for deleted habits) and a per-month file holding that month's entries as flat `(habitId, date)` rows — so a single toggle rewrites only the current month, not all history, and corruption is isolated to one month. The rows match the backend's shape exactly while the month partitioning keeps launch and per-tap cost bounded to one month, which matters on a 1 GHz device. Components forward signals upward; only the store mutates state. Updates are immutable (array spread, `Object.assign`) — the V4 engine handles re-bindings from there. Optional sync is a separate `SyncStore.qml` (the network engine + a `sync.json` sidecar) over a pure-JS `Sync.js` translation layer; the merge itself runs server-side, so the client just sends its state and accepts the authoritative result.
 
 **Platform constraints shape the code.**
 

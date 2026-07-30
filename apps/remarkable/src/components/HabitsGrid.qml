@@ -58,8 +58,8 @@ Item {
                     lastNonFutureDay: grid.lastNonFutureDay
                     year: grid.year
                     month: grid.month
-                    negative: model.negative
-                    entries: model.entries || ({})
+                    polarity: model.polarity
+                    entriesByDate: model.entriesByDate || ({})
                     boxSize: grid.boxSize
                     boxSpacing: grid.boxSpacing
                     onDayClicked: grid.entryToggled(index, DateUtils.dateKey(grid.year, grid.month, day))

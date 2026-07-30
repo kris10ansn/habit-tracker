@@ -1,6 +1,11 @@
 # 2. Habits are stored month-partitioned, split from a stable roster
 
-Status: accepted
+Status: accepted; amended by [ADR 0005](0005-backend-shaped-entry-rows.md)
+
+ADR 0005 keeps everything below — the roster/month split, one file per month, only the viewed month
+loaded, loud saves, orphaned entries over cascade-delete — and changes only the *shape* stored inside
+those files: entries became flat `(habitId, date)` rows, habits gained `polarity` / `createdAt` /
+`deletedAt`, and reads now tolerate the legacy shapes recorded here.
 
 ## Context
 

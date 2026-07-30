@@ -3,14 +3,16 @@ import "js/Storage.js" as Storage
 import "js/habits.js" as DefaultHabits
 import "js/HabitsModel.js" as HabitsModel
 import "js/DateUtils.js" as DateUtils
+import "js/Entries.js" as Entries
+import "js/Polarity.js" as Polarity
 import "js/Ids.js" as Ids
 
 // Facade over month-partitioned persistence. Keeps the public store API
 // (habits, isLoaded, the mutators) but splits storage across two files: a
-// roster (identity + config) and the current month's entries. The ListModel is
-// the single in-memory source of truth; each child store serializes a
-// projection of it (see HabitsModel). Config edits save the roster; entry
-// toggles save the month.
+// roster (identity + config + habit tombstones) and the viewed month's entry
+// rows. The ListModel is the single in-memory source of truth; each child store
+// serializes a projection of it (see HabitsModel). Config edits save the roster;
+// entry toggles save the month.
 QtObject {
     id: store
 
@@ -24,9 +26,16 @@ QtObject {
     property int viewMonth: today.getMonth()
     readonly property string monthKey: DateUtils.monthKey(viewYear, viewMonth)
 
+    // Alive habits only, in display order. A deleted habit leaves the model and lives on in
+    // habitTombstones, so every index-based API here stays in step with what the grid renders.
     property ListModel habits: ListModel {
         dynamicRoles: true
     }
+
+    // Soft-deleted habits, in roster-row shape with deletedAt set. Persisted alongside the alive
+    // rows in roster.json — the same "alive rows + tombstones" split the sync wire format uses —
+    // and dropped once a sync confirms the server owns them.
+    property var habitTombstones: []
 
     readonly property bool isLoaded: _roster.isLoaded && _month.isLoaded
 
@@ -39,25 +48,22 @@ QtObject {
 
     signal saved
 
-    // Emitted before a habit leaves the roster so the sync layer can keep a tombstone.
-    signal habitRemoved(string id)
-
     property string saveError: ""
     function clearSaveError() {
         store.saveError = "";
     }
 
-    // Load is parallel; the month entries are folded onto habits by id once both
+    // Load is parallel; the month's entry rows are folded onto habits by id once both
     // files have resolved, in whichever order they arrive.
     property bool _rosterApplied: false
     property bool _monthApplied: false
-    property var _pendingMonthEntries: ({})
+    property var _pendingEntriesByHabitId: ({})
 
     property JsonStore _roster: JsonStore {
         filePath: store.dataDir + "/roster.json"
         serialize: function () {
             return {
-                habits: HabitsModel.toRoster(store.habits)
+                habits: HabitsModel.toRoster(store.habits).concat(store.habitTombstones)
             };
         }
         applyLoaded: function (data) {
@@ -72,7 +78,7 @@ QtObject {
         serialize: function () {
             return {
                 month: store.monthKey,
-                entries: HabitsModel.toMonthEntries(store.habits)
+                entries: HabitsModel.toMonthEntryRows(store.habits)
             };
         }
         applyLoaded: function (data) {
@@ -82,20 +88,29 @@ QtObject {
         onSaveFailed: store.saveError = message
     }
 
+    // The one place a stored or synced habit becomes a model row, so field defaults and the
+    // tolerance for pre-polarity rosters live in a single spot.
     function _modelItem(habit) {
+        const createdAt = habit.createdAt || Date.now();
+
         return {
             id: habit.id || Ids.newId(),
             name: habit.name,
-            negative: !!habit.negative,
+            polarity: Polarity.fromHabit(habit),
             hideFromSleep: !!habit.hideFromSleep,
-            updatedAt: habit.updatedAt || Date.now(),
-            entries: {}
+            createdAt: createdAt,
+            updatedAt: habit.updatedAt || createdAt,
+            deletedAt: null,
+            entriesByDate: habit.entriesByDate || ({})
         };
     }
 
     function _applyRoster(data) {
         const hasRoster = data && Array.isArray(data.habits);
-        const items = (hasRoster ? data.habits : DefaultHabits.habits).map(h => store._modelItem(h));
+        const stored = hasRoster ? data.habits : DefaultHabits.habits;
+
+        const items = stored.filter(habit => !habit.deletedAt).map(habit => store._modelItem(habit));
+        store.habitTombstones = stored.filter(habit => !!habit.deletedAt).map(habit => store._tombstoneRow(habit));
 
         // Bulk append — one rowsInserted vs N avoids per-row e-ink flash.
         store.habits.clear();
@@ -118,10 +133,18 @@ QtObject {
         store._roster._doSave();
     }
 
-    function _applyMonth(data) {
-        const entries = (data && data.entries && typeof data.entries === "object") ? data.entries : ({});
+    function _tombstoneRow(habit) {
+        const row = HabitsModel.rosterRow(store._modelItem(habit));
+        row.deletedAt = habit.deletedAt;
 
-        store._pendingMonthEntries = entries;
+        return row;
+    }
+
+    function _applyMonth(data) {
+        const stored = data && data.entries;
+        const rows = Array.isArray(stored) ? stored : Entries.rowsFromLegacyMonth(stored);
+
+        store._pendingEntriesByHabitId = Entries.byHabitId(rows);
         store._monthApplied = true;
         store._fold();
     }
@@ -131,10 +154,10 @@ QtObject {
             return;
         }
 
-        const entries = store._pendingMonthEntries || {};
+        const entriesByHabitId = store._pendingEntriesByHabitId || {};
         for (let i = 0; i < store.habits.count; i++) {
             const id = store.habits.get(i).id;
-            store.habits.setProperty(i, "entries", entries[id] || ({}));
+            store.habits.setProperty(i, "entriesByDate", entriesByHabitId[id] || ({}));
         }
     }
 
@@ -142,28 +165,16 @@ QtObject {
         return i >= 0 && i < habits.count;
     }
 
-    function _nextEntryState(habitNegative, currentState) {
-        // positive habit: empty -> x -> o -> empty
-        // negative habit (displays X as default): empty(X) -> o -> empty(X)
-        return habitNegative
-            ? (currentState === "o" ? "" : "o")
-            : (currentState === "" ? "x" : currentState === "x" ? "o" : "");
-    }
-
-    function add(name, negative) {
+    function add(name, polarity) {
         const trimmed = (name || "").trim();
         if (!trimmed) {
             return;
         }
 
-        habits.append({
-            id: Ids.newId(),
+        habits.append(store._modelItem({
             name: trimmed,
-            negative: !!negative,
-            hideFromSleep: false,
-            updatedAt: Date.now(),
-            entries: {}
-        });
+            polarity: polarity
+        }));
 
         _roster.scheduleSave();
     }
@@ -185,20 +196,40 @@ QtObject {
         _roster.scheduleSave();
     }
 
+    // Soft delete: the habit leaves the model (so the grid and every index-based API forget it)
+    // and becomes a roster tombstone the next sync pushes, so the delete can win a merge instead
+    // of being resurrected by another client's stale copy.
     function remove(index) {
         if (!_inBounds(index)) {
             return;
         }
-        store.habitRemoved(habits.get(index).id);
+
+        const deletedAt = Date.now();
+        const tombstone = HabitsModel.rosterRow(habits.get(index));
+        tombstone.updatedAt = deletedAt;
+        tombstone.deletedAt = deletedAt;
+
+        store.habitTombstones = store.habitTombstones.concat([tombstone]);
         habits.remove(index);
+
         _roster.scheduleSave();
     }
 
-    function setNegative(index, negative) {
+    // The server owns the pushed tombstones now, so stop resending them.
+    function purgeHabitTombstones() {
+        if (store.habitTombstones.length === 0) {
+            return;
+        }
+
+        store.habitTombstones = [];
+        store._roster.scheduleSave();
+    }
+
+    function togglePolarity(index) {
         if (!_inBounds(index)) {
             return;
         }
-        habits.setProperty(index, "negative", !!negative);
+        habits.setProperty(index, "polarity", Polarity.toggled(habits.get(index).polarity));
         habits.setProperty(index, "updatedAt", Date.now());
         _roster.scheduleSave();
     }
@@ -227,46 +258,47 @@ QtObject {
         }
 
         const habit = habits.get(index);
-        const currentEntries = habit.entries || {};
-        const cell = currentEntries[dateKey];
-        const current = cell && cell.state ? cell.state : "";
-        const next = store._nextEntryState(habit.negative, current);
+        const entriesByDate = habit.entriesByDate || {};
+        const row = Entries.toggledRow(habit.id, dateKey, habit.polarity, entriesByDate[dateKey]);
 
-        // A cleared cell stays inline as { state: "", updatedAt } — a tombstone the next sync
-        // sends, not a deleted key. It renders as Unmarked and is pruned when sync overwrites.
-        const entries = Object.assign({}, currentEntries);
-        entries[dateKey] = {
-            state: next,
-            updatedAt: Date.now()
-        };
-
-        habits.setProperty(index, "entries", entries);
+        habits.setProperty(index, "entriesByDate", Entries.withRow(entriesByDate, row));
         _month.scheduleSave();
     }
 
     // Overwrite local state with the authoritative result of a sync: rebuild the
-    // roster in the server's order and replace the current month's entries, preserving the
-    // device-only suspend visibility the server never sees. Persists both files immediately.
+    // roster in the server's order and replace the viewed month's entries. Persists both
+    // files immediately.
     function applySynced(roster, entriesByHabitId) {
-        const hideById = {};
+        // hideFromSleep and createdAt are device-local — the wire format carries neither — so they
+        // are read off the current model before it is cleared and carried onto the new rows.
+        const localById = {};
         for (let i = 0; i < habits.count; i++) {
             const habit = habits.get(i);
-            hideById[habit.id] = !!habit.hideFromSleep;
+            localById[habit.id] = {
+                hideFromSleep: !!habit.hideFromSleep,
+                createdAt: habit.createdAt
+            };
         }
 
-        const items = (roster || []).map(habit => ({
+        const items = (roster || []).map(habit => {
+                const local = localById[habit.id] || {};
+                return store._modelItem({
                     id: habit.id,
                     name: habit.name,
-                    negative: !!habit.negative,
-                    hideFromSleep: !!hideById[habit.id],
+                    polarity: habit.polarity,
+                    hideFromSleep: local.hideFromSleep,
+                    createdAt: local.createdAt,
                     updatedAt: habit.updatedAt,
-                    entries: (entriesByHabitId || {})[habit.id] || ({})
-                }));
+                    entriesByDate: (entriesByHabitId || {})[habit.id] || ({})
+                });
+            });
 
         store.habits.clear();
         if (items.length > 0) {
             store.habits.append(items);
         }
+
+        store.habitTombstones = [];
 
         store._roster._doSave();
         store._month._doSave();
@@ -281,7 +313,7 @@ QtObject {
 
     // Swap the in-memory entries to another month's file. Flush any pending edit
     // to the *old* file first (filePath still points there until viewYear/Month
-    // change), then re-point and re-read, folding the new month's entries onto the
+    // change), then re-point and re-read, folding the new month's entry rows onto the
     // roster. The roster (identity/config) is month-independent and stays put.
     //
     // This holds the blocking read, so the caller defers it past the teardown paint
