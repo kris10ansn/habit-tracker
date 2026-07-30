@@ -19,7 +19,7 @@ It renders the same Habit × Entry model as the reMarkable client over a mobile-
 ## Status
 
 **Design implemented, functionality pending.** The four screens are built from a small design system
-and rendered from sample data ([`src/domain/habits.ts`](./src/domain/habits.ts)); there is no
+and rendered from sample data; there is no
 persistence, editing, or real sync yet — controls are affordances only. The plan is to back it with a
 shared backend that owns the canonical habits and syncs them to both clients.
 
@@ -31,11 +31,10 @@ Install workspace deps once from the monorepo root (`pnpm install`), then from t
 pnpm mobile:start      # start the expo dev server
 pnpm mobile:android    # open on an Android emulator/device
 pnpm mobile:ios        # open on an iOS simulator/device
-pnpm mobile:web        # open in the browser
 ```
 
-Or run scripts directly from this directory with `pnpm start` / `pnpm android` / `pnpm ios` /
-`pnpm web`. The dev server prints options to open the app in a development build, a simulator, or
+Or run scripts directly from this directory with `pnpm start` / `pnpm android` / `pnpm ios`.
+There is deliberately no web target. The dev server prints options to open the app in a development build, a simulator, or
 [Expo Go](https://expo.dev/go).
 
 Checks:
@@ -53,7 +52,7 @@ src/
 │                 (imports global.css); index=Today, month, habits, sync.
 ├── components/   UI, grouped by feature — ui/ (primitives: Card, Button, Pill,
 │                 AppScreen, …), today/, month/, habits/, sync/, plus HabitMark.tsx.
-├── domain/       model + logic, no UI (types.ts, dates.ts, habits.ts, marks.ts).
+├── domain/       model + logic, no UI (types.ts, dates.ts, entries.ts, roster.ts, marks.ts).
 ├── theme/        palette.js — single source of color values; colors.ts re-exports
 │                 it raw for non-className APIs (the tab bar).
 └── lib/          cn.ts — classname joiner.

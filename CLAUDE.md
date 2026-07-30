@@ -19,13 +19,11 @@ backend planned to own persistence and sync:
 ├── apps/
 │   ├── remarkable/   QML scene for the reMarkable 1 (XOVI + rm-appload). Built with make.
 │   └── mobile/       expo (React Native, TypeScript) app. Built with pnpm/expo.
-├── CONTEXT.md        shared habit glossary (Habit, Entry, X/O, polarity, …)
-├── CONTEXT-MAP.md    map of the contexts and how they relate
-└── docs/adr/         system-wide architecture decisions
+└── CONTEXT.md        shared habit glossary (Habit, Entry, X/O, polarity, …)
 ```
 
-The shared habit vocabulary lives in the root [`CONTEXT.md`](./CONTEXT.md); each client adds its own
-context (see [`CONTEXT-MAP.md`](./CONTEXT-MAP.md)). Use those terms in code, comments, and docs.
+The shared habit vocabulary lives in the root [`CONTEXT.md`](./CONTEXT.md); each app adds its own
+`CONTEXT.md` for terms only it uses. Use those terms in code, comments, and docs.
 
 ## Hard rule: never SSH to the device
 

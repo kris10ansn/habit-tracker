@@ -12,7 +12,7 @@ A pure-QML **habit tracker** for **reMarkable 1**, launched via **apploader** �
 
 This is the `apps/remarkable/` app in the habit-tracker monorepo (pnpm workspaces). The sibling expo client is `apps/mobile/`; a shared backend is planned. See the monorepo-root `CLAUDE.md` for cross-app conventions.
 
-**Domain docs.** Two glossaries: this app's `CONTEXT.md` (device-only terms — suspend image, suspend visibility, settings, edit mode) and the monorepo-root [`../../CONTEXT.md`](../../CONTEXT.md) (the shared Habit / Entry / X-O / polarity vocabulary every client speaks). [`../../CONTEXT-MAP.md`](../../CONTEXT-MAP.md) ties them together. This app's `docs/adr/` records deliberate decisions you must not silently undo (overwriting the system suspend image, corrupt-file safety, debounce/signature dedup, deferred grid, ListModel store, month-partitioned storage). Read both glossaries before changing domain behaviour, and keep them current when it changes.
+**Domain docs.** Two glossaries: this app's `CONTEXT.md` (device-only terms — suspend image, suspend visibility, settings, edit mode) and the monorepo-root [`../../CONTEXT.md`](../../CONTEXT.md) (the shared Habit / Entry / X-O / polarity vocabulary every client speaks). This app's `docs/adr/` records deliberate decisions you must not silently undo (overwriting the system suspend image, corrupt-file safety, debounce/signature dedup, deferred grid, ListModel store, month-partitioned storage). Read both glossaries before changing domain behaviour, and keep them current when it changes.
 
 ## Hard rule: never SSH to the device
 

@@ -1,6 +1,6 @@
 // Shared habit vocabulary — see the monorepo-root CONTEXT.md glossary. Mobile stores the
 // backend's shape (apps/backend Entities + SyncHabit/SyncEntry DTOs) so mobile↔backend sync is a
-// near-identity map; the X/O reading is a render concern (see marks.ts). See docs/adr/0001.
+// near-identity map; the X/O reading is a render concern (see marks.ts).
 
 export type Outcome = "success" | "failure";
 export type Polarity = "positive" | "negative";

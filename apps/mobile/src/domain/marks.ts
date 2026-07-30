@@ -42,7 +42,7 @@ export const markView = (
 // The tap cycle expressed as a storage action, mirroring the reMarkable client's cycle:
 // positive: Unmarked → success → failure → Unmarked; negative: Unmarked → failure → Unmarked.
 // Cycling back to Unmarked is a soft-delete ("clear") — byte-identical to the write sync sends
-// for a cleared cell (see docs/adr/0001).
+// for a cleared cell.
 export type MarkAction = { type: "set"; outcome: Outcome } | { type: "clear" };
 
 export const nextAction = (

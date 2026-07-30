@@ -1,6 +1,6 @@
 // Projections of the in-memory habits ListModel onto serializable shapes. The model is the
 // single source of truth; each store serializes its own slice. Since sync, entries are inline
-// { state, updatedAt } objects and habits carry an updatedAt edit-time (ADR 0003).
+// { state, updatedAt } objects and habits carry an updatedAt edit-time.
 
 // Suspend-canvas projection: entries flattened to date -> state string. Drawing and the dedup
 // signature only care about the visible state, never timestamps — so this keeps SuspendDraw

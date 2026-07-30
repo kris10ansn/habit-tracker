@@ -2,8 +2,8 @@
 
 The C# / ASP.NET Core + EF Core service that will own the canonical Habit/Entry records and
 (eventually) sync them to every client. The shared habit vocabulary (Habit, Polarity, Entry,
-X/O marks, Unmarked, Default habits) lives in the [root glossary](../../CONTEXT.md); see
-[CONTEXT-MAP.md](../../CONTEXT-MAP.md). This file covers only terms the backend adds or reframes.
+X/O marks, Unmarked, Default habits) lives in the [root glossary](../../CONTEXT.md). This file covers only terms the backend adds or
+reframes.
 
 ## Language
 
@@ -30,8 +30,7 @@ _Avoid_: index, rank, sortKey (an implementation detail of how Position is encod
 
 **Sync**:
 The reconciliation that merges a client's submitted state with the canonical store and returns the
-authoritative merged result. State-based and last-write-wins, resolved per row. See
-[`docs/adr/0003`](../../docs/adr/0003-offline-first-sync.md).
+authoritative merged result. State-based and last-write-wins, resolved per row.
 _Avoid_: push, pull (those name directions within one Sync), replication, backup.
 
 **Edit-time**:

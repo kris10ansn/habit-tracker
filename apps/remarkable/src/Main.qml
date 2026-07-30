@@ -52,7 +52,7 @@ Rectangle {
     }
 
     // Sync once both the habits and the sync sidecar have loaded — never before, or a first sync
-    // could miss pending tombstones. Guarded to run once per launch (ADR 0003).
+    // could miss pending tombstones. Guarded to run once per launch.
     property bool _syncedOnLoad: false
     function _maybeSyncOnLoad() {
         if (root._syncedOnLoad || !habitsStore.isLoaded || !syncStore.isLoaded)

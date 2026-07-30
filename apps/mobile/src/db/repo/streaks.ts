@@ -14,7 +14,7 @@ import type { Habit } from "@/domain/types";
 import type { Database } from "../client";
 import { entries } from "../schema";
 
-// A dedicated cross-month look-back, independent of the viewed month (see docs/adr/0001). Positive
+// A dedicated cross-month look-back, independent of the viewed month. Positive
 // habits count consecutive `success` days from a bounded window. Negative habits count the clean run
 // ending today: it starts the day after the last slip, or — with no slip — at the habit's anchor.
 // The anchor is `createdAt`, pulled back to the earliest recorded entry when data proves the habit

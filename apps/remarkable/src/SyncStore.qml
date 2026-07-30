@@ -2,7 +2,7 @@ import QtQuick 2.15
 import "js/HabitsModel.js" as HabitsModel
 import "js/Sync.js" as Sync
 
-// Offline-first sync sidecar + engine (ADR 0003). Persists pending habit tombstones and the
+// Offline-first sync sidecar + engine. Persists pending habit tombstones and the
 // last-sync time to data/sync.json, and runs the one-call merge against the configured server.
 // Standalone when no server URL is set: syncNow is a no-op. Reads/writes the habits model via the
 // references Main wires in. All network failures are non-fatal — the app keeps running locally.
@@ -31,7 +31,7 @@ JsonStore {
     // this rather than a single status string so the finer phases don't slip past them.
     readonly property bool isRequestInFlight: ["syncing", "connecting", "headers-received", "loading"].indexOf(status) !== -1
 
-    // Text for the ambient status line (ADR 0003). Quiet by design: empty while standalone (no
+    // Text for the ambient status line. Quiet by design: empty while standalone (no
     // server configured), a brief phrase otherwise. Loud misconfig errors are a modal in Main.
     readonly property string statusText: syncStore._statusText()
 

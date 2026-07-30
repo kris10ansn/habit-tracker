@@ -2,9 +2,8 @@
 
 Terms unique to the reMarkable 1 client — a pure-QML scene loaded inside xochitl via
 XOVI + rm-appload. The shared habit vocabulary (Habit, Polarity, Entry, X/O marks, Unmarked,
-Default habits) lives in the [root glossary](../../CONTEXT.md); see
-[CONTEXT-MAP.md](../../CONTEXT-MAP.md). This file covers only what's specific to running on the
-device: the suspend image, settings, and edit mode.
+Default habits) lives in the [root glossary](../../CONTEXT.md). This file covers only what's specific to running on
+the device: the suspend image, settings, and edit mode.
 
 Presentation note: this client lays habits as **rows** and days-of-the-**viewed month** as
 **columns** (landscape). Only when the viewed month is the current month is today's column

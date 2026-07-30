@@ -9,7 +9,7 @@ JsonStore {
     // Opt-in: off until the user turns it on in Settings.
     property bool suspendImageEnabled: false
 
-    // The backend this client syncs with. Empty = standalone (no sync attempts). See ADR 0003.
+    // The backend this client syncs with. Empty = standalone (no sync attempts).
     property string serverUrl: ""
 
     serialize: function () {

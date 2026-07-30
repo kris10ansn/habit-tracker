@@ -8,7 +8,7 @@ import {
     text,
 } from "drizzle-orm/sqlite-core";
 
-// SQLite tables mirroring the backend's normalized shape (see docs/adr/0001): a roster plus a
+// SQLite tables mirroring the backend's normalized shape: a roster plus a
 // (habitId, date)-keyed entry log, each carrying an epoch-ms `updatedAt` merge key and a `deleted`
 // soft-delete tombstone. The `enum` and `boolean` column modes make Drizzle infer the domain types
 // (Polarity/Outcome unions, boolean `deleted`) directly, so reads need no row mappers or casts.

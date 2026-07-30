@@ -1,5 +1,5 @@
-// Translation between the client's roster/month state and the backend sync wire format (ADR
-// 0003). Pure functions only — the QML SyncStore does the I/O. Timestamps are epoch ms UTC.
+// Translation between the client's roster/month state and the backend sync wire format.
+// Pure functions only — the QML SyncStore does the I/O. Timestamps are epoch ms UTC.
 // The X/O <-> Outcome mapping and the tombstone encoding live here, at the client edge.
 
 const POSITIVE = "Positive";

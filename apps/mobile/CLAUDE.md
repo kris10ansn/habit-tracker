@@ -24,14 +24,13 @@ through **TanStack Query** hooks (`src/state/queries/`) over a thin repo (`src/d
 Tapping a `HabitMark` on Today or Month cycles its state; the Habits tab renames, flips polarity,
 and drag-to-reorders (drag a row by its handle — the generic `components/ui/SortableList` with an
 inline `HabitRow` in `app/habits.tsx`). Still affordance-only: add/delete/archive, and Sync — the
-data layer is shaped for the backend but the sync _engine_ is not built yet. See
-[`docs/adr/0001-mobile-sqlite-persistence-sync-shaped.md`](./docs/adr/0001-mobile-sqlite-persistence-sync-shaped.md).
+data layer is shaped for the backend but the sync _engine_ is not built yet.
 
 ## Domain
 
 Shared vocabulary lives in the monorepo-root [`CONTEXT.md`](../../CONTEXT.md) (Habit, Entry, X/O,
 polarity, Unmarked). The TS model in `src/domain/` mirrors the **backend's** shape so mobile↔backend
-sync is a near-identity map (see `docs/adr/0001`): `types.ts` holds flat `Habit`/`Entry` rows storing
+sync is a near-identity map: `types.ts` holds flat `Habit`/`Entry` rows storing
 `Outcome`/`Polarity`; `marks.ts` maps Outcome → the X/O display reading (`markView`) and the tap
 cycle (`nextAction`, `isSuccess`) — components never re-derive the semantics. `dates.ts` owns the
 `dateKey` (`YYYY-MM-DD`) / `monthKey` (`YYYY-MM`) formats plus month math; `entries.ts` is the

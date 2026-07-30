@@ -2,10 +2,7 @@
 
 ASP.NET Core (.NET 10) Web API over EF Core + PostgreSQL. Owns the canonical Habit/Entry records
 and (eventually) sync. It does **not** mirror the clients' on-device shape — it stores the same data
-reframed for a relational API. See the decisions in
-[`docs/adr/0001`](./docs/adr/0001-data-model-deviates-from-client-marks.md) and the system-wide
-[`../../docs/adr/0002`](../../docs/adr/0002-csharp-ef-core-backend.md), and the vocabulary in
-[`CONTEXT.md`](./CONTEXT.md).
+reframed for a relational API. See the vocabulary in [`CONTEXT.md`](./CONTEXT.md).
 
 ## Layout
 
@@ -66,8 +63,7 @@ pnpm migrate      # = dotnet ef database update
 Enums serialize as strings (`"Positive"`, `"Success"`). Delete is a **soft-delete** (tombstone), so a
 removed habit stops appearing but can still lose/win a sync merge.
 
-`/api/sync` (POST) — one round-trip offline-first sync (see
-[`../../docs/adr/0003`](../../docs/adr/0003-offline-first-sync.md)). The client submits its roster +
+`/api/sync` (POST) — one round-trip offline-first sync. The client submits its roster +
 the month(s) it holds — alive rows and `deleted` tombstones, each carrying an `updatedAt` (epoch
 milliseconds UTC); the server merges per row **last-write-wins** by that edit-time and returns the
 authoritative **alive** state to overwrite local with. Edit-time is stored verbatim as the merge

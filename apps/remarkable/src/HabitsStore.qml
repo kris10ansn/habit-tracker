@@ -39,7 +39,7 @@ QtObject {
 
     signal saved
 
-    // Emitted before a habit leaves the roster so the sync layer can keep a tombstone (ADR 0003).
+    // Emitted before a habit leaves the roster so the sync layer can keep a tombstone.
     signal habitRemoved(string id)
 
     property string saveError: ""
@@ -176,7 +176,7 @@ QtObject {
         habits.move(from, to, 1);
 
         // Position is the array index at sync time, so every habit whose index shifted needs a
-        // fresh edit-time for the reorder to win last-write-wins (ADR 0003).
+        // fresh edit-time for the reorder to win last-write-wins.
         const now = Date.now();
         for (let i = Math.min(from, to); i <= Math.max(from, to); i++) {
             habits.setProperty(i, "updatedAt", now);
@@ -233,7 +233,7 @@ QtObject {
         const next = store._nextEntryState(habit.negative, current);
 
         // A cleared cell stays inline as { state: "", updatedAt } — a tombstone the next sync
-        // sends, not a deleted key (ADR 0003). It renders as Unmarked and is pruned when sync overwrites.
+        // sends, not a deleted key. It renders as Unmarked and is pruned when sync overwrites.
         const entries = Object.assign({}, currentEntries);
         entries[dateKey] = {
             state: next,
@@ -244,7 +244,7 @@ QtObject {
         _month.scheduleSave();
     }
 
-    // Overwrite local state with the authoritative result of a sync (ADR 0003): rebuild the
+    // Overwrite local state with the authoritative result of a sync: rebuild the
     // roster in the server's order and replace the current month's entries, preserving the
     // device-only suspend visibility the server never sees. Persists both files immediately.
     function applySynced(roster, entriesByHabitId) {

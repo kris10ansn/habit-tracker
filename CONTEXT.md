@@ -3,7 +3,7 @@
 The vocabulary every client (and the future backend) shares: what a habit is, how a day's
 state is recorded, and what the marks mean. Presentation concerns — grid orientation, e-ink
 rendering, the suspend image — are **not** here; each client documents those in its own
-`CONTEXT.md` (see [CONTEXT-MAP.md](./CONTEXT-MAP.md)). This file is a glossary and nothing else.
+`CONTEXT.md`. This file is a glossary and nothing else.
 
 ## Language
 
