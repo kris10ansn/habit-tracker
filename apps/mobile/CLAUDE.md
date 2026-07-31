@@ -16,9 +16,12 @@ for their report.
 ## Hard rule: the backend is mobile's only reference
 
 Mobile's contract partner is **`apps/backend/`**. Never read `apps/remarkable/` to decide mobile's
-domain model, storage shape, sync behaviour, or naming — it is a **peer client, not a spec**, and
-its on-device shape is deliberately different (month-partitioned JSON files, X/O marks stored
-verbatim, QML stores). Copying it here is a bug, not consistency.
+domain model, storage shape, sync behaviour, or naming — it is a **peer client, not a spec**. Both
+clients now spell the domain the backend's way, but each arrived there from the backend
+independently; reMarkable still persists differently (per-month JSON files behind QML stores, with
+`"x"`/`"o"` outcomes respelled at its sync edge). That the two look similar is a _result_ of both
+following the backend, never a reason to copy one into the other — take the answer from
+`apps/backend/`, not from the client that already solved it.
 
 Unification, merge, and conflict resolution are the **backend's** job — mobile submits its state and
 accepts the authoritative result; it does not invent merge rules. When a question is about the

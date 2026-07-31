@@ -50,7 +50,7 @@ public class HabitTrackerDbContext : DbContext
         });
 
         // Seed the stub account so ownership FKs resolve before auth exists.
-        // No habits are seeded — new users start empty (see ADR 0001).
+        // No habits are seeded — new users start empty.
         modelBuilder.Entity<User>().HasData(
             new User
             {

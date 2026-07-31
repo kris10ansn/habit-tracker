@@ -39,13 +39,18 @@ marked; a day with no entry is unmarked. Clearing a day leaves a tombstone rathe
 entry, so the clear can be synced — see the backend glossary.
 _Avoid_: mark, check, log, record.
 
-**X mark** (stored `"x"`):
-An entry state. On a positive habit it means **done**. On a negative habit a day with no stored
-entry is *shown* as an X meaning "stayed clean today" — X is not a stored value there.
+**X mark**:
+How an entry _reads_ on the grid. On a positive habit it means **done**. On a negative habit a day
+with no stored entry is shown as an X meaning "stayed clean today" — nothing is stored there.
 
-**O mark** (stored `"o"`):
-An entry state. On a positive habit it means **explicitly not done**. On a negative habit it
-means **slipped up** (the only state the user actively records).
+**O mark**:
+How an entry _reads_ on the grid. On a positive habit it means **explicitly not done**. On a
+negative habit it means **slipped up** (the only state the user actively records).
+
+X and O are a **reading, not a storage format**. The recorded value is the backend's **Outcome**
+(`Success` / `Failure` — see the [backend glossary](./apps/backend/CONTEXT.md)); each client maps
+Outcome → X/O for display and is free to spell it its own way on disk. Never "correct" one client's
+on-disk spelling to match another's.
 
 **Unmarked** (no entry, or a tombstoned one):
 The default entry state. Positive habits cycle Unmarked → X → O → Unmarked. Negative habits

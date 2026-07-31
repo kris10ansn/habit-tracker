@@ -7,7 +7,7 @@ using Microsoft.EntityFrameworkCore;
 namespace HabitTracker.Api.Services;
 
 /// <summary>
-/// State-based, last-write-wins sync for the current user (ADR 0003). The client submits its
+/// State-based, last-write-wins sync for the current user. The client submits its
 /// roster plus the month(s) it holds — alive rows and tombstones, each carrying a UTC edit-time —
 /// and the server merges per row by edit-time, then returns the authoritative ALIVE state for the
 /// client to overwrite local with. Tombstones live durably here, never in the response.

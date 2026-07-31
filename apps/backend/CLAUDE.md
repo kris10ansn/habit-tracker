@@ -33,9 +33,12 @@ Consequences when working here:
 - **A change to `Dtos/SyncDtos.cs` or `Dtos/HabitDtos.cs` is a contract change.** Both clients
   decode these shapes (`apps/remarkable/src/js/Sync.js`, and mobile's sync layer once built). Say so
   explicitly when you change one; don't treat it as an internal refactor.
-- **Enums serialize as PascalCase strings** (`"Positive"`, `"Success"`) via
-  `JsonStringEnumConverter`. Clients storing lowercase map at their own edge — that mapping is
-  theirs to own, not something to accommodate by changing the wire casing.
+- **Enums serialize as the member names verbatim** (`"Positive"`, `"Success"`) — a bare
+  `JsonStringEnumConverter` with no naming policy. Both clients have since aligned their own storage
+  to these spellings, so the casing is load-bearing in three places at once: **do not add a naming
+  policy or rename a member casually.** Where a client still keeps its own vocabulary (reMarkable
+  persists `"x"`/`"o"` outcomes and respells them in `src/js/Sync.js`), that translation is the
+  client's to own — never accommodate it by changing the wire.
 - When a client and this backend disagree about the model, **the backend is right** and the client
   gets fixed.
 

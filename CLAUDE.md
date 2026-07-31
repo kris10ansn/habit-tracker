@@ -29,9 +29,13 @@ The shared habit vocabulary lives in the root [`CONTEXT.md`](./CONTEXT.md); each
 ## Hard rule: the backend is the only cross-app contract
 
 The two clients are **independent peers**, not references for each other. When working in one client,
-do not read the other to decide its domain model, storage shape, sync behaviour, or naming — their
-on-device shapes differ on purpose (reMarkable persists month-partitioned JSON with X/O marks;
-mobile persists SQLite rows in the backend's Outcome/Polarity shape). Neither is a spec.
+do not read the other to decide its domain model, storage shape, sync behaviour, or naming. Both
+have aligned their vocabulary to the backend's (`Positive`/`Negative`, `Success`/`Failure`,
+`editedAt`, tombstones), but they got there **separately, from the backend** — and they still
+persist it differently on purpose: reMarkable writes per-month JSON files behind QML stores and
+keeps `"x"`/`"o"` outcomes it respells at the sync edge; mobile writes SQLite tables via Drizzle,
+storing the backend's spellings verbatim. Converging vocabulary is not a licence to copy: neither
+client is a spec.
 
 **Unification, merge, and conflict resolution are the backend's job**, never a client's. When a
 client question is about the shared model or the sync contract, the answer is in
