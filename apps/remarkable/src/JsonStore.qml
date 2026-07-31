@@ -10,6 +10,12 @@ QtObject {
     property string filePath: ""
     property bool isLoaded: false
 
+    // Set by applyLoaded when the file holds something this version cannot read. What is in memory
+    // is then not what is on disk, so a write would destroy the real data — saves stay off until
+    // the file is replaced off-device. The rejecting store reports the cause; this base only
+    // enforces the block.
+    property bool isUnwritable: false
+
     signal saved
     signal saveFailed(string message)
 
@@ -29,18 +35,15 @@ QtObject {
     }
 
     // Defer past first paint.
-    Component.onCompleted: Qt.callLater(jsonStore._initialLoad)
+    Component.onCompleted: Qt.callLater(jsonStore.reload)
 
-    function _initialLoad() {
-        jsonStore.applyLoaded(Storage.readJson(jsonStore.filePath));
-        jsonStore.isLoaded = true;
-    }
-
-    // Re-read the (possibly re-pointed) file into memory. Used when a store swaps
-    // filePath at runtime — e.g. month navigation. Restores isLoaded to true; a
-    // caller that wants the dependent Loader to tear down and rebuild first sets
-    // isLoaded false before calling (see HabitsStore.loadMonth).
+    // Read the (possibly re-pointed) file into memory — once on startup, and again whenever a
+    // store swaps filePath at runtime, e.g. month navigation. Restores isLoaded to true; a caller
+    // that wants the dependent Loader to tear down and rebuild first sets isLoaded false before
+    // calling (see HabitsStore.loadMonth). Every read re-decides isUnwritable, so navigating off
+    // an unreadable file and back onto a readable one lifts the block.
     function reload() {
+        jsonStore.isUnwritable = false;
         jsonStore.applyLoaded(Storage.readJson(jsonStore.filePath));
         jsonStore.isLoaded = true;
     }
@@ -59,11 +62,16 @@ QtObject {
     }
 
     function _doSave() {
+        if (jsonStore.isUnwritable) {
+            jsonStore.saveFailed("Nothing is written to " + jsonStore.filePath + " while its contents are unreadable.");
+            return;
+        }
+
         try {
             Storage.writeJson(jsonStore.filePath, jsonStore.serialize());
         } catch (e) {
             console.warn("JsonStore: save failed for", jsonStore.filePath, "-", e);
-            jsonStore.saveFailed(String(e));
+            jsonStore.saveFailed("Check that the data/ folder exists on the device.\n\n" + String(e));
             return;
         }
 

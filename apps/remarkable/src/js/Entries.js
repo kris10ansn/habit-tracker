@@ -90,33 +90,3 @@ function outcomesByDate(entriesByDate) {
         return outcomes;
     }, {});
 }
-
-// Month files written before entries were normalized nest them as
-// { habitId: { dateKey: { state, updatedAt } } }, with state "" as the cleared marker. A deploy can
-// land before a month is rewritten, and reading such a file as empty would let the next toggle
-// overwrite it — so reads convert instead.
-function rowsFromLegacyMonth(legacyEntries) {
-    const src = legacyEntries && typeof legacyEntries === "object" ? legacyEntries : {};
-
-    return Object.keys(src).reduce((rows, habitId) => {
-        const cells = src[habitId] || {};
-        Object.keys(cells).forEach((dateKey) =>
-            rows.push(legacyRow(habitId, dateKey, cells[dateKey])),
-        );
-        return rows;
-    }, []);
-}
-
-const legacyRow = (habitId, dateKey, cell) => {
-    const state = (cell && cell.state) || UNMARKED;
-    const editedAt = (cell && cell.updatedAt) || 0;
-
-    return {
-        habitId: habitId,
-        date: dateKey,
-        // A legacy cleared cell recorded no prior outcome; X matches what its wire form sent.
-        outcome: state || X,
-        updatedAt: editedAt,
-        deletedAt: state ? null : editedAt,
-    };
-};

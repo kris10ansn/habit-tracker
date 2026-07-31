@@ -31,7 +31,7 @@ Rectangle {
         settingsStore.flushPendingSave();
         syncStore.flushPendingSave();
 
-        if (settingsStore.suspendImageEnabled && landscape.isCurrentMonth) {
+        if (landscape.canRenderSuspend) {
             suspendCanvas.renderAsync();
         }
 
@@ -47,7 +47,7 @@ Rectangle {
         habitsStore.flushPendingSave();
         settingsStore.flushPendingSave();
         syncStore.flushPendingSave();
-        if (settingsStore.suspendImageEnabled && landscape.isCurrentMonth)
+        if (landscape.canRenderSuspend)
             suspendCanvas.renderSync();
     }
 
@@ -101,7 +101,7 @@ Rectangle {
     Connections {
         target: habitsStore
         function onSaved() {
-            if (!landscape.editing && settingsStore.suspendImageEnabled && landscape.isCurrentMonth)
+            if (!landscape.editing && landscape.canRenderSuspend)
                 suspendCanvas.scheduleRender();
             syncStore.scheduleSync();
         }
@@ -122,7 +122,7 @@ Rectangle {
     Connections {
         target: settingsStore
         function onSuspendImageEnabledChanged() {
-            if (settingsStore.suspendImageEnabled && landscape.gridReady && !landscape.editing && landscape.isCurrentMonth)
+            if (landscape.canRenderSuspend && landscape.gridReady && !landscape.editing)
                 suspendCanvas.renderAsync();
         }
     }
@@ -156,6 +156,11 @@ Rectangle {
         readonly property int highlightDay: isCurrentMonth ? currentDay : 0
         readonly property int lastNonFutureDay: isCurrentMonth ? currentDay : (viewIsAfterCurrent ? 0 : daysInMonth)
 
+        // The precondition every suspend render shares: the feature is on, the real current month
+        // is on screen, and the grid is showing what is actually on disk — an unreadable file
+        // renders as an empty month, which must never reach the suspend image.
+        readonly property bool canRenderSuspend: settingsStore.suspendImageEnabled && isCurrentMonth && !habitsStore.hasUnreadableData
+
         // Tear the grid down and repoint the header this frame for instant feedback,
         // then defer the blocking month read past the paint (mirrors the deferred
         // first-open read). Qt.callLater dedups, so rapid hops collapse to a single
@@ -178,9 +183,9 @@ Rectangle {
             // Pull the arrived-at month from the server (no-op when standalone).
             syncStore.syncNow();
 
-            if (!landscape.isCurrentMonth) {
-                // A render debounced against the current month must not fire now
-                // that the model holds another month.
+            if (!landscape.canRenderSuspend) {
+                // A render debounced against the current month must not fire now that the model
+                // holds another month — or a month that could not be read.
                 suspendCanvas.cancelPending();
                 return;
             }
@@ -188,7 +193,7 @@ Rectangle {
             // Back on the current month: refresh the suspend image if it drifted
             // while we were away (e.g. suspend enabled mid-browse). scheduleRender
             // self-dedups, so an unchanged current month costs nothing.
-            if (settingsStore.suspendImageEnabled && !landscape.editing)
+            if (!landscape.editing)
                 suspendCanvas.scheduleRender();
         }
 
@@ -212,7 +217,7 @@ Rectangle {
                 : 0;
         }
 
-        onEditingChanged: if (!editing && settingsStore.suspendImageEnabled && isCurrentMonth)
+        onEditingChanged: if (!editing && canRenderSuspend)
             suspendCanvas.renderAsync()
 
         property int step: App.Theme.boxSize + App.Theme.boxSpacing
@@ -308,7 +313,7 @@ Rectangle {
                         asynchronous: true
                         active: habitsStore.isLoaded
                         visible: status === Loader.Ready
-                        onLoaded: if (settingsStore.suspendImageEnabled && landscape.isCurrentMonth)
+                        onLoaded: if (landscape.canRenderSuspend)
                             suspendCanvas.renderAsync()
 
                         sourceComponent: Component {
@@ -402,7 +407,7 @@ Rectangle {
             visible: habitsStore.saveError !== ""
             acknowledgeOnly: true
             confirmText: "Dismiss"
-            message: "Couldn’t save to storage — your changes are only in memory. Check that the data/ folder exists on the device.\n\n" + habitsStore.saveError
+            message: "Couldn’t save to storage — your changes are only in memory.\n\n" + habitsStore.saveError
             onConfirmed: habitsStore.clearSaveError()
             onCancelled: habitsStore.clearSaveError()
         }

@@ -39,6 +39,11 @@ QtObject {
 
     readonly property bool isLoaded: _roster.isLoaded && _month.isLoaded
 
+    // True while either file holds data this version cannot read. Those files are rendered as empty
+    // and never written to, so sync must stay off as well — it would push the empty month to the
+    // server and pull the server's answer back over the real data.
+    readonly property bool hasUnreadableData: _roster.isUnwritable || _month.isUnwritable
+
     // Sticky: true once the first load ever completes, and never false again — even
     // while a month switch briefly drops isLoaded to tear the grid down. The month
     // arrows gate on this (not isLoaded) so they stay live across switches.
@@ -88,29 +93,60 @@ QtObject {
         onSaveFailed: store.saveError = message
     }
 
-    // The one place a stored or synced habit becomes a model row, so field defaults and the
-    // tolerance for pre-polarity rosters live in a single spot.
-    function _modelItem(habit) {
-        const createdAt = habit.createdAt || Date.now();
-
+    // A habit that came off disk or off the wire, as a model row. Both sources carry every field,
+    // so nothing is defaulted here — only the entry slice is optional, the roster holding none.
+    function _storedItem(habit) {
         return {
-            id: habit.id || Ids.newId(),
+            id: habit.id,
             name: habit.name,
-            polarity: Polarity.fromHabit(habit),
+            polarity: habit.polarity,
             hideFromSleep: !!habit.hideFromSleep,
-            createdAt: createdAt,
-            updatedAt: habit.updatedAt || createdAt,
+            createdAt: habit.createdAt,
+            updatedAt: habit.updatedAt,
             deletedAt: null,
             entriesByDate: habit.entriesByDate || ({})
         };
     }
 
-    function _applyRoster(data) {
-        const hasRoster = data && Array.isArray(data.habits);
-        const stored = hasRoster ? data.habits : DefaultHabits.habits;
+    // A habit that does not exist yet: the only place identity and create-time are minted.
+    function _newItem(name, polarity) {
+        const createdAt = Date.now();
 
-        const items = stored.filter(habit => !habit.deletedAt).map(habit => store._modelItem(habit));
-        store.habitTombstones = stored.filter(habit => !!habit.deletedAt).map(habit => store._tombstoneRow(habit));
+        return {
+            id: Ids.newId(),
+            name: name,
+            polarity: polarity,
+            hideFromSleep: false,
+            createdAt: createdAt,
+            updatedAt: createdAt,
+            deletedAt: null,
+            entriesByDate: ({})
+        };
+    }
+
+    function _applyRoster(data) {
+        if (data && Array.isArray(data.habits)) {
+            const alive = data.habits.filter(habit => !habit.deletedAt).map(habit => store._storedItem(habit));
+            const tombstones = data.habits.filter(habit => !!habit.deletedAt).map(habit => HabitsModel.rosterRow(habit));
+
+            store._setRoster(alive, tombstones);
+            return;
+        }
+
+        if (!Storage.isMissing(data)) {
+            store._reject(store._roster, data);
+            store._setRoster([], []);
+            return;
+        }
+
+        // First run: no roster on disk. The seeded defaults carry name and polarity only, so those
+        // rows are minted rather than read, and the file is written straight away.
+        store._setRoster(DefaultHabits.habits.map(habit => store._newItem(habit.name, habit.polarity)), []);
+        store._roster._doSave();
+    }
+
+    function _setRoster(items, tombstones) {
+        store.habitTombstones = tombstones;
 
         // Bulk append — one rowsInserted vs N avoids per-row e-ink flash.
         store.habits.clear();
@@ -120,33 +156,39 @@ QtObject {
 
         store._rosterApplied = true;
         store._fold();
-
-        if (hasRoster) {
-            return;
-        }
-
-        if (Storage.isCorrupt(data)) {
-            console.warn("HabitsStore: refusing to overwrite corrupt roster at", store._roster.filePath, "- using defaults in memory only");
-            return;
-        }
-
-        store._roster._doSave();
-    }
-
-    function _tombstoneRow(habit) {
-        const row = HabitsModel.rosterRow(store._modelItem(habit));
-        row.deletedAt = habit.deletedAt;
-
-        return row;
     }
 
     function _applyMonth(data) {
-        const stored = data && data.entries;
-        const rows = Array.isArray(stored) ? stored : Entries.rowsFromLegacyMonth(stored);
+        if (data && Array.isArray(data.entries)) {
+            store._setMonthEntries(data.entries);
+            return;
+        }
 
+        if (!Storage.isMissing(data)) {
+            store._reject(store._month, data);
+        }
+
+        store._setMonthEntries([]);
+    }
+
+    function _setMonthEntries(rows) {
         store._pendingEntriesByHabitId = Entries.byHabitId(rows);
         store._monthApplied = true;
         store._fold();
+    }
+
+    // A file this version cannot read — unparseable, or parsed but not the shape it writes, e.g. an
+    // un-migrated month — must not be folded in as empty: the next toggle would overwrite the real
+    // data. Block writes to it and say why. The grid still loads, rendering the file as empty.
+    function _reject(file, data) {
+        file.isUnwritable = true;
+
+        if (Storage.isCorrupt(data)) {
+            store.saveError = "Couldn’t parse " + file.filePath + ". Nothing will be written to it.";
+            return;
+        }
+
+        store.saveError = "Unrecognised data in " + file.filePath + ". Nothing will be written to it until it has been migrated.";
     }
 
     function _fold() {
@@ -171,10 +213,7 @@ QtObject {
             return;
         }
 
-        habits.append(store._modelItem({
-            name: trimmed,
-            polarity: polarity
-        }));
+        habits.append(store._newItem(trimmed, polarity));
 
         _roster.scheduleSave();
     }
@@ -280,9 +319,15 @@ QtObject {
             };
         }
 
+        // A habit this device has never seen arrives with no local half, so it is stamped as
+        // created now — the closest thing to a create-time the wire can give us.
+        const syncedAt = Date.now();
         const items = (roster || []).map(habit => {
-                const local = localById[habit.id] || {};
-                return store._modelItem({
+                const local = localById[habit.id] || {
+                    hideFromSleep: false,
+                    createdAt: syncedAt
+                };
+                return store._storedItem({
                     id: habit.id,
                     name: habit.name,
                     polarity: habit.polarity,

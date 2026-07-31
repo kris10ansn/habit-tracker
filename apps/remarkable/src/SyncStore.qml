@@ -93,6 +93,9 @@ JsonStore {
         if (!syncStore.habitsStore || !syncStore.habitsStore.isLoaded) {
             return;
         }
+        if (syncStore.habitsStore.hasUnreadableData) {
+            return;
+        }
 
         syncStore._syncTimer.stop();
         syncStore._tickTimer.stop();
