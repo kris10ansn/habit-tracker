@@ -42,7 +42,7 @@ deploy: build
 remove:
 	ssh $(REMARKABLE_HOST) "rm -rf $(REMOTE_DIR)"
 
-# Pull the device's data/ into a timestamped local backup (e.g. .backups/2026-06-24_14-30-05).
+# Pull the device's data/ into a timestamped local backup (e.g. .backup/2026-06-24_14-30-05).
 backup:
 	mkdir -p $(BACKUP_DIR)
 	rsync -avz $(REMARKABLE_HOST):$(REMOTE_DIR)/data/ "$(BACKUP_DIR)/$(shell date +%Y-%m-%d_%H-%M-%S)/"

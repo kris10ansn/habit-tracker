@@ -32,7 +32,7 @@ Content-Type: application/json
 DELETE {{HabitTracker.Api_HostAddress}}/api/habits/{{createHabit.response.body.$.id}}
 
 ### Sync: merge the client's roster + month(s) and get the authoritative alive state back.
-# Timestamps are epoch milliseconds UTC; `deleted: true` rows are tombstones (ADR 0003).
+# Timestamps are epoch milliseconds UTC; `deleted: true` rows are tombstones.
 POST {{HabitTracker.Api_HostAddress}}/api/sync
 Content-Type: application/json
 
