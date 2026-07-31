@@ -124,8 +124,16 @@ QtObject {
         };
     }
 
+    // The envelope alone does not prove the shape: a pre-polarity roster is also `{ habits: [ … ] }`,
+    // so accepting it on `Array.isArray` would render every negative habit as positive and drop
+    // `negative` from the file on the next save — the silent overwrite ADR 0006 exists to prevent.
+    // The month file needs no equivalent: its legacy `entries` was an object, not an array.
+    function _isRosterRow(habit) {
+        return !!habit && !!habit.id && !!habit.name && !!habit.polarity && !!habit.createdAt;
+    }
+
     function _applyRoster(data) {
-        if (data && Array.isArray(data.habits)) {
+        if (data && Array.isArray(data.habits) && data.habits.every(store._isRosterRow)) {
             const alive = data.habits.filter(habit => !habit.deletedAt).map(habit => store._storedItem(habit));
             const tombstones = data.habits.filter(habit => !!habit.deletedAt).map(habit => HabitsModel.rosterRow(habit));
 
@@ -273,11 +281,11 @@ QtObject {
         _roster.scheduleSave();
     }
 
-    function setHideFromSleep(index, hidden) {
+    function toggleHideFromSleep(index) {
         if (!_inBounds(index)) {
             return;
         }
-        habits.setProperty(index, "hideFromSleep", !!hidden);
+        habits.setProperty(index, "hideFromSleep", !habits.get(index).hideFromSleep);
         _roster.scheduleSave();
     }
 

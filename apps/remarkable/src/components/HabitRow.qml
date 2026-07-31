@@ -71,7 +71,7 @@ Row {
         Text {
             anchors.fill: parent
             visible: !habitRow.editing
-            text: habitRow.isNegative ? habitRow.name + " (-)" : habitRow.name
+            text: habitRow.isNegative ? habitRow.name + " (−)" : habitRow.name
             font.pixelSize: App.Theme.labelFont
             color: App.Theme.fg
             verticalAlignment: Text.AlignVCenter

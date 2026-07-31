@@ -126,7 +126,7 @@ Canvas {
     }
 
     function _upToDate() {
-        return SuspendDraw.computeSignature(HabitsModel.toArray(canvas.habits), canvas.today) === canvas.lastRenderedSignature;
+        return SuspendDraw.computeSignature(HabitsModel.toSuspendHabits(canvas.habits), canvas.today) === canvas.lastRenderedSignature;
     }
 
     function _beginSaving() {
@@ -148,7 +148,7 @@ Canvas {
     }
 
     function _draw() {
-        SuspendDraw.draw(canvas.getContext("2d"), canvas.width, canvas.height, HabitsModel.toArray(canvas.habits), canvas.today, canvas.drawConfig);
+        SuspendDraw.draw(canvas.getContext("2d"), canvas.width, canvas.height, HabitsModel.toSuspendHabits(canvas.habits), canvas.today, canvas.drawConfig);
     }
 
     function _beginAsyncRender() {
@@ -164,7 +164,7 @@ Canvas {
             console.warn("SuspendCanvas: save failed for", canvas.targetPath);
             return;
         }
-        canvas.lastRenderedSignature = SuspendDraw.computeSignature(HabitsModel.toArray(canvas.habits), canvas.today);
+        canvas.lastRenderedSignature = SuspendDraw.computeSignature(HabitsModel.toSuspendHabits(canvas.habits), canvas.today);
         SuspendRender.writeSignature(canvas.signaturePath, canvas.lastRenderedSignature);
     }
 }

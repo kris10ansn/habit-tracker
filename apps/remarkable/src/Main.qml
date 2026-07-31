@@ -289,7 +289,7 @@ Rectangle {
                         scrollY: landscape.scrollY
                         onRemoveRequested: landscape.pendingDeleteIndex = index
                         onPolarityToggled: habitsStore.togglePolarity(index)
-                        onHideFromSleepToggled: habitsStore.setHideFromSleep(index, !habitsStore.habits.get(index).hideFromSleep)
+                        onHideFromSleepToggled: habitsStore.toggleHideFromSleep(index)
                         onNameEdited: habitsStore.setName(index, newName)
                         onMoveRequested: habitsStore.move(from, to)
                         onAddRequested: habitsStore.add(name, polarity)

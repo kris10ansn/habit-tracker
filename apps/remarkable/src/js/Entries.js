@@ -2,12 +2,12 @@
 
 // Entry rows in the backend's SyncEntry shape: one normalized (habitId, date) row per marked day,
 // carrying its outcome, edit-time and `deletedAt` tombstone stamp (null while alive). The month
-// file persists these rows verbatim, so file, wire format and in-memory value are one shape.
+// file persists these rows as they are, so file and in-memory value are one shape; only `outcome`
+// is respelled on the wire (see Sync.js).
 //
 // In memory the rows are indexed per habit as { dateKey: row } and that slice is held on the
-// habit's ListModel row, because it is the only per-habit reactive vehicle QML gives us: replacing
-// one habit's slice re-evaluates that row's ~31 cell bindings, where a single grid-wide index
-// would re-evaluate all ~600 on every tap. See docs/adr/0005.
+// habit's ListModel row, because it is the only per-habit reactive vehicle QML gives us — a
+// grid-wide index would invalidate every cell binding on every tap. See docs/adr/0005.
 
 const UNMARKED = "";
 const X = "x";
@@ -77,8 +77,8 @@ function withRow(entriesByDate, row) {
     return next;
 }
 
-// Alive outcomes only, flattened to dateKey -> outcome. The suspend canvas draws and dedups on the
-// visible outcome alone, so this drops tombstones and timestamps before they reach SuspendDraw.
+// The suspend canvas draws and dedups on the visible outcome alone, so tombstones and timestamps
+// are dropped before they reach SuspendDraw.
 function outcomesByDate(entriesByDate) {
     const src = entriesByDate || {};
 

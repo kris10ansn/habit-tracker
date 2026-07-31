@@ -1,3 +1,5 @@
+.import "Entries.js" as Entries
+
 // Translation between the client's roster/month state and the backend sync wire format.
 // Pure functions only — the QML SyncStore does the I/O. Timestamps are epoch ms UTC.
 // Polarity and the tombstone encoding are now stored as the wire spells them, so the only
@@ -5,10 +7,9 @@
 
 const SUCCESS = "Success";
 const FAILURE = "Failure";
-const X = "x";
 
-const outcomeToWire = (outcome) => (outcome === X ? SUCCESS : FAILURE);
-const outcomeFromWire = (outcome) => (outcome === SUCCESS ? X : "o");
+const outcomeToWire = (outcome) => (outcome === Entries.X ? SUCCESS : FAILURE);
+const outcomeFromWire = (outcome) => (outcome === SUCCESS ? Entries.X : Entries.O);
 
 // Build the sync request. roster: alive habit rows in display order (index becomes Position).
 // tombstones: soft-deleted habit rows carrying deletedAt. entryRows: the viewed month's entry rows,

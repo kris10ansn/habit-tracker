@@ -15,7 +15,7 @@ Row {
     property string polarity: Polarity.POSITIVE
 
     // This habit's slice of the viewed month: dateKey -> entry row. Replacing it re-evaluates only
-    // this row's cells, which is why the slice lives on the habit's ListModel row (see Entries.js).
+    // this row's cells, which is why the slice is per-habit rather than grid-wide (see Entries.js).
     property var entriesByDate: ({})
 
     property real boxSize: App.Theme.boxSize
@@ -40,8 +40,8 @@ Row {
 
             readonly property int day: index + 1
             readonly property bool isFuture: day > gridRow.lastNonFutureDay
-            readonly property var row: (gridRow.entriesByDate || {})[DateUtils.dateKey(gridRow.year, gridRow.month, day)]
-            readonly property string outcome: Entries.outcomeOf(row)
+            readonly property var entryRow: (gridRow.entriesByDate || {})[DateUtils.dateKey(gridRow.year, gridRow.month, day)]
+            readonly property string outcome: Entries.outcomeOf(entryRow)
             readonly property bool showsImplicitX: gridRow.isNegative && !isFuture
             readonly property string mark: Entries.markFor(outcome, showsImplicitX)
             readonly property bool faded: mark === "O" || isFuture

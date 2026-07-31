@@ -4,9 +4,7 @@
 // source of truth; each store serializes its own slice. Habit rows carry identity + config +
 // create-time + an updatedAt edit-time; entries are normalized rows held per habit by date key.
 
-// Suspend-canvas projection: entries flattened to dateKey -> outcome, dropping the tombstones and
-// timestamps the drawing and its dedup signature never look at.
-function toArray(model) {
+function toSuspendHabits(model) {
     if (!model || typeof model.count !== "number") return [];
 
     const out = [];
@@ -22,9 +20,8 @@ function toArray(model) {
     return out;
 }
 
-// One habit as the roster file persists it and the wire format sends it, mirroring the backend's
-// Habit. Model rows are always alive, so `deletedAt` is null for them; HabitsStore keeps tombstoned
-// rows of this same shape in habitTombstones.
+// Model rows are always alive, so `deletedAt` is null for them; HabitsStore keeps tombstoned rows
+// of this same shape in habitTombstones.
 function rosterRow(habit) {
     return {
         id: habit.id,
@@ -37,7 +34,7 @@ function rosterRow(habit) {
     };
 }
 
-// Roster projection: the alive habits in display order, no entries. Array order is Position.
+// Array order is Position.
 function toRoster(model) {
     if (!model || typeof model.count !== "number") return [];
 
@@ -48,9 +45,9 @@ function toRoster(model) {
     return out;
 }
 
-// Month projection: every loaded entry row, flat. Tombstones are kept — they are what the next sync
-// pushes. Rows whose habit is no longer in the roster are dropped, which is how a deleted habit's
-// entries eventually leave the month files (see ADR 0002).
+// Tombstones are kept — they are what the next sync pushes. Rows whose habit is no longer in the
+// roster are dropped, which is how a deleted habit's entries eventually leave the month files
+// (see ADR 0002).
 function toMonthEntryRows(model) {
     if (!model || typeof model.count !== "number") return [];
 

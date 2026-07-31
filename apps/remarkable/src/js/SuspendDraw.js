@@ -1,4 +1,5 @@
 .import "DateUtils.js" as DateUtils
+.import "Entries.js" as Entries
 .import "Polarity.js" as Polarity
 
 function computeSignature(habits, today) {
@@ -124,8 +125,9 @@ const drawHabitCells = (ctx, x, y, habit, daysIn, currentDay, year, month, cfg) 
         if (d > currentDay) continue;
 
         const outcome = entries[DateUtils.dateKey(year, month, d)] || "";
-        const mark = outcome === "x" || (Polarity.isNegative(habit.polarity) && outcome !== "o") ? "X" : "";
-        if (!mark) continue;
+        // Unlike the grid, the suspend image draws X only — an O day is left blank.
+        const mark = Entries.markFor(outcome, Polarity.isNegative(habit.polarity));
+        if (mark !== "X") continue;
 
         ctx.fillStyle = cfg.fg;
         ctx.font = `bold ${cfg.boxSize * 0.7}px sans-serif`;
