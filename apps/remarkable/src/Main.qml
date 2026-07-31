@@ -42,6 +42,9 @@ Rectangle {
         root._waitForPendingOperations();
     }
 
+    // Teardown flushes local state only — deliberately never syncs. A network round-trip here has
+    // no frame left to report into and no way to apply the merged response, so a sync on quit can
+    // only lose the result. Pending edits reach the server on the next launch's load-sync instead.
     function unloading() {
         console.log("Habit Tracker unloading");
         habitsStore.flushPendingSave();

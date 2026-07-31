@@ -3,7 +3,8 @@ namespace HabitTracker.Api.Entities;
 /// <summary>
 /// One day's recorded result for a habit. Composite-keyed by (HabitId, Date) so there
 /// is at most one entry per habit per day and writes are a clean upsert. The log is
-/// permissive: any Outcome may be stored against any habit (see ADR 0001).
+/// permissive: any Outcome may be stored against any habit — "negative habits only record
+/// Failure" is a client convention, not a backend rule.
 /// </summary>
 public class Entry : ITimestamped
 {
@@ -15,8 +16,7 @@ public class Entry : ITimestamped
 
     /// <summary>
     /// The client's edit-time (UTC) for this entry's current state — the last-write-wins merge key
-    /// for sync, stored verbatim and distinct from the server-stamped <see cref="UpdatedAt"/>. See
-    /// ADR 0003.
+    /// for sync, stored verbatim and distinct from the server-stamped <see cref="UpdatedAt"/>.
     /// </summary>
     public DateTimeOffset EditedAt { get; set; }
 

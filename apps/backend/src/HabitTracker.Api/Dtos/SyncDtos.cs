@@ -2,7 +2,7 @@ using HabitTracker.Api.Entities;
 
 namespace HabitTracker.Api.Dtos;
 
-// Sync wire format (ADR 0003). Timestamps are epoch milliseconds UTC — the client stamps
+// Sync wire format. Timestamps are epoch milliseconds UTC — the client stamps
 // Date.now() and the server stores that verbatim as the row's edit-time merge key. A `Deleted`
 // item is a tombstone whose `UpdatedAt` is the delete-time; its payload fields are then ignored.
 // Requests carry alive rows + tombstones; responses carry the authoritative ALIVE state only.

@@ -7,8 +7,7 @@ namespace HabitTracker.Api.Services;
 
 /// <summary>
 /// Habit CRUD scoped to the current user. Talks to the DbContext directly — at this
-/// size DbContext is already a Unit-of-Work + repository, so no extra abstraction
-/// (see ADR 0002).
+/// size DbContext is already a Unit-of-Work + repository, so no extra abstraction.
 /// </summary>
 public class HabitService
 {
@@ -105,7 +104,7 @@ public class HabitService
         }
 
         // Soft-delete: a tombstone the next sync can propagate, not a hard delete that would
-        // let another device resurrect the habit (see ADR 0003).
+        // let another device resurrect the habit.
         var now = DateTimeOffset.UtcNow;
         habit.EditedAt = now;
         habit.DeletedAt = now;
