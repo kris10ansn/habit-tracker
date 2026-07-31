@@ -2,7 +2,7 @@ namespace HabitTracker.Api.Entities;
 
 /// <summary>
 /// A tracked behaviour owned by a single User. Device-only client fields (e.g.
-/// hideFromSleep) do not cross into the backend — see ADR 0001.
+/// hideFromSleep) do not cross into the backend.
 /// </summary>
 public class Habit : ITimestamped
 {
@@ -20,7 +20,7 @@ public class Habit : ITimestamped
     /// <summary>
     /// The client's edit-time (UTC) for this row's current state — the last-write-wins merge key
     /// for sync. Stored verbatim from the editing client, so it lives in a different clock domain
-    /// from the server-stamped <see cref="UpdatedAt"/> audit field. See ADR 0003.
+    /// from the server-stamped <see cref="UpdatedAt"/> audit field.
     /// </summary>
     public DateTimeOffset EditedAt { get; set; }
 
