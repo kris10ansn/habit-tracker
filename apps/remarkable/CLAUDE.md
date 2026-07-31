@@ -32,19 +32,39 @@ a modal names the file. A forgotten migration costs a dialog, never data. See
 
 Under no circumstance may the agent run `ssh`, `scp`, `rsync`, `make deploy`, `make remove`, or any other command that touches the reMarkable. That includes "read-only" probes like `ssh remarkable journalctl …` or `ssh remarkable ls …`. The user runs all device-side commands and pastes back the output. If a step requires device interaction, describe what to run and wait — do not execute it.
 
-This applies even when a `make` target wraps the SSH (e.g. `make deploy`, `make remove`) — those are user-only.
+This applies even when a `make` target wraps the SSH. The full user-only set is `make deploy`, `make remove`, **`make backup`** (rsyncs the device's `data/` back) and **`make suspend-writer-deploy`** — plus their `pnpm remarkable:*` delegators. Assume any target not listed as local below touches the device.
 
 ## Commands
 
-- `make build` — compiles `application.qrc` → `build/resources.rcc` via `rcc-qt5`, stages `manifest.json` + `icon.png` alongside it.
-- `make deploy` — builds, then `scp`s `build/*` to `/home/root/xovi/exthome/appload/habit-tracker/` on the device.
-- `make remove` — uninstalls from the device.
+Local (agent-runnable):
+
+- `make build` — stages `src/` into `build/src/` (see the `.pragma library` injection below), then compiles `application.qrc` → `build/resources.rcc` via `rcc-qt5` and stages `manifest.json` + `icon.png` alongside it.
+- `make lint` — runs `qmllint-qt5` over every `src/**/*.qml`. Best-effort: it prints a skip notice and succeeds if `qmllint-qt5` isn't installed, so a clean exit is not proof it ran.
 - `make clean` — removes local `build/`.
-- `make suspend-writer-host` — builds `tools/suspend-writer` against host Qt5 for previewing a render as a PNG, no device or SDK needed. `suspend-writer-device` cross-builds it (needs the SDK), `suspend-writer-deploy` ships it plus the `SW_JS_MODULES` list. See that tool's README.
+- `make suspend-writer-host` / `suspend-writer-clean` — host build of the off-device renderer against host Qt5, for previewing a render as a PNG; no device or SDK needed (see below).
 
-Overrides: `make REMARKABLE_HOST=<host>` (default `remarkable`), `make RCC=<path>` (default `rcc-qt5`; rM1 is Qt 5.15, so Qt 5's rcc is required).
+Device-touching (**user-only**, never run these): `make deploy`, `make remove`, `make backup`, `make suspend-writer-device` (needs the SDK), `make suspend-writer-deploy`.
 
-There are no tests or linters.
+Overrides: `make REMARKABLE_HOST=<host>` (default `remarkable`), `make RCC=<path>` (default `rcc-qt5`; rM1 is Qt 5.15, so Qt 5's rcc is required), `make QMLLINT=<path>`.
+
+There are no tests. `make lint` is the only checker, and it covers QML only — nothing checks `src/js/`.
+
+## suspend-writer: a second consumer of the JS renderer — tell the user when you break it
+
+`tools/suspend-writer/` is a standalone C++ tool that draws the suspend image **off-device**: it
+hosts `src/js/SuspendDraw.js` and its `.import` chain in a `QJSEngine` behind a QPainter-backed
+Canvas2D shim, so the same renderer runs without a QML runtime. It has its own
+[README](tools/suspend-writer/README.md) and its own build scripts (host = Qt5 no SDK; device =
+ARM/Qt6, needs the SDK unpacked at `tools/suspend-writer/sdk/`). `suspend-writer-deploy` copies the
+`SW_JS_MODULES` list to the device *loose*, next to the ARM binary, because the app itself only
+ships those modules inside `resources.rcc`.
+
+So **`src/js` has a consumer outside the app.** Two kinds of change break it, and **neither fails `make build` or `make lint`**:
+
+- **A storage-shape change** (roster rows, month entry rows). `main.cpp` joins the month's entry rows onto the roster by habit id before handing them to `HabitsModel.toSuspendHabits` — that join is the only copy of the on-disk shape outside `src/`, and it also guards the shape, so stale data exits 2 instead of drawing a wrong grid. Keep the projection *in the JS modules*: reimplementing any of it in `main.cpp` is what let the tool silently drift out of date once already.
+- **A new `.import`** in `SuspendDraw.js`, `HabitsModel.js`, `Entries.js` or `Polarity.js`. Each module is loaded explicitly in `main.cpp` with its export list and deployed via `SW_JS_MODULES` in the Makefile; a missing one is a runtime `ReferenceError`, not a build error.
+
+**Call this out in your summary whenever a change touches either** — the tool is built and deployed separately, so it stays broken on the device until the user rebuilds it. Verify with `make suspend-writer-host` plus a render against migrated `.backup/` data: the output should be byte-identical to a pre-change render unless the change was meant to alter it.
 
 ## How apploader loads the app — the non-obvious bits
 
@@ -79,15 +99,6 @@ Tail this in another terminal while launching the app. apploader prefixes its ow
 Append to `<qresource>` in `application.qrc` **and** register the type in the directory's `qmldir`. The `entry` field stays pointing at the root component. `make build` fails on a file listed in the `.qrc` that doesn't exist, but silently omits an existing file you forgot to list — it then fails at load on the device.
 
 For `src/js/*.js`: **never write `.pragma library` into the source.** The `inject-pragma` build step prepends it to every JS file when staging `build/src/`, so sources omit it and stay parseable by prettier and the editor. `.import "Other.js" as Other` *does* belong in the source (JS→JS deps can't use QML imports once the pragma makes the file a shared library); prettier can't parse those files, which is why a few already fail `--check`.
-
-## The suspend-writer shares this app's JS — tell the user when you break it
-
-`tools/suspend-writer/` hosts `SuspendDraw.js` and its `.import` chain in a `QJSEngine` outside QML. Two kinds of change break it, and **neither fails `make build` or `make lint`**:
-
-- **A storage-shape change** (roster rows, month entry rows). `main.cpp` joins the month's entry rows onto the roster by habit id before handing them to `HabitsModel.toSuspendHabits` — that join is the only copy of the on-disk shape outside `src/`, and it also guards the shape, so stale data exits 2 instead of drawing a wrong grid. Keep the projection *in the JS modules*: reimplementing any of it in `main.cpp` is what let the tool silently drift out of date once already.
-- **A new `.import`** in `SuspendDraw.js`, `HabitsModel.js`, `Entries.js` or `Polarity.js`. Each module is loaded explicitly in `main.cpp` with its export list and deployed via `SW_JS_MODULES` in the Makefile; a missing one is a runtime `ReferenceError`, not a build error.
-
-**Call this out in your summary whenever a change touches either** — the tool is built and deployed separately, so it stays broken on the device until the user rebuilds it. Verify with `make suspend-writer-host` plus a render against migrated `.backup/` data: the output should be byte-identical to a pre-change render unless the change was meant to alter it.
 
 ## QML import namespaces
 

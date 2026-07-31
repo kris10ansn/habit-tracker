@@ -22,6 +22,11 @@ docker-compose.yml             local PostgreSQL
 Auth is deferred: every request acts as a single seeded **stub user** (`CurrentUser`) — the one seam
 to replace when authentication lands.
 
+> **The API is unauthenticated by design, not by oversight.** Anyone who can reach it can read and
+> overwrite every habit and entry. Run it on a trusted network only — home LAN, Tailscale, or a VPN
+> — and never expose it to the open internet. This is a deliberate v1 limitation; it is recorded
+> here so nobody deploys it publicly assuming auth exists somewhere.
+
 ## Prerequisites
 
 - .NET 10 SDK

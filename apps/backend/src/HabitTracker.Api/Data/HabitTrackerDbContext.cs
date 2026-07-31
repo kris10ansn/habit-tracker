@@ -50,7 +50,8 @@ public class HabitTrackerDbContext : DbContext
         });
 
         // Seed the stub account so ownership FKs resolve before auth exists.
-        // No habits are seeded — new users start empty.
+        // No habits are seeded — new users start empty, so a first Sync from a fresh client is
+        // what populates the canonical store.
         modelBuilder.Entity<User>().HasData(
             new User
             {

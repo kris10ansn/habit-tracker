@@ -3,7 +3,8 @@ namespace HabitTracker.Api.Entities;
 /// <summary>
 /// One day's recorded result for a habit. Composite-keyed by (HabitId, Date) so there
 /// is at most one entry per habit per day and writes are a clean upsert. The log is
-/// permissive: any Outcome may be stored against any habit.
+/// permissive: any Outcome may be stored against any habit — "negative habits only record
+/// Failure" is a client convention, not a backend rule.
 /// </summary>
 public class Entry : ITimestamped
 {
