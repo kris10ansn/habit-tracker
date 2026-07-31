@@ -20,18 +20,35 @@ This is the `apps/remarkable/` app in the habit-tracker monorepo (pnpm workspace
 
 Under no circumstance may the agent run `ssh`, `scp`, `rsync`, `make deploy`, `make remove`, or any other command that touches the reMarkable. That includes "read-only" probes like `ssh remarkable journalctl …` or `ssh remarkable ls …`. The user runs all device-side commands and pastes back the output. If a step requires device interaction, describe what to run and wait — do not execute it.
 
-This applies even when a `make` target wraps the SSH (e.g. `make deploy`, `make remove`) — those are user-only.
+This applies even when a `make` target wraps the SSH. The full user-only set is `make deploy`, `make remove`, **`make backup`** (rsyncs the device's `data/` back) and **`make suspend-writer-deploy`** — plus their `pnpm remarkable:*` delegators. Assume any target not listed as local below touches the device.
 
 ## Commands
 
-- `make build` — compiles `application.qrc` → `build/resources.rcc` via `rcc-qt5`, stages `manifest.json` + `icon.png` alongside it.
-- `make deploy` — builds, then `scp`s `build/*` to `/home/root/xovi/exthome/appload/habit-tracker/` on the device.
-- `make remove` — uninstalls from the device.
+Local (agent-runnable):
+
+- `make build` — stages `src/` into `build/src/` (see the `.pragma library` injection below), then compiles `application.qrc` → `build/resources.rcc` via `rcc-qt5` and stages `manifest.json` + `icon.png` alongside it.
+- `make lint` — runs `qmllint-qt5` over every `src/**/*.qml`. Best-effort: it prints a skip notice and succeeds if `qmllint-qt5` isn't installed, so a clean exit is not proof it ran.
 - `make clean` — removes local `build/`.
+- `make suspend-writer-host` / `suspend-writer-clean` — host build of the off-device renderer (see below).
 
-Overrides: `make REMARKABLE_HOST=<host>` (default `remarkable`), `make RCC=<path>` (default `rcc-qt5`; rM1 is Qt 5.15, so Qt 5's rcc is required).
+Device-touching (**user-only**, never run these): `make deploy`, `make remove`, `make backup`, `make suspend-writer-device` (needs the SDK), `make suspend-writer-deploy`.
 
-There are no tests or linters.
+Overrides: `make REMARKABLE_HOST=<host>` (default `remarkable`), `make RCC=<path>` (default `rcc-qt5`; rM1 is Qt 5.15, so Qt 5's rcc is required), `make QMLLINT=<path>`.
+
+There are no tests. `make lint` is the only checker, and it covers QML only — nothing checks `src/js/`.
+
+## suspend-writer: a second consumer of the JS renderer
+
+`tools/suspend-writer/` is a standalone C++ tool that draws the suspend image **off-device**: it
+hosts `src/js/SuspendDraw.js` in a `QJSEngine` behind a QPainter-backed Canvas2D shim, so the same
+renderer runs without a QML runtime. It has its own [README](tools/suspend-writer/README.md) and its
+own build scripts (host = Qt5 no SDK; device = ARM/Qt6, needs the SDK unpacked at `tools/suspend-writer/sdk/`).
+
+Why it matters when editing QML/JS: **`src/js/SuspendDraw.js` and `src/js/DateUtils.js` have a
+consumer outside the app.** `suspend-writer-deploy` copies those two files to the device *loose*,
+next to the ARM binary, because the app itself only ships them inside `resources.rcc`. So changing
+their exports, or making either depend on a new `src/js` module, breaks the tool silently — the app
+keeps working. Check `tools/suspend-writer/main.cpp` before reshaping either module.
 
 ## How apploader loads the app — the non-obvious bits
 
