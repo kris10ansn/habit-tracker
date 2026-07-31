@@ -18,6 +18,9 @@
 #include <QJSEngine>
 #include <QFile>
 #include <QTextStream>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
 #include <QDebug>
 #include <cmath>
 
@@ -136,6 +139,35 @@ static QString readFile(const QString &path) {
     return QTextStream(&file).readAll();
 }
 
+static bool refuse(const QString &path, const QString &why) {
+    qWarning().noquote() << path << "is in an older storage shape (" + why + ")."
+                         << "Run scripts/migrate-backend-shaped-rows.mjs against a copy first"
+                         << "— see docs/adr/0006-external-one-shot-migrations.md.";
+    return true;
+}
+
+// The app refuses a file it cannot read rather than folding it in as empty (ADR 0006). The tool
+// does the same: rendering a pre-migration file would silently produce a blank or wrong grid,
+// which reads as "no marks yet" rather than "wrong format".
+static bool refusesShape(const QString &rosterJson, const QString &rosterPath,
+                         const QString &monthJson, const QString &monthPath) {
+    const QJsonArray habits =
+        QJsonDocument::fromJson(rosterJson.toUtf8()).object().value("habits").toArray();
+
+    for (const QJsonValue &habit : habits) {
+        if (!habit.toObject().contains("polarity"))
+            return refuse(rosterPath, "a habit has no `polarity`");
+    }
+
+    const QJsonValue entries =
+        QJsonDocument::fromJson(monthJson.toUtf8()).object().value("entries");
+
+    if (!entries.isUndefined() && !entries.isArray())
+        return refuse(monthPath, "`entries` is not an array of rows");
+
+    return false;
+}
+
 int main(int argc, char *argv[]) {
     qputenv("QT_QPA_PLATFORM", "offscreen");
     QGuiApplication app(argc, argv);
@@ -163,6 +195,8 @@ int main(int argc, char *argv[]) {
     const QString rosterJson = readFile(rosterPath);
     if (rosterJson.isEmpty()) return 1;
     const QString monthJson = monthPath.isEmpty() ? QStringLiteral("{}") : readFile(monthPath);
+
+    if (refusesShape(rosterJson, rosterPath, monthJson, monthPath)) return 2;
 
     QDate today = QDate::currentDate();
     if (!todayArg.isEmpty()) {
@@ -204,30 +238,48 @@ int main(int argc, char *argv[]) {
                    "{ daysInMonth: daysInMonth, monthName: monthName, dateKey: dateKey, "
                    "monthKey: monthKey, ordinal: ordinal }") + ";";
 
+    const QString polarity =
+        "var Polarity = " +
+        loadModule(jsDir + "/Polarity.js",
+                   "{ POSITIVE: POSITIVE, NEGATIVE: NEGATIVE, isNegative: isNegative, "
+                   "toggled: toggled }") + ";";
+
+    const QString entries =
+        "var Entries = " +
+        loadModule(jsDir + "/Entries.js",
+                   "{ markFor: markFor, outcomeOf: outcomeOf, byHabitId: byHabitId, "
+                   "outcomesByDate: outcomesByDate }") + ";";
+
+    const QString habitsModel =
+        "var HabitsModel = " +
+        loadModule(jsDir + "/HabitsModel.js",
+                   "{ toSuspendHabits: toSuspendHabits }") + ";";
+
     const QString suspendDraw =
         "var SuspendDraw = " +
         loadModule(jsDir + "/SuspendDraw.js",
                    "{ draw: draw, computeSignature: computeSignature }") + ";";
 
-    // Join roster (display order + config) with the month's entries, flattening
-    // { state, updatedAt } cells to bare state strings and dropping empties —
-    // mirrors HabitsModel.toArray / statesOf, the projection SuspendDraw expects.
+    // Join the month's entry rows onto the roster by habit id — the one step HabitsStore does that
+    // has no module of its own — then hand that to the app's own projection through a stand-in for
+    // the QML ListModel it reads. Which habits and marks render (tombstones, hidden habits, glyph
+    // choice) stays in HabitsModel and Entries, so a storage change lands here or nowhere rather
+    // than silently drifting in a copy.
     const QString data =
         "var today = new Date(todayYear, todayMonth, todayDay);"
         "var rosterDoc = JSON.parse(rosterJson);"
         "var roster = rosterDoc && Array.isArray(rosterDoc.habits) ? rosterDoc.habits : [];"
+        "var alive = roster.filter(function(habit) { return !habit.deletedAt; });"
         "var monthDoc = JSON.parse(monthJson);"
-        "var month = monthDoc && monthDoc.entries ? monthDoc.entries : {};"
-        "var habits = roster.map(function(habit) {"
-        "  var cells = month[habit.id] || {};"
-        "  var entries = {};"
-        "  Object.keys(cells).forEach(function(date) {"
-        "    var state = cells[date] && cells[date].state ? cells[date].state : '';"
-        "    if (state) entries[date] = state;"
-        "  });"
-        "  return { name: habit.name, negative: !!habit.negative,"
-        "    hideFromSleep: !!habit.hideFromSleep, entries: entries };"
-        "});";
+        "var entryRows = monthDoc && Array.isArray(monthDoc.entries) ? monthDoc.entries : [];"
+        "var entriesByHabitId = Entries.byHabitId(entryRows);"
+        "var rosterModel = { count: alive.length, get: function(i) {"
+        "  var habit = alive[i];"
+        "  return { name: habit.name, polarity: habit.polarity,"
+        "    hideFromSleep: !!habit.hideFromSleep,"
+        "    entriesByDate: entriesByHabitId[habit.id] || {} };"
+        "} };"
+        "var habits = HabitsModel.toSuspendHabits(rosterModel);";
 
     const QString cfg =
         "var cfg = { margin: 40, habitsWidth: 360, boxSize: 40, boxSpacing: 5,"
@@ -235,7 +287,8 @@ int main(int argc, char *argv[]) {
         "  subtitleFont: 24, labelFont: 28, dayLabelFont: 22, borderWidth: 2,"
         "  fg: '#000000', bg: '#ffffff' };";
 
-    const QString script = qtShim + dateUtils + suspendDraw + data + cfg +
+    const QString script = qtShim + dateUtils + polarity + entries + habitsModel +
+        suspendDraw + data + cfg +
         "SuspendDraw.draw(ctx, 1404, 1872, habits, today, cfg);";
 
     const QJSValue result = engine.evaluate(script);

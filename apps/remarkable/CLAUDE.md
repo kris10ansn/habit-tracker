@@ -8,7 +8,7 @@ Update CLAUDE.md as you learn the user's preferences for code style, workflow, o
 
 ## What this is
 
-A pure-QML **habit tracker** for **reMarkable 1**, launched via **apploader** — specifically the XOVI extension `asivery/rm-appload`. apploader's frontend runtime is QML, loaded inside xochitl's process. No native/C++ component — the whole app is QML + plain JS. Renders a landscape grid of habits × days-of-the-current-month with the current day highlighted.
+A pure-QML **habit tracker** for **reMarkable 1**, launched via **apploader** — specifically the XOVI extension `asivery/rm-appload`. apploader's frontend runtime is QML, loaded inside xochitl's process. The shipped app is QML + plain JS with no native component; the one C++ thing in the tree, `tools/suspend-writer/`, is a dev tool that hosts the app's own JS modules outside QML and is never part of a build or deploy. Renders a landscape grid of habits × days-of-the-current-month with the current day highlighted.
 
 This is the `apps/remarkable/` app in the habit-tracker monorepo (pnpm workspaces). It runs fully standalone by default and *optionally* syncs to the monorepo's backend (`apps/backend/`, ASP.NET Core + EF Core + PostgreSQL) when the user sets a Server URL. See the monorepo-root `CLAUDE.md` for cross-app conventions.
 
@@ -40,6 +40,7 @@ This applies even when a `make` target wraps the SSH (e.g. `make deploy`, `make 
 - `make deploy` — builds, then `scp`s `build/*` to `/home/root/xovi/exthome/appload/habit-tracker/` on the device.
 - `make remove` — uninstalls from the device.
 - `make clean` — removes local `build/`.
+- `make suspend-writer-host` — builds `tools/suspend-writer` against host Qt5 for previewing a render as a PNG, no device or SDK needed. `suspend-writer-device` cross-builds it (needs the SDK), `suspend-writer-deploy` ships it plus the `SW_JS_MODULES` list. See that tool's README.
 
 Overrides: `make REMARKABLE_HOST=<host>` (default `remarkable`), `make RCC=<path>` (default `rcc-qt5`; rM1 is Qt 5.15, so Qt 5's rcc is required).
 
@@ -78,6 +79,15 @@ Tail this in another terminal while launching the app. apploader prefixes its ow
 Append to `<qresource>` in `application.qrc` **and** register the type in the directory's `qmldir`. The `entry` field stays pointing at the root component. `make build` fails on a file listed in the `.qrc` that doesn't exist, but silently omits an existing file you forgot to list — it then fails at load on the device.
 
 For `src/js/*.js`: **never write `.pragma library` into the source.** The `inject-pragma` build step prepends it to every JS file when staging `build/src/`, so sources omit it and stay parseable by prettier and the editor. `.import "Other.js" as Other` *does* belong in the source (JS→JS deps can't use QML imports once the pragma makes the file a shared library); prettier can't parse those files, which is why a few already fail `--check`.
+
+## The suspend-writer shares this app's JS — tell the user when you break it
+
+`tools/suspend-writer/` hosts `SuspendDraw.js` and its `.import` chain in a `QJSEngine` outside QML. Two kinds of change break it, and **neither fails `make build` or `make lint`**:
+
+- **A storage-shape change** (roster rows, month entry rows). `main.cpp` joins the month's entry rows onto the roster by habit id before handing them to `HabitsModel.toSuspendHabits` — that join is the only copy of the on-disk shape outside `src/`, and it also guards the shape, so stale data exits 2 instead of drawing a wrong grid. Keep the projection *in the JS modules*: reimplementing any of it in `main.cpp` is what let the tool silently drift out of date once already.
+- **A new `.import`** in `SuspendDraw.js`, `HabitsModel.js`, `Entries.js` or `Polarity.js`. Each module is loaded explicitly in `main.cpp` with its export list and deployed via `SW_JS_MODULES` in the Makefile; a missing one is a runtime `ReferenceError`, not a build error.
+
+**Call this out in your summary whenever a change touches either** — the tool is built and deployed separately, so it stays broken on the device until the user rebuilds it. Verify with `make suspend-writer-host` plus a render against migrated `.backup/` data: the output should be byte-identical to a pre-change render unless the change was meant to alter it.
 
 ## QML import namespaces
 

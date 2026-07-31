@@ -9,6 +9,7 @@ BACKUP_DIR := .backup
 QML_FILES := $(shell find src -name '*.qml')
 SW_DIR := tools/suspend-writer
 SW_REMOTE_DIR := $(REMOTE_DIR)/suspend-writer
+SW_JS_MODULES := $(addprefix src/js/,SuspendDraw.js DateUtils.js Entries.js Polarity.js HabitsModel.js)
 
 .PHONY: build inject-pragma deploy remove clean lint backup \
 	suspend-writer-host suspend-writer-device suspend-writer-deploy suspend-writer-clean
@@ -61,12 +62,13 @@ suspend-writer-host:
 suspend-writer-device:
 	$(SW_DIR)/build-device.sh
 
-# Deploy the ARM binary plus the two loose JS modules it reads at runtime. The
-# app bundles those inside resources.rcc, so they are not otherwise on-device.
+# Deploy the ARM binary plus the loose JS modules it reads at runtime. The app bundles those
+# inside resources.rcc, so they are not otherwise on-device. SuspendDraw.js reaches the other
+# four, so all five ship together — see the tool's README.
 suspend-writer-deploy: suspend-writer-device
 	ssh $(REMARKABLE_HOST) "mkdir -p $(SW_REMOTE_DIR)"
 	scp $(SW_DIR)/build/suspend-writer-arm $(REMARKABLE_HOST):$(SW_REMOTE_DIR)/
-	scp src/js/SuspendDraw.js src/js/DateUtils.js $(REMARKABLE_HOST):$(SW_REMOTE_DIR)/
+	scp $(SW_JS_MODULES) $(REMARKABLE_HOST):$(SW_REMOTE_DIR)/
 
 suspend-writer-clean:
 	rm -rf $(SW_DIR)/build

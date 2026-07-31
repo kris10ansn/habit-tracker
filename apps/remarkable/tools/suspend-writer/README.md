@@ -44,7 +44,7 @@ validates layout and logic, not pixel-exact device output.
 | `--month`  | no       | `{}`            | The month whose entries to draw. Omitted → an empty grid.           |
 | `--today`  | no       | system date     | `YYYY-MM-DD`. Sets which day is highlighted and the cutoff.         |
 | `--out`    | no       | `suspended.png` | Output PNG path.                                                    |
-| `--js-dir` | no       | build default   | Dir holding `SuspendDraw.js` + `DateUtils.js` (set this on-device). |
+| `--js-dir` | no       | build default   | Dir holding the five JS modules below (set this on-device).         |
 
 ## Building & deploying to the reMarkable
 
@@ -93,9 +93,12 @@ make suspend-writer-deploy                     # cross-builds, then scps to the 
 This copies, into `…/appload/habit-tracker/suspend-writer/` on the device:
 
 - `suspend-writer-arm` — the binary, and
-- `SuspendDraw.js` + `DateUtils.js` — **the two JS modules it reads at runtime.** The app bundles
-  these inside `resources.rcc`, so they are _not_ otherwise present as files on the device; the tool
-  loads them loose via `--js-dir`, so they must be deployed alongside it.
+- `SuspendDraw.js`, `DateUtils.js`, `Entries.js`, `Polarity.js`, `HabitsModel.js` — **the five JS
+  modules it reads at runtime.** The app bundles these inside `resources.rcc`, so they are _not_
+  otherwise present as files on the device; the tool loads them loose via `--js-dir`, so they must
+  be deployed alongside it. The list lives in the Makefile as `SW_JS_MODULES`; if `SuspendDraw.js`
+  or `HabitsModel.js` gains an `.import`, add the target there too or the tool dies with a
+  `ReferenceError` naming the missing module.
 
 ### 4. Run on the device
 
@@ -117,11 +120,11 @@ QT_QPA_PLATFORM=offscreen ./suspend-writer-arm \
 ## Input JSON shapes
 
 These are the **same files the app's stores write** under its `data/` dir. ADR
-[`0002-month-partitioned-habit-storage.md`](../../docs/adr/0002-month-partitioned-habit-storage.md)
-is the source of truth; the tool reads the same envelopes (`roster.habits`, `month.entries`) and
-degrades to empty if either is missing or malformed.
+[`0005-backend-shaped-entry-rows.md`](../../docs/adr/0005-backend-shaped-entry-rows.md) is the
+source of truth for the shapes.
 
-**`roster.json`** — identity + config, no entries. Array order is display order:
+**`roster.json`** — identity + config, no entries. Array order is display order, and soft-deleted
+habits trail the alive ones:
 
 ```json
 {
@@ -129,41 +132,63 @@ degrades to empty if either is missing or malformed.
         {
             "id": "<habitId>",
             "name": "Read",
-            "negative": false,
+            "polarity": "Positive",
             "hideFromSleep": false,
-            "updatedAt": 1782148800000
+            "createdAt": 1782148800000,
+            "updatedAt": 1782148800000,
+            "deletedAt": null
         }
     ]
 }
 ```
 
-- `negative` — polarity. A negative habit defaults to marked (X) and is _cleared_ with `o`.
+- `polarity` — `"Positive"` or `"Negative"`. A negative habit renders every non-future day as X
+  except the ones it slipped on (`"o"`).
 - `hideFromSleep` — when `true`, the habit is omitted from the suspend image.
+- `deletedAt` — non-null marks a tombstone; those rows never render.
 
-**`YYYY-MM.json`** — one month's entries, keyed by habit id then by date. Each cell is
-`{ state, updatedAt }`; `state` is `"x"` (marked), `"o"` (explicitly cleared), or `""` (tombstone):
+**`YYYY-MM.json`** — one month's entries as flat `(habitId, date)` rows. `outcome` is `"x"` or
+`"o"`; `deletedAt` is null while the mark is alive and holds the clear's edit-time on a tombstone:
 
 ```json
 {
     "month": "2026-06",
-    "entries": {
-        "<habitId>": {
-            "2026-06-01": { "state": "x", "updatedAt": 1782148800000 }
+    "entries": [
+        {
+            "habitId": "<habitId>",
+            "date": "2026-06-01",
+            "outcome": "x",
+            "updatedAt": 1782148800000,
+            "deletedAt": null
         }
-    }
+    ]
 }
 ```
 
-The tool flattens each cell to its `state` string and drops empties — mirroring
-`HabitsModel.toArray` / `statesOf`, the projection `SuspendDraw` expects. Entry ids absent from the
-roster are ignored (orphans never render), matching the app's fold-by-id.
+Rows whose `habitId` is absent from the roster are ignored (orphans never render), matching the
+app's fold-by-id.
+
+**Older shapes are refused, not rendered.** A roster whose habits have no `polarity`, or a month
+whose `entries` is an object rather than an array, exits **2** and names the file — drawing it would
+produce a blank or wrong grid that reads as "no marks yet". Convert a copy with
+`scripts/migrate-backend-shaped-rows.mjs` first; see
+[ADR 0006](../../docs/adr/0006-external-one-shot-migrations.md).
 
 ## How the JS is reused
 
 `QJSEngine` is not a full QML JS runtime, so `main.cpp`:
 
 - strips QML's `.import` / `.pragma` lines and IIFE-wraps each module to return its named exports,
-  mirroring `import "X.js" as X`;
+  mirroring `import "X.js" as X`. Each stripped `.import` becomes an engine global instead, so the
+  modules must be loaded in `main.cpp` for their dependents to resolve at call time;
 - supplies a minimal `Qt.formatDate` stand-in (the only QML global `DateUtils.js` reaches);
 - injects file contents as engine globals (`rosterJson`, `monthJson`) parsed with `JSON.parse` —
   never string-concatenated into source, so quotes/newlines in data can't break the script.
+
+**The projection is the app's, not a copy.** `main.cpp` does only what `HabitsStore` does with no
+module of its own — join the month's entry rows onto the roster by habit id — then wraps the result
+in a `{ count, get }` stand-in for the QML `ListModel` and calls the app's own
+`HabitsModel.toSuspendHabits`. Every rule about what renders (tombstones dropped, hidden habits
+skipped, which glyph a day gets) therefore lives in `HabitsModel.js` / `Entries.js` and is shared
+with the running app. Reimplementing any of it here is what let this tool silently drift out of date
+once already — keep the join, push everything else into the modules.
