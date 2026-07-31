@@ -5,7 +5,8 @@ Status: accepted; amended by [ADR 0005](0005-backend-shaped-entry-rows.md)
 ADR 0005 keeps everything below — the roster/month split, one file per month, only the viewed month
 loaded, loud saves, orphaned entries over cascade-delete — and changes only the *shape* stored inside
 those files: entries became flat `(habitId, date)` rows, habits gained `polarity` / `createdAt` /
-`deletedAt`, and reads now tolerate the legacy shapes recorded here.
+`deletedAt`. The legacy shapes recorded here are no longer readable by the app at all; migrating
+them is the job of an external script ([ADR 0006](0006-external-one-shot-migrations.md)).
 
 ## Context
 
@@ -60,8 +61,8 @@ rather than lost data.
   leaves orphan entries** in past months; the fold-by-id step ignores ids absent from the roster, so
   they never render.
 - **In-app migration** from the legacy `habits.json` — rejected in favour of an **external** Node
-  script (`apps/remarkable/scripts/`) the user runs off-device. The app carries no migration code; it
-  only ever speaks the new layout.
+  script the user runs off-device. Now a rule in its own right, with the refusal behaviour that
+  makes it safe: [ADR 0006](0006-external-one-shot-migrations.md).
 - **Flat layout** in the app dir — rejected for the `data/` subdir to separate habit data from
   deployed artifacts, accepting the deploy-time `mkdir` requirement (made safe by loud failures).
 

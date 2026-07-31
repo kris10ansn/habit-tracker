@@ -8,14 +8,16 @@
 //   YYYY-MM.json   { month, entries: { habitId: { date: { state, updatedAt } } } }
 //   sync.json      { tombstones: [{ id, deletedAt }], lastSyncedAt }   (absent if never synced)
 //
-// Output — a fresh dir to push back with `make restore-data DIR=<dir>`:
+// Output — a fresh dir to rsync back over the device's data/ (see the README's
+// "Upgrading across a storage-format change"):
 //   roster.json    { habits: [ …alive rows, …tombstone rows ] }, each row
 //                  { id, name, polarity, hideFromSleep, createdAt, updatedAt, deletedAt }
 //   YYYY-MM.json   { month, entries: [{ habitId, date, outcome, updatedAt, deletedAt }] }
 //   sync.json      { lastSyncedAt }
 //
-// The app carries no migration code and refuses to write to a file it cannot read, so this runs
-// off-device, once, with the app closed and before the new build is deployed.
+// The app carries no migration code and refuses to write to a file it cannot read (ADR 0006), so
+// this runs off-device, once, with the app closed and before the new build is deployed. Delete this
+// script once the device has been migrated.
 //
 // Usage:
 //   node scripts/migrate-backend-shaped-rows.mjs <input-dir> <output-dir>

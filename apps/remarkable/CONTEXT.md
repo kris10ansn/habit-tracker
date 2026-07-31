@@ -98,6 +98,20 @@ entry rows, which is exactly the wire format's month payload. Exactly one month'
 month — is loaded at a time; navigating re-points to another.
 _Avoid_: entries file, day file.
 
+**Migration script**:
+A one-shot Node script in `scripts/` that converts a backup of the data directory from an older
+storage format to the current one, run on the user's computer with the app closed. The app itself
+carries no migration code and cannot read an older format — it refuses the file instead. Deleted
+once the device has been migrated. See [ADR 0006](docs/adr/0006-external-one-shot-migrations.md).
+_Avoid_: migration, upgrade path, converter (in-app anything).
+
+**Unreadable file**:
+A data file that is not the shape this version writes — an un-migrated file, or a corrupt one. It is
+never folded in as empty: writes to it are blocked, sync is held off, and the grid reports which file
+and why. The distinction that matters is against a **missing** file, which is normal (first run, or a
+month never marked) and simply loads as empty.
+_Avoid_: bad file, invalid data, broken save.
+
 ### Sync
 
 **Server URL**:

@@ -1,15 +1,19 @@
 # 5. Entries are backend-shaped rows; month partitioning stays
 
-Status: accepted
+Status: accepted; its read-tolerance consequence superseded by
+[ADR 0006](0006-external-one-shot-migrations.md)
 
 Amends [ADR 0002](0002-month-partitioned-habit-storage.md) — the *shape* inside a month file, not
 its partitioning.
 
+The shapes below stand. What changed is how the app meets an old one: it refuses it and a one-shot
+external script converts it, rather than tolerating it on read (ADR 0006).
+
 ## Context
 
-The habit domain is now shared with a backend (`apps/backend/`) and a second client
-(`apps/mobile/`). Both keep habits and entries in one normalized shape: a roster row per habit and a
-`(HabitId, Date)`-keyed entry row, with an explicit `Polarity` enum and a nullable `DeletedAt`
+The habit domain is now shared with a backend (`apps/backend/`), which owns the canonical records
+and reconciles them. It keeps habits and entries in one normalized shape: a roster row per habit and
+a `(HabitId, Date)`-keyed entry row, with an explicit `Polarity` enum and a nullable `DeletedAt`
 tombstone stamp. This client had drifted from it in four ways:
 
 - polarity was a `negative` boolean with Positive implied,
@@ -41,9 +45,10 @@ Adopt the backend's **row shape**; keep ADR 0002's **month partitioning**.
 - **Entry row** — `{ habitId, date, outcome, updatedAt, deletedAt }`, mirroring the backend's
   `SyncEntry`. `outcome` stays `"x"` / `"o"` (see below); `deletedAt` is null while alive and holds
   the clear's edit-time on a tombstone, replacing the `state: ""` marker.
-- **Month file** — `data/YYYY-MM.json` becomes `{ "month": "2026-07", "entries": [ …rows ] }`, which
-  *is* the wire format's `SyncMonth`. File, wire and in-memory value are now one shape. Still one
-  file per month, still only the viewed month loaded.
+- **Month file** — `data/YYYY-MM.json` becomes `{ "month": "2026-07", "entries": [ …rows ] }`, the
+  wire format's `SyncMonth` down to the field names, with only `outcome` still spelled differently
+  (see below). File, wire and in-memory value are now one shape. Still one file per month, still
+  only the viewed month loaded.
 - **Habit row** — gains `polarity` (`"Positive"` / `"Negative"`, the backend's enum spelling, in
   place of `negative`), `createdAt`, and `deletedAt`.
 - **Habit deletes are soft.** `HabitsStore.remove` moves the habit out of the ListModel and into
@@ -89,11 +94,11 @@ reading is this client's domain vocabulary (root `CONTEXT.md`) and mapping it is
   now pass through unchanged.
 - Per-toggle and startup cost stay bounded to one month, and corruption is still isolated to one
   month. Both ADR 0002 guarantees survive intact.
-- **Reads tolerate both formats**, unlike ADR 0002's external-script-only migration stance. A legacy
-  month file read as empty would let the next toggle overwrite it, losing that month — real data
-  loss, so `Entries.rowsFromLegacyMonth` converts nested cells (and `Polarity.fromHabit` reads a
-  legacy `negative`) on load. Files are rewritten in the new shape on the next save. This narrowing
-  is deliberate and limited to reads.
+- **A file in the old shape is refused, not read.** The danger this addresses is real — a legacy
+  month read as empty would be overwritten by the next toggle, losing that month — but the answer is
+  to block the write rather than convert on load. An external one-shot script does the conversion;
+  see [ADR 0006](0006-external-one-shot-migrations.md), which supersedes the read-tolerance this ADR
+  originally chose.
 - `createdAt` is device-local for now: the sync wire format carries no `CreatedAt`, so `applySynced`
   preserves the local value the way it already preserves `hideFromSleep`. It exists so a future
   streak feature and the other clients share one clock reference.
