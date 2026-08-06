@@ -9,16 +9,7 @@ namespace HabitTracker.Api.Tests;
 
 public class SyncServiceTests
 {
-    private static HabitTrackerDbContext NewDb()
-    {
-        var options = new DbContextOptionsBuilder<HabitTrackerDbContext>()
-            .UseInMemoryDatabase($"sync-{Guid.NewGuid()}")
-            .Options;
-
-        var db = new HabitTrackerDbContext(options);
-        db.Database.EnsureCreated();
-        return db;
-    }
+    private static HabitTrackerDbContext NewDb() => SyncTestContext.NewDb("sync");
 
     private static SyncService NewSync(HabitTrackerDbContext db) =>
         new(db, new CurrentUser(), NullLogger<SyncService>.Instance);
@@ -221,10 +212,15 @@ public class SyncServiceTests
         using var db = NewDb();
         var sync = NewSync(db);
 
-        await Assert.ThrowsAsync<ClockSkewException>(
-            () => sync.SyncAsync(Request([Habit(Guid.NewGuid(), "Read", FarAhead())]))
+        var skew = await Assert.ThrowsAsync<ClockSkewException>(
+            () =>
+                sync.SyncAsync(
+                    Request([Habit(Guid.NewGuid(), "Read", SyncTestContext.FarAheadEditTime())])
+                )
         );
 
+        Assert.Equal(SyncService.ClockSkewTolerance, skew.Tolerance);
+        Assert.True(skew.SkewMs > (long)SyncService.ClockSkewTolerance.TotalMilliseconds);
         Assert.Empty(db.Habits);
     }
 
@@ -236,23 +232,26 @@ public class SyncServiceTests
         var id = Guid.NewGuid();
         var date = new DateOnly(2026, 6, 3);
 
-        await Assert.ThrowsAsync<ClockSkewException>(
+        var skew = await Assert.ThrowsAsync<ClockSkewException>(
             () =>
                 sync.SyncAsync(
                     Request(
                         [Habit(id, "Read", Ms(0))],
-                        Month("2026-06", Entry(id, date, Outcome.Success, FarAhead()))
+                        Month(
+                            "2026-06",
+                            Entry(
+                                id,
+                                date,
+                                Outcome.Success,
+                                SyncTestContext.FarAheadEditTime()
+                            )
+                        )
                     )
                 )
         );
 
+        Assert.Equal(SyncService.ClockSkewTolerance, skew.Tolerance);
         Assert.Empty(db.Habits);
         Assert.Empty(db.Entries);
     }
-
-    // A minute past the tolerance — far enough ahead that the server refuses it.
-    private static long FarAhead() =>
-        DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
-        + (long)SyncService.ClockSkewTolerance.TotalMilliseconds
-        + 60_000;
 }

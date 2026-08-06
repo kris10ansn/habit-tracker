@@ -11,16 +11,7 @@ namespace HabitTracker.Api.Tests;
 
 public class SyncControllerTests
 {
-    private static HabitTrackerDbContext NewDb()
-    {
-        var options = new DbContextOptionsBuilder<HabitTrackerDbContext>()
-            .UseInMemoryDatabase($"sync-controller-{Guid.NewGuid()}")
-            .Options;
-
-        var db = new HabitTrackerDbContext(options);
-        db.Database.EnsureCreated();
-        return db;
-    }
+    private static HabitTrackerDbContext NewDb() => SyncTestContext.NewDb("sync-controller");
 
     private static SyncController NewController(HabitTrackerDbContext db) =>
         new(
@@ -53,12 +44,10 @@ public class SyncControllerTests
         using var db = NewDb();
         var controller = NewController(db);
 
-        var farAhead =
-            DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
-            + (long)SyncService.ClockSkewTolerance.TotalMilliseconds
-            + 60_000;
-
-        var result = await controller.Sync(OneHabitAt(farAhead), CancellationToken.None);
+        var result = await controller.Sync(
+            OneHabitAt(SyncTestContext.FarAheadEditTime()),
+            CancellationToken.None
+        );
 
         var badRequest = Assert.IsType<BadRequestObjectResult>(result.Result);
         var problem = Assert.IsType<ProblemDetails>(badRequest.Value);

@@ -231,14 +231,8 @@ public class SyncService
     private void RejectSkewedEditTimes(SyncRequest request)
     {
         var nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        var skewMs = request.LatestEditedAt(nowMs) - nowMs;
 
-        var latestEditedAtMs = request
-            .Habits.Select(habit => habit.EditedAt)
-            .Concat(request.Months.SelectMany(month => month.Entries).Select(entry => entry.EditedAt))
-            .DefaultIfEmpty(nowMs)
-            .Max();
-
-        var skewMs = latestEditedAtMs - nowMs;
         if (skewMs <= 0)
         {
             return;
