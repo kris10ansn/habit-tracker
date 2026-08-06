@@ -141,7 +141,7 @@ static QString readFile(const QString &path) {
 
 static bool refuse(const QString &path, const QString &why) {
     qWarning().noquote() << path << "is in an older storage shape (" + why + ")."
-                         << "Run scripts/migrate-backend-shaped-rows.mjs against a copy first"
+                         << "Run scripts/migrate-edited-at.mjs against a copy first"
                          << "— see docs/adr/0006-external-one-shot-migrations.md.";
     return true;
 }
@@ -157,6 +157,8 @@ static bool refusesShape(const QString &rosterJson, const QString &rosterPath,
     for (const QJsonValue &habit : habits) {
         if (!habit.toObject().contains("polarity"))
             return refuse(rosterPath, "a habit has no `polarity`");
+        if (!habit.toObject().contains("editedAt"))
+            return refuse(rosterPath, "a habit still spells its edit-time `updatedAt`");
     }
 
     const QJsonValue entries =
@@ -164,6 +166,11 @@ static bool refusesShape(const QString &rosterJson, const QString &rosterPath,
 
     if (!entries.isUndefined() && !entries.isArray())
         return refuse(monthPath, "`entries` is not an array of rows");
+
+    for (const QJsonValue &row : entries.toArray()) {
+        if (!row.toObject().contains("editedAt"))
+            return refuse(monthPath, "a row still spells its edit-time `updatedAt`");
+    }
 
     return false;
 }

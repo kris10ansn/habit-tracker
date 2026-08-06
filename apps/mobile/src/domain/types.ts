@@ -2,8 +2,8 @@
 // backend's shape (apps/backend Entities + SyncHabit/SyncEntry DTOs) so mobile↔backend sync is a
 // near-identity map; the X/O reading is a render concern (see marks.ts). Mirrored are the fields
 // the client owns: the backend's audit `UpdatedAt` is server-stamped and absent from the sync wire
-// format (whose `UpdatedAt` field carries the edit-time — it maps to `editedAt`, not an audit
-// stamp), so there is no local counterpart to it.
+// format, whose `editedAt` is the edit-time this file mirrors — so there is no local counterpart to
+// the audit stamp.
 
 // These spellings are the backend's enum member names verbatim (apps/backend Entities/Outcome.cs,
 // Entities/Polarity.cs). The API serialises enums with a bare `JsonStringEnumConverter` — no naming

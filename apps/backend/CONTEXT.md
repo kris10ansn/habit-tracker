@@ -35,8 +35,11 @@ _Avoid_: push, pull (those name directions within one Sync), replication, backup
 
 **Edit-time**:
 The UTC instant a client last changed a Habit or Entry, stamped by that client and stored verbatim
-as the row's last-write-wins merge key. Distinct from the server-stamped `UpdatedAt` audit field —
-the two are different clock domains, and Edit-time is the only one a Sync compares.
+as the row's last-write-wins merge key. Spelled `EditedAt` on the entity and `editedAt` on the sync
+wire — deliberately not `UpdatedAt`, which is the server-stamped audit field and never leaves the
+server. The two are different clock domains, and Edit-time is the only one a Sync compares. An
+edit-time far ahead of the server's own clock is refused rather than merged: it would out-rank every
+later edit until wall-clock caught up.
 _Avoid_: updatedAt (the audit column), modified, timestamp.
 
 **Tombstone**:

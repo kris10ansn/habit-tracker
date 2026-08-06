@@ -10,7 +10,9 @@ public class SyncController(SyncService _sync, ILogger<SyncController> _logger) 
 {
     /// <summary>
     /// One round-trip sync for the current (stub) user: merge the submitted roster + month(s)
-    /// last-write-wins, then return the authoritative alive state to overwrite local with.
+    /// last-write-wins by edit-time, then return the authoritative alive state to overwrite local
+    /// with. A request whose edit-times run too far ahead of the server clock is refused with a
+    /// 400 instead of merged — see <see cref="SyncService.ClockSkewTolerance"/>.
     /// </summary>
     [HttpPost]
     public async Task<ActionResult<SyncResponse>> Sync(
@@ -24,7 +26,24 @@ public class SyncController(SyncService _sync, ILogger<SyncController> _logger) 
             request.Months.Count
         );
 
-        var response = await _sync.SyncAsync(request, cancellationToken);
+        SyncResponse response;
+        try
+        {
+            response = await _sync.SyncAsync(request, cancellationToken);
+        }
+        catch (ClockSkewException skew)
+        {
+            _logger.LogWarning("Sync rejected: {Reason}", skew.Message);
+
+            return BadRequest(
+                new ProblemDetails
+                {
+                    Status = StatusCodes.Status400BadRequest,
+                    Title = "Client clock is too far ahead",
+                    Detail = skew.Message,
+                }
+            );
+        }
 
         _logger.LogInformation(
             "Sync returned {HabitCount} habits across {MonthCount} months",

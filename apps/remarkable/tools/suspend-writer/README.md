@@ -135,7 +135,7 @@ habits trail the alive ones:
             "polarity": "Positive",
             "hideFromSleep": false,
             "createdAt": 1782148800000,
-            "updatedAt": 1782148800000,
+            "editedAt": 1782148800000,
             "deletedAt": null
         }
     ]
@@ -158,7 +158,7 @@ habits trail the alive ones:
             "habitId": "<habitId>",
             "date": "2026-06-01",
             "outcome": "x",
-            "updatedAt": 1782148800000,
+            "editedAt": 1782148800000,
             "deletedAt": null
         }
     ]
@@ -168,11 +168,13 @@ habits trail the alive ones:
 Rows whose `habitId` is absent from the roster are ignored (orphans never render), matching the
 app's fold-by-id.
 
-**Older shapes are refused, not rendered.** A roster whose habits have no `polarity`, or a month
-whose `entries` is an object rather than an array, exits **2** and names the file — drawing it would
+**Older shapes are refused, not rendered.** A roster whose habits have no `polarity` or no
+`editedAt`, or a month whose `entries` is an object rather than an array or whose rows still spell
+the edit-time `updatedAt`, exits **2** and names the file — drawing it would
 produce a blank or wrong grid that reads as "no marks yet". Convert a copy with
-`scripts/migrate-backend-shaped-rows.mjs` first; see
-[ADR 0006](../../docs/adr/0006-external-one-shot-migrations.md).
+`scripts/migrate-edited-at.mjs` first; see
+[ADR 0006](../../docs/adr/0006-external-one-shot-migrations.md) and
+[ADR 0007](../../docs/adr/0007-edited-at-timestamp-name.md).
 
 ## How the JS is reused
 

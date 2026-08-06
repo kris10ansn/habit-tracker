@@ -65,7 +65,7 @@ On the tablet, hold the middle button for ~3 seconds to open apploader, then tap
 
 State is saved under `/home/root/xovi/exthome/appload/habit-tracker/data/` — `roster.json` plus a `YYYY-MM.json` per month. First launch seeds the roster from the defaults in `src/js/habits.js`. The `data/` folder must exist (the deploy creates it); if it's missing, saves surface a visible error instead of failing silently. To reset, delete the files and relaunch.
 
-A habit is stored as `{ id, name, polarity, hideFromSleep, createdAt, updatedAt, deletedAt }` and a month as `{ "month": "2026-07", "entries": [ { habitId, date, outcome, updatedAt, deletedAt }, … ] }` — the same row shape the sync server speaks, so the only thing translated on the way out is the X/O mark, which the server calls `Success` / `Failure`. Files written in an older shape are refused, not converted: see [Upgrading across a storage-format change](#upgrading-across-a-storage-format-change).
+A habit is stored as `{ id, name, polarity, hideFromSleep, createdAt, editedAt, deletedAt }` and a month as `{ "month": "2026-07", "entries": [ { habitId, date, outcome, editedAt, deletedAt }, … ] }` — the same row shape the sync server speaks, so the only thing translated on the way out is the X/O mark, which the server calls `Success` / `Failure`. Files written in an older shape are refused, not converted: see [Upgrading across a storage-format change](#upgrading-across-a-storage-format-change).
 
 ## How it's built
 

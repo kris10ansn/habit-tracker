@@ -102,7 +102,7 @@ QtObject {
             polarity: habit.polarity,
             hideFromSleep: !!habit.hideFromSleep,
             createdAt: habit.createdAt,
-            updatedAt: habit.updatedAt,
+            editedAt: habit.editedAt,
             deletedAt: null,
             entriesByDate: habit.entriesByDate || ({})
         };
@@ -118,7 +118,7 @@ QtObject {
             polarity: polarity,
             hideFromSleep: false,
             createdAt: createdAt,
-            updatedAt: createdAt,
+            editedAt: createdAt,
             deletedAt: null,
             entriesByDate: ({})
         };
@@ -127,9 +127,15 @@ QtObject {
     // The envelope alone does not prove the shape: a pre-polarity roster is also `{ habits: [ … ] }`,
     // so accepting it on `Array.isArray` would render every negative habit as positive and drop
     // `negative` from the file on the next save — the silent overwrite ADR 0006 exists to prevent.
-    // The month file needs no equivalent: its legacy `entries` was an object, not an array.
+    // Both files therefore test a field only the shape this version writes has. `editedAt` earns its
+    // place in both: a row still spelling it `updatedAt` reads back as undefined, renders fine, and
+    // then syncs as edit-time 0 — losing every merge and pulling the server's copy over real data.
     function _isRosterRow(habit) {
-        return !!habit && !!habit.id && !!habit.name && !!habit.polarity && !!habit.createdAt;
+        return !!habit && !!habit.id && !!habit.name && !!habit.polarity && !!habit.createdAt && !!habit.editedAt;
+    }
+
+    function _isMonthRow(row) {
+        return !!row && !!row.habitId && !!row.date && !!row.editedAt;
     }
 
     function _applyRoster(data) {
@@ -167,7 +173,7 @@ QtObject {
     }
 
     function _applyMonth(data) {
-        if (data && Array.isArray(data.entries)) {
+        if (data && Array.isArray(data.entries) && data.entries.every(store._isMonthRow)) {
             store._setMonthEntries(data.entries);
             return;
         }
@@ -237,7 +243,7 @@ QtObject {
         // fresh edit-time for the reorder to win last-write-wins.
         const now = Date.now();
         for (let i = Math.min(from, to); i <= Math.max(from, to); i++) {
-            habits.setProperty(i, "updatedAt", now);
+            habits.setProperty(i, "editedAt", now);
         }
 
         _roster.scheduleSave();
@@ -253,7 +259,7 @@ QtObject {
 
         const deletedAt = Date.now();
         const tombstone = HabitsModel.rosterRow(habits.get(index));
-        tombstone.updatedAt = deletedAt;
+        tombstone.editedAt = deletedAt;
         tombstone.deletedAt = deletedAt;
 
         store.habitTombstones = store.habitTombstones.concat([tombstone]);
@@ -277,7 +283,7 @@ QtObject {
             return;
         }
         habits.setProperty(index, "polarity", Polarity.toggled(habits.get(index).polarity));
-        habits.setProperty(index, "updatedAt", Date.now());
+        habits.setProperty(index, "editedAt", Date.now());
         _roster.scheduleSave();
     }
 
@@ -295,7 +301,7 @@ QtObject {
             return;
         }
         habits.setProperty(index, "name", trimmed);
-        habits.setProperty(index, "updatedAt", Date.now());
+        habits.setProperty(index, "editedAt", Date.now());
         _roster.scheduleSave();
     }
 
@@ -341,7 +347,7 @@ QtObject {
                     polarity: habit.polarity,
                     hideFromSleep: local.hideFromSleep,
                     createdAt: local.createdAt,
-                    updatedAt: habit.updatedAt,
+                    editedAt: habit.editedAt,
                     entriesByDate: (entriesByHabitId || {})[habit.id] || ({})
                 });
             });

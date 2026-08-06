@@ -44,9 +44,15 @@ Consequences when working here:
 
 ## Domain rules that are easy to break
 
-- **Two clock domains.** `UpdatedAt` on the sync DTOs is the client-stamped **Edit-time** (epoch ms
+- **Two clock domains.** `EditedAt` on the sync DTOs is the client-stamped **Edit-time** (epoch ms
   UTC), stored verbatim and the _only_ value a merge compares. The entities' server-stamped
-  `UpdatedAt` audit field is a different thing, never sent to clients. Don't collapse them.
+  `UpdatedAt` audit field is a different thing, never sent to clients. Don't collapse them, and
+  don't reintroduce `updatedAt` as a wire name — that spelling belonged to the audit field and the
+  overlap is exactly what the rename removed.
+- **A skewed clock is refused, not merged.** `SyncService.ClockSkewTolerance` (5 min) bounds how far
+  ahead of the server an incoming edit-time may be; past it the whole request throws
+  `ClockSkewException` and the controller returns 400. Keep it a whole-request refusal — merging the
+  sound half would leave the client's state split across two syncs.
 - **Deletes are tombstones.** A `DeletedAt` soft-delete so a deletion can win _or lose_ against a
   dated edit; a row that simply vanished would be resurrected by the next sync. Requests carry alive
   rows _and_ tombstones; responses carry the authoritative **alive** state only (a delete surfaces

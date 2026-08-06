@@ -70,8 +70,13 @@ Enums serialize as strings (`"Positive"`, `"Success"`). Delete is a **soft-delet
 removed habit stops appearing but can still lose/win a sync merge.
 
 `/api/sync` (POST) — one round-trip offline-first sync. The client submits its roster +
-the month(s) it holds — alive rows and `deleted` tombstones, each carrying an `updatedAt` (epoch
+the month(s) it holds — alive rows and `deleted` tombstones, each carrying an `editedAt` (epoch
 milliseconds UTC); the server merges per row **last-write-wins** by that edit-time and returns the
 authoritative **alive** state to overwrite local with. Edit-time is stored verbatim as the merge
-key, distinct from the server-stamped `UpdatedAt` audit field. `Entry` `(HabitId, Date)`-keyed with
-`Outcome {Success, Failure}` is now exposed through sync. See `HabitTracker.Api.http` for a sample.
+key, distinct from the server-stamped `UpdatedAt` audit field, which never reaches a client.
+`Entry` `(HabitId, Date)`-keyed with `Outcome {Success, Failure}` is now exposed through sync. See
+`HabitTracker.Api.http` for a sample.
+
+A request whose newest `editedAt` runs more than five minutes ahead of the server clock is rejected
+with `400` and merges nothing: an edit-time from a badly wrong clock would out-rank every later edit
+until wall-clock caught up. Smaller drift merges normally and is logged as a warning.

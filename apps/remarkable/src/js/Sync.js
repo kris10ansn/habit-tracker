@@ -2,8 +2,10 @@
 
 // Translation between the client's roster/month state and the backend sync wire format.
 // Pure functions only — the QML SyncStore does the I/O. Timestamps are epoch ms UTC.
-// Polarity and the tombstone encoding are now stored as the wire spells them, so the only
-// translation left at this edge is the X/O <-> Outcome mapping.
+// Polarity and `editedAt` are stored as the wire spells them, so what is left at this edge is the
+// X/O <-> Outcome mapping (a deliberate on-disk spelling, ADR 0005) plus the shapes the wire has no
+// field for: `deletedAt` becomes a `deleted` flag, Position is the roster index, and the
+// device-local fields never leave (HabitsStore.applySynced re-attaches them).
 
 const SUCCESS = "Success";
 const FAILURE = "Failure";
@@ -20,7 +22,7 @@ function buildRequest(roster, tombstones, entryRows, monthKey) {
         name: habit.name,
         polarity: habit.polarity,
         position: position,
-        updatedAt: habit.updatedAt,
+        editedAt: habit.editedAt,
         deleted: false,
     }));
 
@@ -29,7 +31,7 @@ function buildRequest(roster, tombstones, entryRows, monthKey) {
         name: tombstone.name,
         polarity: tombstone.polarity,
         position: 0,
-        updatedAt: tombstone.deletedAt,
+        editedAt: tombstone.editedAt,
         deleted: true,
     }));
 
@@ -45,7 +47,7 @@ const entryToWire = (row) => ({
     habitId: row.habitId,
     date: row.date,
     outcome: outcomeToWire(row.outcome),
-    updatedAt: row.updatedAt,
+    editedAt: row.editedAt,
     deleted: !!row.deletedAt,
 });
 
@@ -58,7 +60,7 @@ function applyResponse(response, monthKey) {
         id: habit.id,
         name: habit.name,
         polarity: habit.polarity,
-        updatedAt: habit.updatedAt,
+        editedAt: habit.editedAt,
     }));
 
     const months = (response && response.months) || [];
@@ -73,7 +75,7 @@ function applyResponse(response, monthKey) {
             habitId: entry.habitId,
             date: entry.date,
             outcome: outcomeFromWire(entry.outcome),
-            updatedAt: entry.updatedAt,
+            editedAt: entry.editedAt,
             deletedAt: null,
         };
         return byHabitId;
@@ -97,7 +99,7 @@ function responseChangesLocal(request, response) {
 
 const aliveHabitMap = (habits) =>
     (habits || []).reduce((byId, habit) => {
-        if (!habit.deleted) byId[habit.id] = habit.updatedAt;
+        if (!habit.deleted) byId[habit.id] = habit.editedAt;
         return byId;
     }, {});
 
@@ -107,7 +109,7 @@ const aliveEntryMap = (months) =>
             if (!entry.deleted)
                 byMonthHabitDate[
                     `${month.month}|${entry.habitId}|${entry.date}`
-                ] = entry.updatedAt;
+                ] = entry.editedAt;
         });
         return byMonthHabitDate;
     }, {});

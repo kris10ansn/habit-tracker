@@ -3,6 +3,7 @@ using HabitTracker.Api.Dtos;
 using HabitTracker.Api.Entities;
 using HabitTracker.Api.Services;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace HabitTracker.Api.Tests;
 
@@ -19,6 +20,9 @@ public class SyncServiceTests
         return db;
     }
 
+    private static SyncService NewSync(HabitTrackerDbContext db) =>
+        new(db, new CurrentUser(), NullLogger<SyncService>.Instance);
+
     private static readonly DateTimeOffset T0 = new(2026, 6, 1, 12, 0, 0, TimeSpan.Zero);
 
     private static long Ms(int secondsAfterT0) =>
@@ -27,19 +31,19 @@ public class SyncServiceTests
     private static SyncHabit Habit(
         Guid id,
         string name,
-        long updatedAt,
+        long editedAt,
         bool deleted = false,
         int position = 0,
         Polarity polarity = Polarity.Positive
-    ) => new(id, name, polarity, position, updatedAt, deleted);
+    ) => new(id, name, polarity, position, editedAt, deleted);
 
     private static SyncEntry Entry(
         Guid habitId,
         DateOnly date,
         Outcome outcome,
-        long updatedAt,
+        long editedAt,
         bool deleted = false
-    ) => new(habitId, date, outcome, updatedAt, deleted);
+    ) => new(habitId, date, outcome, editedAt, deleted);
 
     private static SyncMonth Month(string month, params SyncEntry[] entries) => new(month, entries);
 
@@ -50,7 +54,7 @@ public class SyncServiceTests
     public async Task Sync_CreatesNewHabitAndEntry_FromClient()
     {
         using var db = NewDb();
-        var sync = new SyncService(db, new CurrentUser());
+        var sync = NewSync(db);
         var id = Guid.NewGuid();
         var date = new DateOnly(2026, 6, 3);
 
@@ -71,7 +75,7 @@ public class SyncServiceTests
     public async Task Sync_NewerClientEditWins_OlderLoses()
     {
         using var db = NewDb();
-        var sync = new SyncService(db, new CurrentUser());
+        var sync = NewSync(db);
         var id = Guid.NewGuid();
 
         await sync.SyncAsync(Request([Habit(id, "Read", Ms(10))]));
@@ -87,7 +91,7 @@ public class SyncServiceTests
     public async Task Sync_Tombstone_DeletesHabit_AndOnlyNewerReAddResurrects()
     {
         using var db = NewDb();
-        var sync = new SyncService(db, new CurrentUser());
+        var sync = NewSync(db);
         var id = Guid.NewGuid();
 
         await sync.SyncAsync(Request([Habit(id, "Read", Ms(0))]));
@@ -108,7 +112,7 @@ public class SyncServiceTests
     public async Task Sync_ClearedEntryTombstone_RemovesEntryFromResponse()
     {
         using var db = NewDb();
-        var sync = new SyncService(db, new CurrentUser());
+        var sync = NewSync(db);
         var id = Guid.NewGuid();
         var date = new DateOnly(2026, 6, 4);
 
@@ -130,7 +134,7 @@ public class SyncServiceTests
     public async Task Sync_IgnoresEntriesForUnownedHabits_AndLeavesOtherUsersUntouched()
     {
         using var db = NewDb();
-        var sync = new SyncService(db, new CurrentUser());
+        var sync = NewSync(db);
 
         var otherUserId = Guid.NewGuid();
         db.Users.Add(new User { Id = otherUserId, Name = "Other" });
@@ -162,7 +166,7 @@ public class SyncServiceTests
     public async Task Sync_ReturnsHabitsByPosition_AndScopesEntriesToRequestedMonth()
     {
         using var db = NewDb();
-        var sync = new SyncService(db, new CurrentUser());
+        var sync = NewSync(db);
         var first = Guid.NewGuid();
         var second = Guid.NewGuid();
         var june = new DateOnly(2026, 6, 6);
@@ -186,4 +190,69 @@ public class SyncServiceTests
         var entry = Assert.Single(Assert.Single(response.Months).Entries);
         Assert.Equal(june, entry.Date);
     }
+
+    [Fact]
+    public async Task Sync_MergesEditTimesWithinTheClockSkewTolerance()
+    {
+        // A client clock running a little fast is ordinary; its edit-time still merges verbatim.
+        using var db = NewDb();
+        var sync = NewSync(db);
+        var id = Guid.NewGuid();
+        var date = new DateOnly(2026, 6, 3);
+
+        var slightlyAhead = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() + 2_000;
+
+        var response = await sync.SyncAsync(
+            Request(
+                [Habit(id, "Read", slightlyAhead)],
+                Month("2026-06", Entry(id, date, Outcome.Success, slightlyAhead))
+            )
+        );
+
+        Assert.Equal(slightlyAhead, Assert.Single(response.Habits).EditedAt);
+        Assert.Equal(slightlyAhead, Assert.Single(Assert.Single(response.Months).Entries).EditedAt);
+    }
+
+    [Fact]
+    public async Task Sync_RefusesAHabitEditTimeBeyondTheTolerance_AndStoresNothing()
+    {
+        // A wildly fast clock would out-rank every later edit until wall-clock caught up, so the
+        // whole request is refused rather than half-merged.
+        using var db = NewDb();
+        var sync = NewSync(db);
+
+        await Assert.ThrowsAsync<ClockSkewException>(
+            () => sync.SyncAsync(Request([Habit(Guid.NewGuid(), "Read", FarAhead())]))
+        );
+
+        Assert.Empty(db.Habits);
+    }
+
+    [Fact]
+    public async Task Sync_RefusesASkewedEntryEditTime_EvenWhenTheRosterIsSound()
+    {
+        using var db = NewDb();
+        var sync = NewSync(db);
+        var id = Guid.NewGuid();
+        var date = new DateOnly(2026, 6, 3);
+
+        await Assert.ThrowsAsync<ClockSkewException>(
+            () =>
+                sync.SyncAsync(
+                    Request(
+                        [Habit(id, "Read", Ms(0))],
+                        Month("2026-06", Entry(id, date, Outcome.Success, FarAhead()))
+                    )
+                )
+        );
+
+        Assert.Empty(db.Habits);
+        Assert.Empty(db.Entries);
+    }
+
+    // A minute past the tolerance — far enough ahead that the server refuses it.
+    private static long FarAhead() =>
+        DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()
+        + (long)SyncService.ClockSkewTolerance.TotalMilliseconds
+        + 60_000;
 }

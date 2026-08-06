@@ -2,7 +2,7 @@
 
 // Projections of the in-memory habits ListModel onto serializable shapes. The model is the single
 // source of truth; each store serializes its own slice. Habit rows carry identity + config +
-// create-time + an updatedAt edit-time; entries are normalized rows held per habit by date key.
+// create-time + an editedAt edit-time; entries are normalized rows held per habit by date key.
 
 function toSuspendHabits(model) {
     if (!model || typeof model.count !== "number") return [];
@@ -29,7 +29,7 @@ function rosterRow(habit) {
         polarity: habit.polarity,
         hideFromSleep: !!habit.hideFromSleep,
         createdAt: habit.createdAt,
-        updatedAt: habit.updatedAt,
+        editedAt: habit.editedAt,
         deletedAt: habit.deletedAt || null,
     };
 }

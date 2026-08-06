@@ -14,13 +14,26 @@ namespace HabitTracker.Api.Services;
 /// </summary>
 public class SyncService
 {
+    /// <summary>
+    /// How far ahead of the server clock a submitted edit-time may run before the whole Sync is
+    /// refused. Generous, because a device that has been asleep drifts; the point is to catch a
+    /// clock that is wrong by a wide margin, not to police seconds.
+    /// </summary>
+    public static readonly TimeSpan ClockSkewTolerance = TimeSpan.FromMinutes(5);
+
     private readonly HabitTrackerDbContext _db;
     private readonly CurrentUser _currentUser;
+    private readonly ILogger<SyncService> _logger;
 
-    public SyncService(HabitTrackerDbContext db, CurrentUser currentUser)
+    public SyncService(
+        HabitTrackerDbContext db,
+        CurrentUser currentUser,
+        ILogger<SyncService> logger
+    )
     {
         _db = db;
         _currentUser = currentUser;
+        _logger = logger;
     }
 
     public async Task<SyncResponse> SyncAsync(
@@ -28,6 +41,8 @@ public class SyncService
         CancellationToken cancellationToken = default
     )
     {
+        RejectSkewedEditTimes(request);
+
         await MergeHabitsAsync(request.Habits, cancellationToken);
         await _db.SaveChangesAsync(cancellationToken);
 
@@ -48,7 +63,7 @@ public class SyncService
 
         foreach (var dto in incoming)
         {
-            var editedAt = FromUnixMs(dto.UpdatedAt);
+            var editedAt = FromUnixMs(dto.EditedAt);
 
             if (!existing.TryGetValue(dto.Id, out var habit))
             {
@@ -116,7 +131,7 @@ public class SyncService
 
         foreach (var dto in incoming)
         {
-            var editedAt = FromUnixMs(dto.UpdatedAt);
+            var editedAt = FromUnixMs(dto.EditedAt);
 
             if (!existing.TryGetValue((dto.HabitId, dto.Date), out var entry))
             {
@@ -204,6 +219,40 @@ public class SyncService
     {
         var start = DateOnly.ParseExact(month + "-01", "yyyy-MM-dd", CultureInfo.InvariantCulture);
         return (start, start.AddMonths(1));
+    }
+
+    /// <summary>
+    /// Refuse a Sync whose newest edit-time runs further ahead of the server than
+    /// <see cref="ClockSkewTolerance"/>. A client stamps its edit-time before the request leaves
+    /// the device, so a future one means a fast clock — and since edit-time is the only value a
+    /// merge compares, a badly skewed one would out-rank every later edit until wall-clock caught
+    /// up. Refusing keeps that out of the store; drift inside the tolerance is merged but logged.
+    /// </summary>
+    private void RejectSkewedEditTimes(SyncRequest request)
+    {
+        var nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+
+        var latestEditedAtMs = request
+            .Habits.Select(habit => habit.EditedAt)
+            .Concat(request.Months.SelectMany(month => month.Entries).Select(entry => entry.EditedAt))
+            .DefaultIfEmpty(nowMs)
+            .Max();
+
+        var skewMs = latestEditedAtMs - nowMs;
+        if (skewMs <= 0)
+        {
+            return;
+        }
+
+        if (skewMs > (long)ClockSkewTolerance.TotalMilliseconds)
+        {
+            throw new ClockSkewException(skewMs, ClockSkewTolerance);
+        }
+
+        _logger.LogWarning(
+            "Client clock runs {SkewMs}ms ahead of the server; edit-time is the merge key, so this drift decides conflicts",
+            skewMs
+        );
     }
 
     private static DateTimeOffset FromUnixMs(long ms) => DateTimeOffset.FromUnixTimeMilliseconds(ms);

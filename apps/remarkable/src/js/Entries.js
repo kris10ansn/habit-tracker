@@ -46,7 +46,7 @@ function toggledRow(habitId, dateKey, polarity, currentRow) {
         date: dateKey,
         // A tombstone keeps the outcome it had; the backend ignores a deleted row's payload.
         outcome: cleared ? current : next,
-        updatedAt: editedAt,
+        editedAt: editedAt,
         deletedAt: cleared ? editedAt : null,
     };
 }

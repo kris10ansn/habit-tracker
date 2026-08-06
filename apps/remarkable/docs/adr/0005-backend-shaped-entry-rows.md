@@ -1,7 +1,8 @@
 # 5. Entries are backend-shaped rows; month partitioning stays
 
 Status: accepted; its read-tolerance consequence superseded by
-[ADR 0006](0006-external-one-shot-migrations.md)
+[ADR 0006](0006-external-one-shot-migrations.md), its timestamp naming by
+[ADR 0007](0007-edited-at-timestamp-name.md)
 
 Amends [ADR 0002](0002-month-partitioned-habit-storage.md) — the *shape* inside a month file, not
 its partitioning.
@@ -67,6 +68,9 @@ Adopt the backend's **row shape**; keep ADR 0002's **month partitioning**.
 `updatedAt` remains the single client timestamp and the merge key the wire format exchanges. The
 backend separately keeps a server-stamped audit `UpdatedAt`; splitting this client's field into
 `editedAt` + audit is deferred until multi-client sync actually needs it.
+
+> Superseded by [ADR 0007](0007-edited-at-timestamp-name.md): the field is spelled `editedAt` on
+> disk and on the wire. It is still a single client timestamp — the split above stays deferred.
 
 `outcome` keeps the `"x"` / `"o"` marks rather than the backend's `Success` / `Failure`. The X/O
 reading is this client's domain vocabulary (root `CONTEXT.md`) and mapping it is one function in
