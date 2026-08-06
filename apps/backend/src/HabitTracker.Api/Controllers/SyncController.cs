@@ -26,10 +26,17 @@ public class SyncController(SyncService _sync, ILogger<SyncController> _logger) 
             request.Months.Count
         );
 
-        SyncResponse response;
         try
         {
-            response = await _sync.SyncAsync(request, cancellationToken);
+            var response = await _sync.SyncAsync(request, cancellationToken);
+
+            _logger.LogInformation(
+                "Sync returned {HabitCount} habits across {MonthCount} months",
+                response.Habits.Count,
+                response.Months.Count
+            );
+
+            return Ok(response);
         }
         catch (ClockSkewException skew)
         {
@@ -44,13 +51,5 @@ public class SyncController(SyncService _sync, ILogger<SyncController> _logger) 
                 }
             );
         }
-
-        _logger.LogInformation(
-            "Sync returned {HabitCount} habits across {MonthCount} months",
-            response.Habits.Count,
-            response.Months.Count
-        );
-
-        return Ok(response);
     }
 }
