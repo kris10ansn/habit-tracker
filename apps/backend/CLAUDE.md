@@ -48,11 +48,13 @@ Consequences when working here:
 
 ## Domain rules that are easy to break
 
-- **Two clock domains.** `EditedAt` on the sync DTOs is the client-stamped **Edit-time** (epoch ms
-  UTC), stored verbatim and the _only_ value a merge compares. The entities' server-stamped
-  `UpdatedAt` audit field is a different thing, never sent to clients. Don't collapse them, and
-  don't reintroduce `updatedAt` as a wire name — that spelling belonged to the audit field and the
-  overlap is exactly what the rename removed.
+- **Two clock domains.** Everything on the wire is the client's clock, in epoch ms UTC: `EditedAt`
+  (the **Edit-time** merge key, the _only_ value a merge compares), `CreatedAt`, and `DeletedAt`.
+  All three are stored verbatim — `StampTimestamps` only fills a `CreatedAt` nobody supplied, so a
+  habit made offline keeps its real create-time (mobile anchors negative-habit streaks on it). The
+  server's own clock shows up in exactly one field, the `UpdatedAt` audit stamp, which has no DTO
+  and never reaches a client. Don't collapse the two domains, and don't reintroduce `updatedAt` as
+  a wire name — that spelling belonged to the audit field.
 - **A skewed clock is refused, not merged.** `SyncService.ClockSkewTolerance` (5 min) bounds how far
   ahead of the server an incoming edit-time may be; past it the whole request throws
   `ClockSkewException` and the controller returns 400. Keep it a whole-request refusal — merging the
@@ -64,7 +66,7 @@ Consequences when working here:
 - **The entry log is permissive.** Any `Outcome` may be stored against any habit — "negative habits
   only record Failure" is a client convention, not a rule to enforce here. Absence of an entry is
   the Unmarked state; a negative habit's implicit "stayed clean" is never a stored `Success`.
-- **Sync ids are client-minted.** `SyncHabit.Id` arrives from the client (random, so two offline
+- **Sync ids are client-minted.** `HabitDto.Id` arrives from the client (random, so two offline
   clients never collide) and must be stored as-is — never re-mint one during a merge. The REST
   `POST /api/habits` path is different: `CreateHabitRequest` carries no id, so the server mints
   there.
@@ -76,9 +78,13 @@ Consequences when working here:
 
 - **Layers:** `Controllers/` (HTTP + DTO mapping only) → `Services/` (app logic, talks to the
   `DbContext` directly; there is no repository layer) → `Entities/` (EF entities + domain enums).
-  Keep logic out of controllers and cross the boundary through `Dtos/`. New responses should project
-  to a record rather than wrap an EF entity — `HabitEntryResponse(Entry)` does wrap one and is the
-  exception to fix, not the pattern to copy.
+  Keep logic out of controllers and cross the boundary through `Dtos/`. Responses project to a
+  record; never serialize an EF entity, which would leak `UserId` and the navigation properties.
+- **One DTO per concept, not one per endpoint.** `HabitDto` and `EntryDto` (in `Dtos/HabitDtos.cs`)
+  are the canonical wire shapes, used by Sync _and_ the REST endpoints alike. They spell every
+  client-owned field exactly as the clients store it, so decoding is an identity map — mobile
+  asserts that at compile time in `apps/mobile/src/api/contract.ts`. Adding a second shape for the
+  same concept is what puts mappers back in the clients; don't.
 - **Migrations are the schema source of truth.** After editing an entity or `HabitTrackerDbContext`,
   add a migration (`dotnet ef migrations add <Name> --project src/HabitTracker.Api`) and commit it;
   never hand-edit the generated files or the model snapshot.

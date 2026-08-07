@@ -320,33 +320,32 @@ QtObject {
 
     // Overwrite local state with the authoritative result of a sync: rebuild the
     // roster in the server's order and replace the viewed month's entries. Persists both
-    // files immediately.
+    // files immediately. Returns false without touching anything if the server sent a habit this
+    // version cannot store — the same `_isRosterRow` test the roster reader applies, run *before*
+    // the save rather than after it. Without this an older backend (one whose response omits a
+    // field this version requires) would be written to roster.json and then refused on next
+    // launch, turning a version mismatch into an unreadable file.
     function applySynced(roster, entriesByHabitId) {
-        // hideFromSleep and createdAt are device-local — the wire format carries neither — so they
-        // are read off the current model before it is cleared and carried onto the new rows.
-        const localById = {};
-        for (let i = 0; i < habits.count; i++) {
-            const habit = habits.get(i);
-            localById[habit.id] = {
-                hideFromSleep: !!habit.hideFromSleep,
-                createdAt: habit.createdAt
-            };
+        if (!(roster || []).every(store._isRosterRow)) {
+            return false;
         }
 
-        // A habit this device has never seen arrives with no local half, so it is stamped as
-        // created now — the closest thing to a create-time the wire can give us.
-        const syncedAt = Date.now();
+        // hideFromSleep is the one device-local field the wire has no room for, so it is read off
+        // the current model before it is cleared and carried onto the new rows. Everything else,
+        // createdAt included, comes back authoritative from the server.
+        const hideFromSleepById = {};
+        for (let i = 0; i < habits.count; i++) {
+            const habit = habits.get(i);
+            hideFromSleepById[habit.id] = !!habit.hideFromSleep;
+        }
+
         const items = (roster || []).map(habit => {
-                const local = localById[habit.id] || {
-                    hideFromSleep: false,
-                    createdAt: syncedAt
-                };
                 return store._storedItem({
                     id: habit.id,
                     name: habit.name,
                     polarity: habit.polarity,
-                    hideFromSleep: local.hideFromSleep,
-                    createdAt: local.createdAt,
+                    hideFromSleep: !!hideFromSleepById[habit.id],
+                    createdAt: habit.createdAt,
                     editedAt: habit.editedAt,
                     entriesByDate: (entriesByHabitId || {})[habit.id] || ({})
                 });
@@ -361,6 +360,8 @@ QtObject {
 
         store._roster._doSave();
         store._month._doSave();
+
+        return true;
     }
 
     // Tear the grid Loader down now (drop the month store's isLoaded) so the

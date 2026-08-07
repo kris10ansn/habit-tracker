@@ -81,7 +81,11 @@ public class HabitTrackerDbContext : DbContext
 
         foreach (var entry in ChangeTracker.Entries<ITimestamped>())
         {
-            if (entry.State == EntityState.Added)
+            // Only stamp a create-time nobody supplied. A row arriving over Sync carries the
+            // creating client's own CreatedAt, which must survive verbatim — mobile anchors a
+            // negative habit's streak on it, so re-stamping it here would move the anchor to
+            // whenever the device happened to sync.
+            if (entry.State == EntityState.Added && entry.Entity.CreatedAt == default)
             {
                 entry.Entity.CreatedAt = now;
             }

@@ -10,7 +10,7 @@ public class HabitsController(HabitService _habits, ILogger<HabitsController> _l
 {
 
     [HttpGet]
-    public async Task<ActionResult<IReadOnlyList<HabitResponse>>> GetHabits(
+    public async Task<ActionResult<IReadOnlyList<HabitDto>>> GetHabits(
         CancellationToken cancellationToken
     )
     {
@@ -21,7 +21,7 @@ public class HabitsController(HabitService _habits, ILogger<HabitsController> _l
     }
 
     [HttpGet("{id:guid}")]
-    public async Task<ActionResult<HabitResponse>> GetHabit(
+    public async Task<ActionResult<HabitDto>> GetHabit(
         Guid id,
         CancellationToken cancellationToken
     )
@@ -37,7 +37,7 @@ public class HabitsController(HabitService _habits, ILogger<HabitsController> _l
     }
 
     [HttpPost]
-    public async Task<ActionResult<HabitResponse>> CreateHabit(
+    public async Task<ActionResult<HabitDto>> CreateHabit(
         CreateHabitRequest request,
         CancellationToken cancellationToken
     )
@@ -49,7 +49,7 @@ public class HabitsController(HabitService _habits, ILogger<HabitsController> _l
     }
 
     [HttpPut("{id:guid}")]
-    public async Task<ActionResult<HabitResponse>> UpdateHabit(
+    public async Task<ActionResult<HabitDto>> UpdateHabit(
         Guid id,
         UpdateHabitRequest request,
         CancellationToken cancellationToken
@@ -81,7 +81,7 @@ public class HabitsController(HabitService _habits, ILogger<HabitsController> _l
     }
 
     [HttpGet("{id:guid}/entries")]
-    public async Task<ActionResult<SyncResponse>> GetEntries(
+    public async Task<ActionResult<IReadOnlyList<EntryDto>>> GetEntries(
         Guid id,
         CancellationToken cancellationToken
     )

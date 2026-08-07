@@ -32,8 +32,9 @@ Content-Type: application/json
 DELETE {{HabitTracker.Api_HostAddress}}/api/habits/{{createHabit.response.body.$.id}}
 
 ### Sync: merge the client's roster + month(s) and get the authoritative alive state back.
-# `editedAt` is the client's edit-time in epoch milliseconds UTC (the merge key — not the server's
-# audit stamp); `deleted: true` rows are tombstones. An editedAt more than five minutes ahead of the
+# Every timestamp is the client's own clock in epoch milliseconds UTC: `createdAt`, the `editedAt`
+# merge key, and `deletedAt` (null while alive, the delete-time on a tombstone). The server's audit
+# stamp is a separate field that never appears here. An editedAt more than five minutes ahead of the
 # server clock is rejected with 400, so bump these when replaying this sample.
 POST {{HabitTracker.Api_HostAddress}}/api/sync
 Content-Type: application/json
@@ -45,8 +46,9 @@ Content-Type: application/json
       "name": "Read",
       "polarity": "Positive",
       "position": 0,
+      "createdAt": 1750600000000,
       "editedAt": 1750680000000,
-      "deleted": false
+      "deletedAt": null
     }
   ],
   "months": [
@@ -58,7 +60,7 @@ Content-Type: application/json
           "date": "2026-06-03",
           "outcome": "Success",
           "editedAt": 1750680001000,
-          "deleted": false
+          "deletedAt": null
         }
       ]
     }

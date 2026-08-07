@@ -53,7 +53,7 @@ public class SyncService
     }
 
     private async Task MergeHabitsAsync(
-        IReadOnlyList<SyncHabit> incoming,
+        IReadOnlyList<HabitDto> incoming,
         CancellationToken cancellationToken
     )
     {
@@ -75,8 +75,10 @@ public class SyncService
                         Name = dto.Name,
                         Polarity = dto.Polarity,
                         Position = dto.Position,
+                        // Verbatim: the creating client owns the create-time (see ITimestamped).
+                        CreatedAt = FromUnixMs(dto.CreatedAt),
                         EditedAt = editedAt,
-                        DeletedAt = dto.Deleted ? editedAt : null,
+                        DeletedAt = FromUnixMsOrNull(dto.DeletedAt),
                     }
                 );
                 continue;
@@ -88,9 +90,9 @@ public class SyncService
             }
 
             habit.EditedAt = editedAt;
-            habit.DeletedAt = dto.Deleted ? editedAt : null;
+            habit.DeletedAt = FromUnixMsOrNull(dto.DeletedAt);
 
-            if (!dto.Deleted)
+            if (dto.DeletedAt is null)
             {
                 habit.Name = dto.Name;
                 habit.Polarity = dto.Polarity;
@@ -142,7 +144,7 @@ public class SyncService
                         Date = dto.Date,
                         Outcome = dto.Outcome,
                         EditedAt = editedAt,
-                        DeletedAt = dto.Deleted ? editedAt : null,
+                        DeletedAt = FromUnixMsOrNull(dto.DeletedAt),
                     }
                 );
                 continue;
@@ -154,9 +156,9 @@ public class SyncService
             }
 
             entry.EditedAt = editedAt;
-            entry.DeletedAt = dto.Deleted ? editedAt : null;
+            entry.DeletedAt = FromUnixMsOrNull(dto.DeletedAt);
 
-            if (!dto.Deleted)
+            if (dto.DeletedAt is null)
             {
                 entry.Outcome = dto.Outcome;
             }
@@ -168,19 +170,27 @@ public class SyncService
         CancellationToken cancellationToken
     )
     {
+        // Position alone is not a total order: two clients editing offline can both mint a habit at
+        // the same position, and the merge stores each verbatim. Break the tie deterministically so
+        // every client that syncs sees the same roster order rather than whatever the database
+        // happened to return.
         var habitEntities = await _db
             .Habits.Where(h => h.UserId == _currentUser.UserId && h.DeletedAt == null)
             .OrderBy(h => h.Position)
+            .ThenBy(h => h.CreatedAt)
+            .ThenBy(h => h.Id)
             .ToListAsync(cancellationToken);
 
+        // Alive rows only, so every DeletedAt below is null — a delete reaches the client as absence.
         var habits = habitEntities
-            .Select(h => new SyncHabit(
+            .Select(h => new HabitDto(
                 h.Id,
                 h.Name,
                 h.Polarity,
                 h.Position,
+                ToUnixMs(h.CreatedAt),
                 ToUnixMs(h.EditedAt),
-                false
+                null
             ))
             .ToList();
 
@@ -200,13 +210,7 @@ public class SyncService
                 .ToListAsync(cancellationToken);
 
             var entries = entryEntities
-                .Select(e => new SyncEntry(
-                    e.HabitId,
-                    e.Date,
-                    e.Outcome,
-                    ToUnixMs(e.EditedAt),
-                    false
-                ))
+                .Select(e => new EntryDto(e.HabitId, e.Date, e.Outcome, ToUnixMs(e.EditedAt), null))
                 .ToList();
 
             responseMonths.Add(new SyncMonth(month.Month, entries));
@@ -250,6 +254,9 @@ public class SyncService
     }
 
     private static DateTimeOffset FromUnixMs(long ms) => DateTimeOffset.FromUnixTimeMilliseconds(ms);
+
+    private static DateTimeOffset? FromUnixMsOrNull(long? ms) =>
+        ms is null ? null : FromUnixMs(ms.Value);
 
     private static long ToUnixMs(DateTimeOffset value) => value.ToUnixTimeMilliseconds();
 }

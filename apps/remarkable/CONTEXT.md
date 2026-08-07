@@ -87,7 +87,7 @@ _Avoid_: deleted habit, trash, archive.
 
 **Entry row**:
 One marked day as stored and sent: `{ habitId, date, outcome, editedAt, deletedAt }`, the backend's
-`SyncEntry` shape. `deletedAt` is null while alive and holds the clear's edit-time on a tombstone —
+`EntryDto` shape. `deletedAt` is null while alive and holds the clear's edit-time on a tombstone —
 a cleared day keeps a row rather than dropping the key, so the next sync can push the clear. See
 [ADR 0005](docs/adr/0005-backend-shaped-entry-rows.md).
 _Avoid_: cell, entry object, state object.

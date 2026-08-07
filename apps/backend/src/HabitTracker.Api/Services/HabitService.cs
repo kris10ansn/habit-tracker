@@ -20,33 +20,31 @@ public class HabitService
         _currentUser = currentUser;
     }
 
-    public async Task<IReadOnlyList<HabitResponse>> GetHabitsAsync(
+    public async Task<IReadOnlyList<HabitDto>> GetHabitsAsync(
         CancellationToken cancellationToken = default
     )
     {
-        return await OwnedHabits()
+        // Materialize before projecting: the epoch-ms conversion has no SQL translation. The
+        // tie-break matches Sync's, so both surfaces agree on roster order (see SyncService).
+        var habits = await OwnedHabits()
             .OrderBy(h => h.Position)
-            .Select(h => new HabitResponse(
-                h.Id,
-                h.Name,
-                h.Polarity,
-                h.Position,
-                h.CreatedAt,
-                h.UpdatedAt
-            ))
+            .ThenBy(h => h.CreatedAt)
+            .ThenBy(h => h.Id)
             .ToListAsync(cancellationToken);
+
+        return habits.Select(ToDto).ToList();
     }
 
-    public async Task<HabitResponse?> GetHabitAsync(
+    public async Task<HabitDto?> GetHabitAsync(
         Guid id,
         CancellationToken cancellationToken = default
     )
     {
         var habit = await FindOwnedAsync(id, cancellationToken);
-        return habit is null ? null : ToResponse(habit);
+        return habit is null ? null : ToDto(habit);
     }
 
-    public async Task<HabitResponse> CreateHabitAsync(
+    public async Task<HabitDto> CreateHabitAsync(
         CreateHabitRequest request,
         CancellationToken cancellationToken = default
     )
@@ -68,10 +66,10 @@ public class HabitService
         _db.Habits.Add(habit);
         await _db.SaveChangesAsync(cancellationToken);
 
-        return ToResponse(habit);
+        return ToDto(habit);
     }
 
-    public async Task<HabitResponse?> UpdateHabitAsync(
+    public async Task<HabitDto?> UpdateHabitAsync(
         Guid id,
         UpdateHabitRequest request,
         CancellationToken cancellationToken = default
@@ -89,7 +87,7 @@ public class HabitService
         habit.EditedAt = DateTimeOffset.UtcNow;
         await _db.SaveChangesAsync(cancellationToken);
 
-        return ToResponse(habit);
+        return ToDto(habit);
     }
 
     public async Task<bool> DeleteHabitAsync(
@@ -114,26 +112,24 @@ public class HabitService
     }
 
 
-    public async Task<IReadOnlyList<HabitEntryResponse>?> GetEntriesAsync(
+    /// <summary>Alive entries for one owned habit, oldest first. Null when the habit isn't there.</summary>
+    public async Task<IReadOnlyList<EntryDto>?> GetEntriesAsync(
         Guid id,
         CancellationToken cancellationToken = default
     )
     {
         var habit = await FindOwnedAsync(id, cancellationToken);
-
         if (habit is null)
         {
             return null;
         }
 
-
-        var entries = await _db.Entries
-            .Where(e => e.HabitId == habit.Id)
+        var entries = await _db
+            .Entries.Where(e => e.HabitId == habit.Id && e.DeletedAt == null)
             .OrderBy(e => e.Date)
-            .Select(e => new HabitEntryResponse(e))
             .ToListAsync(cancellationToken);
 
-        return entries;
+        return entries.Select(ToDto).ToList();
     }
 
     private IQueryable<Habit> OwnedHabits() =>
@@ -142,6 +138,20 @@ public class HabitService
     private Task<Habit?> FindOwnedAsync(Guid id, CancellationToken cancellationToken) =>
         OwnedHabits().FirstOrDefaultAsync(h => h.Id == id, cancellationToken);
 
-    private static HabitResponse ToResponse(Habit h) =>
-        new(h.Id, h.Name, h.Polarity, h.Position, h.CreatedAt, h.UpdatedAt);
+    // These endpoints serve alive rows only, so DeletedAt is null on everything they project.
+    private static HabitDto ToDto(Habit habit) =>
+        new(
+            habit.Id,
+            habit.Name,
+            habit.Polarity,
+            habit.Position,
+            ToUnixMs(habit.CreatedAt),
+            ToUnixMs(habit.EditedAt),
+            null
+        );
+
+    private static EntryDto ToDto(Entry entry) =>
+        new(entry.HabitId, entry.Date, entry.Outcome, ToUnixMs(entry.EditedAt), null);
+
+    private static long ToUnixMs(DateTimeOffset value) => value.ToUnixTimeMilliseconds();
 }

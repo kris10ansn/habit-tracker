@@ -173,7 +173,10 @@ JsonStore {
 
         if (Sync.responseChangesLocal(request, response)) {
             const applied = Sync.applyResponse(response, requestMonthKey);
-            syncStore.habitsStore.applySynced(applied.roster, applied.entriesByHabitId);
+            if (!syncStore.habitsStore.applySynced(applied.roster, applied.entriesByHabitId)) {
+                syncStore._fail("error", "Server sent a habit this version can’t store");
+                return;
+            }
         }
 
         // The server now owns the tombstones we pushed, so drop them locally.

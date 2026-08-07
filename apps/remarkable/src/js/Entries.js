@@ -1,6 +1,6 @@
 .import "Polarity.js" as Polarity
 
-// Entry rows in the backend's SyncEntry shape: one normalized (habitId, date) row per marked day,
+// Entry rows in the backend's EntryDto shape: one normalized (habitId, date) row per marked day,
 // carrying its outcome, edit-time and `deletedAt` tombstone stamp (null while alive). The month
 // file persists these rows as they are, so file and in-memory value are one shape; only `outcome`
 // is respelled on the wire (see Sync.js).

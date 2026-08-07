@@ -20,7 +20,10 @@ public class SyncControllerTests
         );
 
     private static SyncRequest OneHabitAt(long editedAt) =>
-        new([new SyncHabit(Guid.NewGuid(), "Read", Polarity.Positive, 0, editedAt, false)], []);
+        new(
+            [new HabitDto(Guid.NewGuid(), "Read", Polarity.Positive, 0, editedAt, editedAt, null)],
+            []
+        );
 
     [Fact]
     public async Task Sync_ReturnsTheAuthoritativeState()

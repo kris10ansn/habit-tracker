@@ -1,27 +1,15 @@
-using HabitTracker.Api.Entities;
-
 namespace HabitTracker.Api.Dtos;
 
-// Sync wire format. `EditedAt` is epoch milliseconds UTC — the client stamps Date.now() and the
-// server stores that verbatim as the row's edit-time merge key. It is deliberately NOT the
-// entities' server-stamped `UpdatedAt` audit field, which never reaches a client. A `Deleted` item
-// is a tombstone whose `EditedAt` is the delete-time; its payload fields are then ignored.
-// Requests carry alive rows + tombstones; responses carry the authoritative ALIVE state only.
+// The Sync envelope. The rows inside are the canonical `HabitDto`/`EntryDto` shapes from
+// HabitDtos.cs — Sync adds the month partitioning and the request/response framing, nothing else.
+//
+// Requests carry alive rows AND tombstones (a row whose `DeletedAt` is non-null; its payload
+// fields are then ignored by the merge). Responses carry the authoritative ALIVE state only, so
+// every row in a response has `DeletedAt` null — a delete surfaces to the client as absence.
 
-public record SyncHabit(
-    Guid Id,
-    string Name,
-    Polarity Polarity,
-    int Position,
-    long EditedAt,
-    bool Deleted
-);
+public record SyncMonth(string Month, IReadOnlyList<EntryDto> Entries);
 
-public record SyncEntry(Guid HabitId, DateOnly Date, Outcome Outcome, long EditedAt, bool Deleted);
-
-public record SyncMonth(string Month, IReadOnlyList<SyncEntry> Entries);
-
-public record SyncRequest(IReadOnlyList<SyncHabit> Habits, IReadOnlyList<SyncMonth> Months)
+public record SyncRequest(IReadOnlyList<HabitDto> Habits, IReadOnlyList<SyncMonth> Months)
 {
     /// <summary>
     /// The newest edit-time anywhere in the request — roster rows and every month's entries alike,
@@ -36,4 +24,4 @@ public record SyncRequest(IReadOnlyList<SyncHabit> Habits, IReadOnlyList<SyncMon
             .Max();
 }
 
-public record SyncResponse(IReadOnlyList<SyncHabit> Habits, IReadOnlyList<SyncMonth> Months);
+public record SyncResponse(IReadOnlyList<HabitDto> Habits, IReadOnlyList<SyncMonth> Months);

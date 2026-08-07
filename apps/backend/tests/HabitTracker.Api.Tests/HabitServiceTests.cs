@@ -33,8 +33,15 @@ public class HabitServiceTests
 
         Assert.Equal(0, first.Position);
         Assert.Equal(1, second.Position);
+
+        // A REST-minted habit has no client to supply times, so the server stamps both.
         Assert.NotEqual(default, first.CreatedAt);
-        Assert.Equal(first.CreatedAt, first.UpdatedAt);
+        Assert.NotEqual(default, first.EditedAt);
+        Assert.Null(first.DeletedAt);
+
+        // UpdatedAt is the audit stamp: it exists on the entity and deliberately has no DTO field.
+        var stored = await db.Habits.SingleAsync(h => h.Id == first.Id);
+        Assert.NotEqual(default, stored.UpdatedAt);
     }
 
     [Fact]

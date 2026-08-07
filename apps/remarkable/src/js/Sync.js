@@ -2,10 +2,10 @@
 
 // Translation between the client's roster/month state and the backend sync wire format.
 // Pure functions only — the QML SyncStore does the I/O. Timestamps are epoch ms UTC.
-// Polarity and `editedAt` are stored as the wire spells them, so what is left at this edge is the
-// X/O <-> Outcome mapping (a deliberate on-disk spelling, ADR 0005) plus the shapes the wire has no
-// field for: `deletedAt` becomes a `deleted` flag, Position is the roster index, and the
-// device-local fields never leave (HabitsStore.applySynced re-attaches them).
+// The wire now spells every shared field exactly as this client stores it — polarity, createdAt,
+// editedAt, deletedAt alike — so what is left at this edge is small: the X/O <-> Outcome mapping
+// (a deliberate on-disk spelling, ADR 0005), Position as the roster index, and the device-local
+// fields the wire has no room for (HabitsStore.applySynced re-attaches hideFromSleep).
 
 const SUCCESS = "Success";
 const FAILURE = "Failure";
@@ -22,17 +22,20 @@ function buildRequest(roster, tombstones, entryRows, monthKey) {
         name: habit.name,
         polarity: habit.polarity,
         position: position,
+        createdAt: habit.createdAt,
         editedAt: habit.editedAt,
-        deleted: false,
+        deletedAt: null,
     }));
 
+    // A tombstone's payload fields are ignored by the merge, so its position is not meaningful.
     const habitTombstones = (tombstones || []).map((tombstone) => ({
         id: tombstone.id,
         name: tombstone.name,
         polarity: tombstone.polarity,
         position: 0,
+        createdAt: tombstone.createdAt,
         editedAt: tombstone.editedAt,
-        deleted: true,
+        deletedAt: tombstone.deletedAt,
     }));
 
     return {
@@ -48,7 +51,7 @@ const entryToWire = (row) => ({
     date: row.date,
     outcome: outcomeToWire(row.outcome),
     editedAt: row.editedAt,
-    deleted: !!row.deletedAt,
+    deletedAt: row.deletedAt || null,
 });
 
 // Fold an authoritative response into the shapes HabitsStore.applySynced wants: roster habit rows
@@ -60,6 +63,7 @@ function applyResponse(response, monthKey) {
         id: habit.id,
         name: habit.name,
         polarity: habit.polarity,
+        createdAt: habit.createdAt,
         editedAt: habit.editedAt,
     }));
 
@@ -99,14 +103,14 @@ function responseChangesLocal(request, response) {
 
 const aliveHabitMap = (habits) =>
     (habits || []).reduce((byId, habit) => {
-        if (!habit.deleted) byId[habit.id] = habit.editedAt;
+        if (!habit.deletedAt) byId[habit.id] = habit.editedAt;
         return byId;
     }, {});
 
 const aliveEntryMap = (months) =>
     (months || []).reduce((byMonthHabitDate, month) => {
         (month.entries || []).forEach((entry) => {
-            if (!entry.deleted)
+            if (!entry.deletedAt)
                 byMonthHabitDate[
                     `${month.month}|${entry.habitId}|${entry.date}`
                 ] = entry.editedAt;

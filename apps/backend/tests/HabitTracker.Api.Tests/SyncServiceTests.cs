@@ -19,26 +19,40 @@ public class SyncServiceTests
     private static long Ms(int secondsAfterT0) =>
         T0.AddSeconds(secondsAfterT0).ToUnixTimeMilliseconds();
 
-    private static SyncHabit Habit(
+    // `deleted: true` stamps the tombstone at the same instant as the edit, which is what both
+    // clients do; DeletedAtMs overrides it where a test needs the two to differ.
+    private static HabitDto Habit(
         Guid id,
         string name,
         long editedAt,
         bool deleted = false,
         int position = 0,
-        Polarity polarity = Polarity.Positive
-    ) => new(id, name, polarity, position, editedAt, deleted);
+        Polarity polarity = Polarity.Positive,
+        long? createdAt = null,
+        long? deletedAtMs = null
+    ) =>
+        new(
+            id,
+            name,
+            polarity,
+            position,
+            createdAt ?? Ms(0),
+            editedAt,
+            deletedAtMs ?? (deleted ? editedAt : null)
+        );
 
-    private static SyncEntry Entry(
+    private static EntryDto Entry(
         Guid habitId,
         DateOnly date,
         Outcome outcome,
         long editedAt,
-        bool deleted = false
-    ) => new(habitId, date, outcome, editedAt, deleted);
+        bool deleted = false,
+        long? deletedAtMs = null
+    ) => new(habitId, date, outcome, editedAt, deletedAtMs ?? (deleted ? editedAt : null));
 
-    private static SyncMonth Month(string month, params SyncEntry[] entries) => new(month, entries);
+    private static SyncMonth Month(string month, params EntryDto[] entries) => new(month, entries);
 
-    private static SyncRequest Request(SyncHabit[] habits, params SyncMonth[] months) =>
+    private static SyncRequest Request(HabitDto[] habits, params SyncMonth[] months) =>
         new(habits, months);
 
     [Fact]
@@ -180,6 +194,44 @@ public class SyncServiceTests
         Assert.Equal(["First", "Second"], response.Habits.Select(h => h.Name));
         var entry = Assert.Single(Assert.Single(response.Months).Entries);
         Assert.Equal(june, entry.Date);
+    }
+
+    [Fact]
+    public async Task Sync_StoresATombstonesDeleteTimeIndependentlyOfItsMergeKey()
+    {
+        // The wire carries DeletedAt in its own right, so a row edited after it was deleted keeps
+        // both instants. Conflating them (the old `deleted: bool`) made this unrepresentable.
+        using var db = NewDb();
+        var sync = NewSync(db);
+        var id = Guid.NewGuid();
+
+        await sync.SyncAsync(Request([Habit(id, "Read", Ms(0))]));
+        await sync.SyncAsync(
+            Request([Habit(id, "Read", Ms(30), deletedAtMs: Ms(10))])
+        );
+
+        var stored = await db.Habits.SingleAsync(h => h.Id == id);
+        Assert.Equal(Ms(30), stored.EditedAt.ToUnixTimeMilliseconds());
+        Assert.Equal(Ms(10), stored.DeletedAt?.ToUnixTimeMilliseconds());
+    }
+
+    [Fact]
+    public async Task Sync_KeepsTheCreatingClientsCreateTime_RatherThanStampingItsOwn()
+    {
+        // Mobile anchors a negative habit's streak on createdAt, so a habit made offline weeks ago
+        // must not have its anchor moved to whenever the device got around to syncing.
+        using var db = NewDb();
+        var sync = NewSync(db);
+        var id = Guid.NewGuid();
+        var createdLongBefore = Ms(-86_400);
+
+        var response = await sync.SyncAsync(
+            Request([Habit(id, "Read", Ms(0), createdAt: createdLongBefore)])
+        );
+
+        Assert.Equal(createdLongBefore, Assert.Single(response.Habits).CreatedAt);
+        var stored = await db.Habits.SingleAsync(h => h.Id == id);
+        Assert.Equal(createdLongBefore, stored.CreatedAt.ToUnixTimeMilliseconds());
     }
 
     [Fact]
