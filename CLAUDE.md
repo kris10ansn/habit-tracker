@@ -37,6 +37,11 @@ keeps `"x"`/`"o"` outcomes it respells at the sync edge; mobile writes SQLite ta
 storing the backend's spellings verbatim. Converging vocabulary is not a licence to copy: neither
 client is a spec.
 
+That contract has a machine-readable form: `dotnet build` emits **`apps/backend/openapi.json`**, and
+it is committed. Mobile generates its entire wire layer from it with kubb (`apps/mobile/src/api/`) —
+so a DTO change must land with a rebuilt spec, or clients silently keep decoding the old shape.
+reMarkable hand-writes its edge (`src/js/Sync.js`) and reads the same file as documentation.
+
 **Unification, merge, and conflict resolution are the backend's job**, never a client's. When a
 client question is about the shared model or the sync contract, the answer is in
 [`apps/backend/CONTEXT.md`](./apps/backend/CONTEXT.md) (Outcome, Position, Sync, Edit-time,
@@ -70,7 +75,9 @@ the device, describe what to run and wait. This applies even when a `make` targe
 - **Per-app delegators** (root scripts that call into one app):
     - `pnpm mobile:start` (also `mobile:android` / `mobile:ios`; there is deliberately no web
       target — never run the mobile app on web, see `apps/mobile/CLAUDE.md`). `pnpm mobile:db:generate`
-      regenerates the Drizzle migrations after a schema edit.
+      regenerates the Drizzle migrations after a schema edit; `pnpm mobile:api:generate` regenerates
+      mobile's backend client from `apps/backend/openapi.json` (rebuild that first with
+      `pnpm backend:build`).
     - `pnpm remarkable:build` (also `remarkable:clean` / `remarkable:backup` / `remarkable:deploy` /
       `remarkable:remove`, which shell out to `make` — `deploy`/`remove` touch the device, so
       user-only).

@@ -6,8 +6,23 @@
     <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
 
+  <!--
+    Export the OpenAPI document to apps/backend/openapi.json on every build, and commit it. That
+    file is the contract clients generate from (mobile runs kubb over it), so codegen needs neither
+    a running API nor a database — and a contract change shows up as a reviewable diff next to the
+    DTO change that caused it. `dotnet build` regenerates it; see the backend README.
+  -->
+  <PropertyGroup>
+    <OpenApiDocumentsDirectory>../..</OpenApiDocumentsDirectory>
+    <OpenApiGenerateDocumentsOptions>--file-name openapi</OpenApiGenerateDocumentsOptions>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.8" />
+    <PackageReference Include="Microsoft.Extensions.ApiDescription.Server" Version="10.0.0">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
     <!-- Pin Relational to match Design/Tests (10.0.9); Npgsql 10.0.2 only floors it at 10.0.4. -->
     <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.9" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.9">

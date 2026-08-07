@@ -1,0 +1,507 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "HabitTracker.Api | v1",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/Habits": {
+      "get": {
+        "tags": [
+          "Habits"
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HabitDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HabitDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HabitDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Habits"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateHabitRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateHabitRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateHabitRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/HabitDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HabitDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HabitDto"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Habits/{id}": {
+      "get": {
+        "tags": [
+          "Habits"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/HabitDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HabitDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HabitDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Habits"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateHabitRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateHabitRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateHabitRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/HabitDto"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HabitDto"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HabitDto"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Habits"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/Habits/{id}/entries": {
+      "get": {
+        "tags": [
+          "Habits"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EntryDto"
+                  }
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EntryDto"
+                  }
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/EntryDto"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/Sync": {
+      "post": {
+        "tags": [
+          "Sync"
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SyncRequest"
+              }
+            },
+            "text/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SyncRequest"
+              }
+            },
+            "application/*+json": {
+              "schema": {
+                "$ref": "#/components/schemas/SyncRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncResponse"
+                }
+              },
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncResponse"
+                }
+              },
+              "text/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncResponse"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "CreateHabitRequest": {
+        "required": [
+          "name",
+          "polarity"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "polarity": {
+            "$ref": "#/components/schemas/Polarity"
+          }
+        }
+      },
+      "EntryDto": {
+        "required": [
+          "habitId",
+          "date",
+          "outcome",
+          "editedAt",
+          "deletedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "habitId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "date": {
+            "type": "string",
+            "format": "date"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/Outcome"
+          },
+          "editedAt": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "deletedAt": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          }
+        }
+      },
+      "HabitDto": {
+        "required": [
+          "id",
+          "name",
+          "polarity",
+          "position",
+          "createdAt",
+          "editedAt",
+          "deletedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "polarity": {
+            "$ref": "#/components/schemas/Polarity"
+          },
+          "position": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "createdAt": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "editedAt": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "deletedAt": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          }
+        }
+      },
+      "Outcome": {
+        "enum": [
+          "Success",
+          "Failure"
+        ]
+      },
+      "Polarity": {
+        "enum": [
+          "Positive",
+          "Negative"
+        ]
+      },
+      "SyncMonth": {
+        "required": [
+          "month",
+          "entries"
+        ],
+        "type": "object",
+        "properties": {
+          "month": {
+            "type": "string"
+          },
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/EntryDto"
+            }
+          }
+        }
+      },
+      "SyncRequest": {
+        "required": [
+          "habits",
+          "months"
+        ],
+        "type": "object",
+        "properties": {
+          "habits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HabitDto"
+            }
+          },
+          "months": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SyncMonth"
+            }
+          }
+        }
+      },
+      "SyncResponse": {
+        "required": [
+          "habits",
+          "months"
+        ],
+        "type": "object",
+        "properties": {
+          "habits": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/HabitDto"
+            }
+          },
+          "months": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SyncMonth"
+            }
+          }
+        }
+      },
+      "UpdateHabitRequest": {
+        "required": [
+          "name",
+          "polarity",
+          "position"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "polarity": {
+            "$ref": "#/components/schemas/Polarity"
+          },
+          "position": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Habits"
+    },
+    {
+      "name": "Sync"
+    }
+  ]
+}

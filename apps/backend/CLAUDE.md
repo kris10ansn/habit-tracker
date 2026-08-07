@@ -33,6 +33,10 @@ Consequences when working here:
 - **A change to `Dtos/SyncDtos.cs` or `Dtos/HabitDtos.cs` is a contract change.** Both clients
   decode these shapes (`apps/remarkable/src/js/Sync.js`, and mobile's sync layer once built). Say so
   explicitly when you change one; don't treat it as an internal refactor.
+- **A contract change is not finished until `openapi.json` is rebuilt.** `dotnet build` regenerates
+  that committed file (see [`README.md`](./README.md)) and mobile's whole API layer is generated
+  from it (`pnpm mobile:api:generate`). Leaving it stale ships clients the previous contract
+  silently — nothing fails, they just decode the wrong shape.
 - **Enums serialize as the member names verbatim** (`"Positive"`, `"Success"`) — a bare
   `JsonStringEnumConverter` with no naming policy. Both clients have since aligned their own storage
   to these spellings, so the casing is load-bearing in three places at once: **do not add a naming

@@ -42,9 +42,11 @@ Today or Month cycles its state; the Habits tab renames, flips polarity, and dra
 a row by its handle — the generic `components/ui/SortableList` with an inline `HabitRow` in
 `app/habits.tsx`). The Sync tab persists a **Server URL** setting (empty = standalone).
 
-**In flight:** the schema, tombstones, and `editedAt` merge key are in place, but the sync _engine_
-(gather → POST → apply) is not built yet, and adding/deleting habits is still affordance-only
-(`db/repo/habits.ts` has no create/delete). Build those against the backend's `Dtos/SyncDtos.cs`.
+**In flight:** the schema, tombstones, the `editedAt` merge key, and the generated backend seam
+(`src/api/`) are in place, but the sync _engine_ (gather → POST → apply) is not built yet, and
+adding/deleting habits is still affordance-only (`db/repo/habits.ts` has no create/delete). Build
+the engine on the generated `sync()` client — never a hand-rolled `fetch` — and pass it the Server
+URL from settings.
 
 ## Domain
 
@@ -94,6 +96,14 @@ since it crosses month partitions.
   (`streaksKey` stays internal). Screens read through these, never SQLite directly. Habits carry a
   stable `id` — key lists on it, never on `name` (renames would remount) or the index (reorders
   would desync uncontrolled `TextInput`s).
+- `src/api/` — the backend seam. `gen/` is **generated** by [kubb](https://kubb.dev) from
+  `apps/backend/openapi.json` (config: `kubb.config.ts`) and committed, so a fresh clone typechecks
+  without codegen: `gen/types/` (wire types — string-union enums that are the _same_ types as
+  `domain/types.ts`), `gen/zod/` (schemas), `gen/clients/` (one async function per backend
+  operation, e.g. `sync()`, each validating its response with the Zod schema before returning).
+  `client.ts` is the **only** hand-written file here — the fetch transport, which takes `baseURL`
+  per call (no module-level state to go stale against the editable Server URL setting) and throws
+  `ApiError` (non-2xx, `body` carries the backend's `ProblemDetails`) or `NetworkError`.
 - `src/theme/colors.ts` — raw palette for non-className APIs. `src/lib/` — `cn.ts` (classname joiner
   for conditional classes) and `useUpdateEffect.ts` (effect that skips the first run, used to
   re-seed local form state from a query without clobbering typing).
@@ -130,4 +140,14 @@ since it crosses month partitions.
   are special) even though they default-export a capitalized screen component.
 - Local `.prettierrc.json` (4-space / double-quote, plus `prettier-plugin-organize-imports` and
   `prettier-plugin-tailwindcss` for class sorting) overrides the repo-root config.
-- `pnpm typecheck` (tsc --noEmit) to check types; `pnpm start` to run the dev server.
+- **Never hand-edit `src/api/gen/`** — every run of `pnpm api:generate` wipes and rewrites it
+  (`output.clean`). The backend owns those shapes; to change one, change `apps/backend/Dtos/`,
+  rebuild the spec (`pnpm backend:build`), then regenerate. Behaviour that isn't derivable from the
+  spec belongs in `src/api/client.ts` or above the seam, never in a generated file.
+- **Talk to the backend only through the generated clients**, and only for Sync. Mobile is
+  local-first: screens read SQLite via `state/queries/*`, and the backend's Habits CRUD endpoints
+  (`getHabits`, `createHabit`, …) exist in `gen/clients/` because the spec has them, not because
+  mobile may call them — doing so would bypass local storage and put merge decisions in a client.
+  There are deliberately no generated React Query hooks; see the note in `kubb.config.ts`.
+- `pnpm typecheck` (tsc --noEmit) to check types; `pnpm start` to run the dev server;
+  `pnpm api:generate` to regenerate the backend client after the spec changes.

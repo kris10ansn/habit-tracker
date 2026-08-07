@@ -45,6 +45,18 @@ pnpm start        # run the API (http://localhost:5137)
 `src/HabitTracker.Api/HabitTracker.Api.http` has ready-to-run requests for the Habits endpoints. In
 Development, the OpenAPI document is served at `/openapi/v1.json`.
 
+### The OpenAPI document
+
+`pnpm build` (`dotnet build`) also writes the document to [`openapi.json`](./openapi.json) in this
+directory — that is the `Microsoft.Extensions.ApiDescription.Server` package plus the
+`OpenApiDocumentsDirectory` / `OpenApiGenerateDocumentsOptions` properties in
+`HabitTracker.Api.csproj`. The file is **committed**, so a client can generate its API layer with
+neither a running server nor a database: mobile runs [kubb](https://kubb.dev) over this exact file
+(`apps/mobile/kubb.config.ts`) to produce `apps/mobile/src/api/gen/`.
+
+Rebuild and commit it in the same change as any edit to `Dtos/` or a controller signature. A stale
+`openapi.json` hands every client the old contract without any error to notice.
+
 ## Develop
 
 ```bash
