@@ -1,0 +1,47 @@
+#!/bin/sh
+# Keeps the two halves of the cross-app contract in the same commit.
+#
+# `apps/backend/openapi.json` is the machine-readable contract (emitted by `dotnet build`), and
+# `apps/mobile/src/api/gen/` is generated from it by kubb. Committing a moved spec without the
+# regenerated client leaves mobile decoding the previous shape — nothing fails to compile, because
+# the stale generated types stay internally consistent; it only surfaces later as a Zod parse error
+# at the sync edge.
+#
+# Deliberately only checks the spec -> client half. The C# -> spec half is left alone: a
+# comment-only edit to Dtos/ does not move the document, so requiring a spec change alongside every
+# staged .cs file would cry wolf often enough to get this hook disabled.
+#
+# This is a staged-paths check, not a freshness proof — it runs in milliseconds and needs neither
+# dotnet nor node. It can false-positive when a spec change genuinely produces no client change
+# (say, a description kubb does not carry through); `git commit --no-verify` is the escape hatch.
+
+set -e
+
+staged_files() {
+    git diff --cached --name-only --diff-filter=ACMR
+}
+
+if ! staged_files | grep -q '^apps/backend/openapi\.json$'; then
+    exit 0
+fi
+
+if staged_files | grep -q '^apps/mobile/src/api/gen/'; then
+    exit 0
+fi
+
+cat >&2 <<'MESSAGE'
+
+  apps/backend/openapi.json is staged, but apps/mobile/src/api/gen/ is not.
+
+  The contract moved without its generated client. Regenerate and stage it:
+
+      pnpm mobile:api:generate
+      git add apps/mobile/src/api/gen
+
+  If the spec genuinely produces no client change, bypass with:
+
+      git commit --no-verify
+
+MESSAGE
+
+exit 1
