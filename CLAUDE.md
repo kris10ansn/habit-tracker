@@ -79,8 +79,10 @@ the device, describe what to run and wait. This applies even when a `make` targe
       mobile's backend client from `apps/backend/openapi.json` (rebuild that first with
       `pnpm backend:build`).
     - `pnpm remarkable:build` (also `remarkable:clean` / `remarkable:backup` / `remarkable:deploy` /
-      `remarkable:remove`, which shell out to `make` — `deploy`/`remove` touch the device, so
-      user-only).
+      `remarkable:remove` / `remarkable:find-hotspot-ip`, which shell out to `make` —
+      `deploy`/`remove`/`backup`/`find-hotspot-ip` touch the device, so user-only).
+      `remarkable:find-hotspot-ip` nmap-scans the current network for the tablet (identifying it by
+      SSH host key) and repoints `~/.ssh/config` at it.
     - `pnpm backend:start` (also `backend:build` / `backend:watch` / `backend:test`), plus the
       database targets `backend:db:up` / `backend:db:down` / `backend:migrate` / `backend:db:clear`.
       `db:up` needs Docker; `migrate` applies the EF Core migrations.

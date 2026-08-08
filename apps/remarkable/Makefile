@@ -1,4 +1,5 @@
 REMARKABLE_HOST ?= remarkable
+HOTSPOT_HOST ?= remarkable-hotspot
 APP_ID := habit-tracker
 REMOTE_DIR := /home/root/xovi/exthome/appload/$(APP_ID)
 RCC ?= rcc-qt5
@@ -11,7 +12,7 @@ SW_DIR := tools/suspend-writer
 SW_REMOTE_DIR := $(REMOTE_DIR)/suspend-writer
 SW_JS_MODULES := $(addprefix src/js/,SuspendDraw.js DateUtils.js Entries.js Polarity.js HabitsModel.js)
 
-.PHONY: build inject-pragma deploy remove clean lint backup \
+.PHONY: build inject-pragma deploy remove clean lint backup find-hotspot-ip \
 	suspend-writer-host suspend-writer-device suspend-writer-deploy suspend-writer-clean
 
 build: inject-pragma
@@ -41,6 +42,12 @@ deploy: build
 
 remove:
 	ssh $(REMARKABLE_HOST) "rm -rf $(REMOTE_DIR)"
+
+# Hotspot leases move, so find the device on the current network by its SSH host
+# key and repoint $(HOTSPOT_HOST) in ~/.ssh/config at it. Needs nmap; probes the
+# device.
+find-hotspot-ip:
+	@tools/find-remarkable-hotspot-ip.sh $(HOTSPOT_HOST)
 
 # Pull the device's data/ into a timestamped local backup (e.g. .backup/2026-06-24_14-30-05).
 backup:

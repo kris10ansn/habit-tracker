@@ -32,7 +32,7 @@ a modal names the file. A forgotten migration costs a dialog, never data. See
 
 Under no circumstance may the agent run `ssh`, `scp`, `rsync`, `make deploy`, `make remove`, or any other command that touches the reMarkable. That includes "read-only" probes like `ssh remarkable journalctl …` or `ssh remarkable ls …`. The user runs all device-side commands and pastes back the output. If a step requires device interaction, describe what to run and wait — do not execute it.
 
-This applies even when a `make` target wraps the SSH. The full user-only set is `make deploy`, `make remove`, **`make backup`** (rsyncs the device's `data/` back into `.backup/<timestamp>/`) and **`make suspend-writer-deploy`** — plus the `pnpm remarkable:deploy` / `remarkable:remove` / `remarkable:backup` delegators (the suspend-writer targets have no delegator; they are `make`-only). Assume any target not listed as local below touches the device.
+This applies even when a `make` target wraps the SSH. The full user-only set is `make deploy`, `make remove`, **`make backup`** (rsyncs the device's `data/` back into `.backup/<timestamp>/`), **`make suspend-writer-deploy`** and **`make find-hotspot-ip`** (nmap-scans the network and reads the device's SSH host key) — plus the `pnpm remarkable:deploy` / `remarkable:remove` / `remarkable:backup` / `remarkable:find-hotspot-ip` delegators (the suspend-writer targets have no delegator; they are `make`-only). Assume any target not listed as local below touches the device.
 
 ## Commands
 
@@ -43,9 +43,9 @@ Local (agent-runnable):
 - `make clean` — removes local `build/`.
 - `make suspend-writer-host` / `suspend-writer-clean` — host build of the off-device renderer against host Qt5, for previewing a render as a PNG; no device or SDK needed (see below).
 
-Device-touching (**user-only**, never run these): `make deploy`, `make remove`, `make backup`, `make suspend-writer-device` (needs the SDK), `make suspend-writer-deploy`.
+Device-touching (**user-only**, never run these): `make deploy`, `make remove`, `make backup`, `make suspend-writer-device` (needs the SDK), `make suspend-writer-deploy`, `make find-hotspot-ip` (`tools/find-remarkable-hotspot-ip.sh` — nmap-scans the network and reads the device's SSH host key to relocate it after a hotspot lease change, then rewrites `~/.ssh/config`).
 
-Overrides: `make REMARKABLE_HOST=<host>` (default `remarkable`), `make RCC=<path>` (default `rcc-qt5`; rM1 is Qt 5.15, so Qt 5's rcc is required), `make QMLLINT=<path>`, `make QML_IMPORT_PATH=<dir>` (default `/usr/lib/qt/qml`, passed to the linter as `-I`).
+Overrides: `make REMARKABLE_HOST=<host>` (default `remarkable`), `make HOTSPOT_HOST=<host>` (default `remarkable-hotspot`, the alias `find-hotspot-ip` repoints), `make RCC=<path>` (default `rcc-qt5`; rM1 is Qt 5.15, so Qt 5's rcc is required), `make QMLLINT=<path>`, `make QML_IMPORT_PATH=<dir>` (default `/usr/lib/qt/qml`, passed to the linter as `-I`).
 
 There are no tests. `make lint` is the only checker, and it covers QML only — nothing checks `src/js/`.
 

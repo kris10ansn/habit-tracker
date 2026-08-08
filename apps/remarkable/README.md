@@ -50,7 +50,7 @@ make build      # produces build/resources.rcc + staged icon/manifest
 make deploy     # scps build/* to /home/root/xovi/exthome/appload/habit-tracker/
 ```
 
-(`make deploy` needs `ssh remarkable` to resolve to the tablet — set it up in `~/.ssh/config`, or use `make REMARKABLE_HOST=<host> deploy`.)
+(`make deploy` needs `ssh remarkable` to resolve to the tablet — set it up in `~/.ssh/config`, or use `make REMARKABLE_HOST=<host> deploy`. If the tablet's address moves — a phone hotspot re-leases every session — `make find-hotspot-ip` locates it and updates the config; see [below](#finding-the-tablet-after-its-address-changes).)
 
 On the tablet, hold the middle button for ~3 seconds to open apploader, then tap the **reMarkable habit tracker** tile.
 
@@ -115,8 +115,32 @@ make build      # produces build/resources.rcc + staged icon/manifest
 make deploy     # scps build/* to the device
 make remove     # uninstalls from the device
 make backup     # pulls the device's data/ into a timestamped .backup/ dir
+make find-hotspot-ip  # relocates the tablet on the current network (see below)
 make clean      # nukes local build/
 ```
+
+### Finding the tablet after its address changes
+
+A phone hotspot hands out a new lease every session, so the `remarkable-hotspot` entry in
+`~/.ssh/config` goes stale. `make find-hotspot-ip` scans the network you are on, identifies the
+tablet by its **SSH host key** — the key survives lease changes, so a fingerprint already in
+`known_hosts` under one of your `remarkable` hosts is proof rather than a guess — and rewrites that
+entry's `Hostname`, keeping the old file as `~/.ssh/config.bak`.
+
+```sh
+make find-hotspot-ip                             # repoint the remarkable-hotspot entry
+make find-hotspot-ip HOTSPOT_HOST=remarkable     # repoint a different ssh-config host
+pnpm remarkable:find-hotspot-ip                  # same, from the monorepo root
+tools/find-remarkable-hotspot-ip.sh <ssh-host>   # same, without make
+```
+
+Requires `nmap`, and runs it under `sudo` (so expect a password prompt): host discovery needs root
+to use ARP, and an unprivileged `nmap -sn` degrades to a TCP connect sweep that never sees the
+tablet, which answers on no port but SSH. It only ever acts on an unambiguous match: no match, or
+more than one, and it prints what it saw and changes nothing. Two matches means `known_hosts` still
+vouches for an address that has since changed hands — clear that entry with `ssh-keygen -R <addr>`.
+The first connection on a new address files the key under it too, so the next hotspot is recognised
+without any state of its own.
 
 ## Upgrading across a storage-format change
 
