@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { Pressable, TextInput, View } from "react-native";
+import { Alert, Pressable, TextInput, View } from "react-native";
 
 import { CommunityIcon } from "@/components/ui/Icon";
 import type { Habit } from "@/domain/types";
-import { useUpdateHabit } from "@/state/queries";
+import { useDeleteHabit, useUpdateHabit } from "@/state/queries";
 
 import { PolarityToggle } from "./PolarityToggle";
 
@@ -15,6 +15,7 @@ interface Props {
 // commits on blur (one write per rename, not per keystroke); polarity commits on each toggle.
 export function EditHabitRow({ habit }: Props) {
     const update = useUpdateHabit();
+    const remove = useDeleteHabit();
 
     // Local draft of the name. If the stored name changes from outside this input (e.g. a future
     // sync), reconcile during render — React's prop-sync pattern — without clobbering a live edit.
@@ -34,6 +35,21 @@ export function EditHabitRow({ habit }: Props) {
         if (trimmed !== habit.name)
             update.mutate({ id: habit.id, patch: { name: trimmed } });
     };
+
+    // A delete takes the habit's whole history off every synced device, so it asks first.
+    const confirmDelete = () =>
+        Alert.alert(
+            `Delete “${habit.name}”?`,
+            "Its marks go too, on this device and every device you sync with.",
+            [
+                { text: "Cancel", style: "cancel" },
+                {
+                    text: "Delete",
+                    style: "destructive",
+                    onPress: () => remove.mutate(habit.id),
+                },
+            ],
+        );
 
     return (
         <>
@@ -62,7 +78,10 @@ export function EditHabitRow({ habit }: Props) {
                 </View>
             </View>
 
-            <Pressable className="h-8 w-8 items-center justify-center rounded-full bg-slip-soft active:opacity-70">
+            <Pressable
+                onPress={confirmDelete}
+                className="h-8 w-8 items-center justify-center rounded-full bg-slip-soft active:opacity-70"
+            >
                 <CommunityIcon
                     name="delete-forever"
                     size={16}

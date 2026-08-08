@@ -3,6 +3,14 @@
 // state, and optimistic mutations. It is also where a future server sync would slot in.
 // Split per entity; this index is the public surface (streaksKey stays internal).
 export { useMonthEntries, useToggleEntry, type ToggleFn } from "./entries";
-export { useHabits, useReorderHabit, useUpdateHabit } from "./habits";
+export {
+    useCreateHabit,
+    useDeleteHabit,
+    useHabits,
+    useReorderHabit,
+    useUpdateHabit,
+} from "./habits";
 export { entriesKey, habitsKey } from "./keys";
+export { useSettings, useUpdateSettings } from "./settings";
 export { useStreaks } from "./streaks";
+export { syncErrorReason, useSync } from "./sync";

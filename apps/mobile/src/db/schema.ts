@@ -46,6 +46,10 @@ export const settings = sqliteTable(
 
         syncServerUrl: text().notNull().default(""),
 
+        // When the last sync succeeded, epoch ms. Null until the first one, which is what makes
+        // that sync a full one (every month we hold) rather than only the months edited since.
+        lastSyncedAt: integer(),
+
         updatedAt: integer()
             .notNull()
             .$defaultFn(() => Date.now()),

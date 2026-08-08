@@ -1,4 +1,5 @@
 import { asc, eq, isNull } from "drizzle-orm";
+import * as Crypto from "expo-crypto";
 
 import { moveByIndex } from "@/domain/roster";
 import type { Habit, Polarity } from "@/domain/types";
@@ -12,6 +13,43 @@ export function getHabits(db: Database): Promise<Habit[]> {
         .from(habits)
         .where(isNull(habits.deletedAt))
         .orderBy(asc(habits.position));
+}
+
+// Append a habit at the end of the roster. The id is minted here rather than by the server: two
+// devices can both create offline, so ids must be collision-free without coordination (the backend
+// stores a sync id verbatim and never re-mints — see apps/backend/CLAUDE.md).
+export async function createHabit(
+    db: Database,
+    name: string,
+    polarity: Polarity,
+    now: number = Date.now(),
+): Promise<Habit> {
+    const roster = await getHabits(db);
+    const habit: Habit = {
+        id: Crypto.randomUUID(),
+        name,
+        polarity,
+        position: roster.length,
+        createdAt: now,
+        editedAt: now,
+        deletedAt: null,
+    };
+
+    await db.insert(habits).values(habit);
+    return habit;
+}
+
+// Deleting is a tombstone, never a row removal: a habit that simply vanished here would come back
+// on the next sync, because absence carries no date for the merge to compare.
+export async function deleteHabit(
+    db: Database,
+    id: string,
+    now: number = Date.now(),
+): Promise<void> {
+    await db
+        .update(habits)
+        .set({ deletedAt: now, editedAt: now })
+        .where(eq(habits.id, id));
 }
 
 export async function updateHabit(

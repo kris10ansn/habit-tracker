@@ -12,6 +12,44 @@ export function useHabits() {
     return useQuery({ queryKey: habitsKey, queryFn: () => repo.getHabits(db) });
 }
 
+export function useCreateHabit() {
+    const db = useDatabase();
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (variables: { name: string; polarity: Polarity }) =>
+            repo.createHabit(db, variables.name, variables.polarity),
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: habitsKey });
+            queryClient.invalidateQueries({ queryKey: streaksKey });
+        },
+    });
+}
+
+export function useDeleteHabit() {
+    const db = useDatabase();
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (id: string) => repo.deleteHabit(db, id),
+        onMutate: async (id) => {
+            await queryClient.cancelQueries({ queryKey: habitsKey });
+            const previous = queryClient.getQueryData<Habit[]>(habitsKey);
+            queryClient.setQueryData<Habit[]>(habitsKey, (old = []) =>
+                old.filter((habit) => habit.id !== id),
+            );
+            return { previous };
+        },
+        onError: (_error, _id, context) => {
+            if (context) queryClient.setQueryData(habitsKey, context.previous);
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey: habitsKey });
+            queryClient.invalidateQueries({ queryKey: streaksKey });
+        },
+    });
+}
+
 export function useUpdateHabit() {
     const db = useDatabase();
     const queryClient = useQueryClient();

@@ -5,3 +5,4 @@
 export * from "./entries";
 export * from "./habits";
 export * from "./streaks";
+export * from "./sync";
