@@ -1,6 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { ApiError, NetworkError } from "@/api/client";
 import { postApiSync } from "@/api/gen";
 import { useDatabase } from "@/db/client";
 import * as repo from "@/db/repo";
@@ -86,17 +85,4 @@ export function useSync() {
             );
         },
     });
-}
-
-/** Transport failures are local; server rejections already carry their own user-safe message. */
-export function syncErrorReason(error: unknown): string {
-    if (error instanceof NetworkError) {
-        return "Couldn't reach the server — check the URL and your connection.";
-    }
-
-    if (error instanceof ApiError) {
-        return error.message;
-    }
-
-    return error instanceof Error ? error.message : "Something went wrong.";
 }

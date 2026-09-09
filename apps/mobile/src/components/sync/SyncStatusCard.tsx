@@ -17,7 +17,7 @@ export type SyncStatusCardProps = {
     state: SyncState;
     lastSynced?: string;
     syncDetail?: string;
-    errorReason?: string;
+    errorMessage?: string;
     onSyncNow?: () => void;
 };
 
@@ -74,7 +74,7 @@ const stateViews: Record<SyncState, StateView> = {
         iconClass: "text-slip",
         dotClass: "bg-slip",
         label: "Couldn't sync",
-        detail: ({ errorReason }) => errorReason ?? "Check your connection",
+        detail: ({ errorMessage }) => errorMessage ?? "Check your connection",
         action: { label: "Try again", enabled: true },
     },
     ["not-synced"]: {
