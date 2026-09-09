@@ -28,7 +28,10 @@ public class SessionsController(SessionService _sessions, ILogger<SessionsContro
         if (!revoked)
         {
             _logger.LogInformation("Session {SessionId} not found for revoke", id);
-            return NotFound();
+            return Problem(
+                title: "That linked device no longer exists.",
+                statusCode: StatusCodes.Status404NotFound
+            );
         }
 
         _logger.LogInformation("Revoked session {SessionId}", id);

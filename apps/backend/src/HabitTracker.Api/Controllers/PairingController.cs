@@ -57,7 +57,7 @@ public class PairingController(PairingService _pairing, ILogger<PairingControlle
         if (info is null)
         {
             _logger.LogInformation("Pairing code not found or expired for lookup");
-            return NotFound();
+            return PairingCodeUnavailable();
         }
 
         return Ok(info);
@@ -77,10 +77,19 @@ public class PairingController(PairingService _pairing, ILogger<PairingControlle
         return outcome switch
         {
             PairingApprovalOutcome.Approved => NoContent(),
-            PairingApprovalOutcome.NotFound => NotFound(),
-            PairingApprovalOutcome.Expired => NotFound(),
-            PairingApprovalOutcome.AlreadyApproved => Conflict(),
+            PairingApprovalOutcome.NotFound => PairingCodeUnavailable(),
+            PairingApprovalOutcome.Expired => PairingCodeUnavailable(),
+            PairingApprovalOutcome.AlreadyApproved => Problem(
+                title: "That device has already been approved.",
+                statusCode: StatusCodes.Status409Conflict
+            ),
             _ => throw new InvalidOperationException($"Unhandled pairing approval outcome: {outcome}"),
         };
     }
+
+    private ObjectResult PairingCodeUnavailable() =>
+        Problem(
+            title: "That pairing code is unknown or has expired.",
+            statusCode: StatusCodes.Status404NotFound
+        );
 }

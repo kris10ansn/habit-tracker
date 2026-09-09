@@ -47,7 +47,8 @@ public class SyncController(SyncService _sync, ILogger<SyncController> _logger) 
                 new ProblemDetails
                 {
                     Status = StatusCodes.Status400BadRequest,
-                    Title = "Client clock is too far ahead",
+                    Title =
+                        "This device's clock is too far ahead of the server. Fix the date and try again.",
                     Detail = skew.Message,
                 }
             );

@@ -94,6 +94,21 @@ public sealed class BearerTokenAuthenticationHandler : AuthenticationHandler<Aut
     protected override async Task HandleChallengeAsync(AuthenticationProperties properties)
     {
         Response.Headers["WWW-Authenticate"] = BearerTokenDefaults.AuthenticationScheme;
-        await base.HandleChallengeAsync(properties);
+        await Results
+            .Problem(
+                title: "Authentication is required.",
+                statusCode: StatusCodes.Status401Unauthorized
+            )
+            .ExecuteAsync(Context);
+    }
+
+    protected override async Task HandleForbiddenAsync(AuthenticationProperties properties)
+    {
+        await Results
+            .Problem(
+                title: "You do not have permission to perform this action.",
+                statusCode: StatusCodes.Status403Forbidden
+            )
+            .ExecuteAsync(Context);
     }
 }

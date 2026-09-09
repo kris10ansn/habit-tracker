@@ -254,6 +254,17 @@ TestCase {
         compare(store.habitsStore.applySyncedCalls, 0);
     }
 
+    function test_anHttpErrorUsesTheServersProblemTitle() {
+        makeStore();
+        const request = Sync.buildRequest([], [], [], "2026-08");
+
+        store._handleDone(done(400, { title: "Fix the device clock and try again." }), request, "2026-08");
+
+        compare(store.status, "error");
+        compare(store.errorMessage, "Fix the device clock and try again.");
+        compare(store.habitsStore.applySyncedCalls, 0);
+    }
+
     // A missing/unknown token must read as "not connected", never as a data problem — the habit
     // history this app exists to protect is never touched on an auth failure, and it stays out of
     // the "error" status so it never pops the misconfiguration modal.
