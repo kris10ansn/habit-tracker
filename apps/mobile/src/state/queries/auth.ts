@@ -5,7 +5,7 @@ import {
     type QueryClient,
 } from "@tanstack/react-query";
 
-import { ApiError, NetworkError } from "@/api/client";
+import { ApiError } from "@/api/client";
 import {
     deleteApiSessionsId,
     getApiPairingCode,
@@ -235,30 +235,4 @@ export function usePairingApprove() {
             );
         },
     });
-}
-
-/** Transport failures are local; server rejections already carry their own user-safe message. */
-export function authErrorReason(error: unknown): string {
-    if (error instanceof NetworkError) {
-        return "Couldn't reach the server — check the URL and your connection.";
-    }
-
-    if (error instanceof ApiError) {
-        return error.message;
-    }
-
-    return error instanceof Error ? error.message : "Something went wrong.";
-}
-
-/** Pairing rejection semantics come from the backend; only connectivity is decided here. */
-export function pairingErrorReason(error: unknown): string {
-    if (error instanceof NetworkError) {
-        return "Couldn't reach the server — check the URL and your connection.";
-    }
-
-    if (error instanceof ApiError) {
-        return error.message;
-    }
-
-    return error instanceof Error ? error.message : "Something went wrong.";
 }
