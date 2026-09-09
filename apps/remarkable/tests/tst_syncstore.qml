@@ -113,32 +113,6 @@ TestCase {
         compare(store._serverUrl(), "");
     }
 
-    function test_endpointStripsTrailingSlashes() {
-        makeStore();
-
-        compare(store._endpoint("http://example.test"), "http://example.test/api/sync");
-        compare(store._endpoint("http://example.test/"), "http://example.test/api/sync");
-        compare(store._endpoint("http://example.test///"), "http://example.test/api/sync");
-    }
-
-    // --- token -------------------------------------------------------------------------------
-
-    function test_tokenIsEmptyUntilPaired() {
-        makeStore();
-
-        compare(store._token(), "");
-    }
-
-    function test_tokenFollowsSettingsStore() {
-        makeStore();
-
-        store.settingsStore = { serverUrl: "http://example.test", token: "a-bearer-token" };
-        compare(store._token(), "a-bearer-token");
-
-        store.settingsStore = null;
-        compare(store._token(), "");
-    }
-
     // --- guards ---------------------------------------------------------------------------------
 
     // Standalone is the default: with no server configured, sync is a silent no-op rather than an
@@ -290,6 +264,22 @@ TestCase {
         compare(store.status, "error");
         compare(store.errorMessage, "Malformed server response");
         compare(store.habitsStore.applySyncedCalls, 0);
+    }
+
+    // Valid JSON is not enough: treating a missing envelope as an empty authoritative roster would
+    // erase the local model. The wire parser must refuse it before applySynced is reached.
+    function test_aJsonBodyWithTheWrongShapeCannotReplaceLocalData() {
+        makeStore(undefined, undefined, [Fixtures.habitRow({ id: "a" })]);
+        const request = Sync.buildRequest([Fixtures.rosterRow({ id: "a" })], [], [], "2026-08");
+
+        [{}, { habits: [], months: [] }].forEach(body => {
+            store._handleDone(done(200, body), request, "2026-08");
+        });
+
+        compare(store.status, "error");
+        compare(store.errorMessage, "Malformed server response");
+        compare(store.habitsStore.applySyncedCalls, 0);
+        compare(store.habitsStore.purgeCalls, 0);
     }
 
     // The ADR 0004 guard. The response describes the month that was requested, not what is on
