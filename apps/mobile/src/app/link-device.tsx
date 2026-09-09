@@ -1,7 +1,9 @@
+import { useCameraPermissions } from "expo-camera";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Text, View } from "react-native";
 
+import { PairingScanner } from "@/components/account/PairingScanner";
 import { AppScreen } from "@/components/ui/AppScreen";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -16,15 +18,21 @@ import {
 const CODE_LENGTH = 6;
 
 // Pushed from the linked-devices screen. Not a tab — see _layout.tsx (`href: null`). The tablet
-// (or another client doing the TV-style pairing flow, per AUTH_PLAN.md) displays a 6-character
-// code; typing it here looks up who's asking (GET /api/pairing/{code}) before Approve is offered,
-// so the owner never approves a device they can't identify.
+// (or another client doing the TV-style pairing flow) displays a 6-character code; scanning its
+// pairing QR or typing that code looks up who's asking (GET /api/pairing/{code}) before Approve is
+// offered, so the owner never approves a device they can't identify.
 export default function LinkDeviceScreen() {
     const router = useRouter();
     const [code, setCode] = useState("");
     const [approvedDeviceName, setApprovedDeviceName] = useState<string | null>(
         null,
     );
+    const [scannerOpen, setScannerOpen] = useState(false);
+    const [cameraPermissionMessage, setCameraPermissionMessage] = useState<
+        string | null
+    >(null);
+    const [requestingCamera, setRequestingCamera] = useState(false);
+    const [cameraPermission, requestCameraPermission] = useCameraPermissions();
 
     const normalized = code.trim().toUpperCase();
     const ready = normalized.length === CODE_LENGTH;
@@ -44,16 +52,72 @@ export default function LinkDeviceScreen() {
         });
     };
 
+    const openScanner = async () => {
+        setCameraPermissionMessage(null);
+        if (cameraPermission?.granted) {
+            setScannerOpen(true);
+            return;
+        }
+
+        setRequestingCamera(true);
+        try {
+            const permission = await requestCameraPermission();
+            if (permission.granted) {
+                setScannerOpen(true);
+                return;
+            }
+
+            setCameraPermissionMessage(
+                "Camera access wasn’t granted. Enter the code manually, or enable camera access in system settings.",
+            );
+        } catch {
+            setCameraPermissionMessage(
+                "Camera access couldn’t be requested. Enter the code manually instead.",
+            );
+        } finally {
+            setRequestingCamera(false);
+        }
+    };
+
+    const onCodeScanned = (scannedCode: string) => {
+        onChangeCode(scannedCode);
+        setScannerOpen(false);
+        setCameraPermissionMessage(null);
+    };
+
     return (
         <AppScreen
             eyebrow="Account"
             title="Link a device"
-            subtitle="Enter the 6-character code shown on the other device"
+            subtitle="Scan the QR code or enter the 6-character code"
             onBack={() => router.back()}
         >
             <Card className="flex-col gap-3.5">
+                {scannerOpen ? (
+                    <PairingScanner
+                        onCodeScanned={onCodeScanned}
+                        onCancel={() => setScannerOpen(false)}
+                    />
+                ) : (
+                    <Button
+                        label={
+                            requestingCamera
+                                ? "Opening camera…"
+                                : "Scan QR code"
+                        }
+                        onPress={openScanner}
+                        disabled={requestingCamera}
+                    />
+                )}
+
+                {cameraPermissionMessage ? (
+                    <Text className="text-[13px] text-slip">
+                        {cameraPermissionMessage}
+                    </Text>
+                ) : null}
+
                 <View>
-                    <TextInputLabel>Pairing code</TextInputLabel>
+                    <TextInputLabel>Or enter the pairing code</TextInputLabel>
                     <TextInputField
                         value={code}
                         onChangeText={onChangeCode}

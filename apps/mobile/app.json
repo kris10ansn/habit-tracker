@@ -34,7 +34,16 @@
         }
       ],
       "expo-sqlite",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow Habit Tracker to scan pairing QR codes.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false,
+          "barcodeScannerEnabled": true
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
