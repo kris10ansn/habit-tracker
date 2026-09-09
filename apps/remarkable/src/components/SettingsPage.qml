@@ -1,5 +1,6 @@
 import QtQuick 2.15
 import ".." as App
+import "../js/Pairing.js" as Pairing
 
 Item {
     id: settingsPage
@@ -15,7 +16,6 @@ Item {
     property bool pairingConnected: false
     property string pairingStatus: ""
     property string pairingCode: ""
-    property string pairingQrPayload: ""
     property string pairingErrorMessage: ""
 
     signal applyRequested(bool value)
@@ -247,7 +247,7 @@ Item {
 
                 width: 296
                 height: width
-                payload: settingsPage.pairingQrPayload
+                payload: Pairing.buildQrPayload(settingsPage.pairingCode)
             }
         }
 

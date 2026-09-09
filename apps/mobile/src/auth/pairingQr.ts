@@ -1,5 +1,5 @@
-// PairingCodeResponse.qrPayload is the source of this versioned wire format; the scanner accepts
-// only that backend-owned envelope before looking up its short-lived code.
+// The reMarkable wraps its short-lived pairing code in this versioned envelope. Accept only that
+// format before looking up the embedded code.
 const PAIRING_QR_PREFIX = "HABITTRACKER:1:";
 const PAIRING_CODE_PATTERN = /^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{6}$/;
 

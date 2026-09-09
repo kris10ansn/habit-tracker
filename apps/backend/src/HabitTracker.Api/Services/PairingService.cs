@@ -29,7 +29,6 @@ public enum PairingApprovalOutcome
 public class PairingService
 {
     private static readonly TimeSpan CodeLifetime = TimeSpan.FromMinutes(5);
-    private const string QrPayloadPrefix = "HABITTRACKER:1:";
     private const int PollIntervalSeconds = 3;
     private const int MaxCodeGenerationAttempts = 10;
 
@@ -70,12 +69,7 @@ public class PairingService
         );
         await _db.SaveChangesAsync(cancellationToken);
 
-        return new PairingCodeResponse(
-            code,
-            QrPayloadPrefix + code,
-            expiresAt.ToUnixTimeMilliseconds(),
-            PollIntervalSeconds
-        );
+        return new PairingCodeResponse(code, expiresAt.ToUnixTimeMilliseconds(), PollIntervalSeconds);
     }
 
     /// <summary>Authenticated: what the phone shows before approving. Null when unknown/expired.</summary>

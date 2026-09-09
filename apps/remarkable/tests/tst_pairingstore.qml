@@ -54,15 +54,6 @@ TestCase {
         return { status: status, responseText: typeof body === "string" ? body : JSON.stringify(body) };
     }
 
-    function issuedCode(code, expiresAt) {
-        return {
-            code: code,
-            qrPayload: "HABITTRACKER:1:" + code,
-            expiresAt: expiresAt,
-            pollIntervalSeconds: 3
-        };
-    }
-
     // A stand-in for XMLHttpRequest that never reaches DONE on its own, so a test can reach the
     // _timeoutTimer path without a live server. respond() lets a test simulate the abandoned
     // request finally answering, late.
@@ -124,11 +115,10 @@ TestCase {
         store.active = true;
         store.status = "requesting";
 
-        store._onCodeResponse(done(200, issuedCode("ABC234", 1750000300000)));
+        store._onCodeResponse(done(200, { code: "ABC234", expiresAt: 1750000300000, pollIntervalSeconds: 3 }));
 
         compare(store.status, "waiting");
         compare(store.code, "ABC234");
-        compare(store.qrPayload, "HABITTRACKER:1:ABC234");
         compare(store.expiresAt, 1750000300000);
         compare(store.pollIntervalSeconds, 3);
         verify(store._pollTimer.running, "polling should start immediately while the page is visible");
@@ -139,7 +129,7 @@ TestCase {
         store.active = false;
         store.status = "requesting";
 
-        store._onCodeResponse(done(200, issuedCode("ABC234", 1750000300000)));
+        store._onCodeResponse(done(200, { code: "ABC234", expiresAt: 1750000300000, pollIntervalSeconds: 3 }));
 
         compare(store.status, "waiting");
         verify(!store._pollTimer.running, "a hidden settings page must not be polled");
@@ -149,11 +139,10 @@ TestCase {
         makeStore();
         store.status = "";
 
-        store._onCodeResponse(done(200, issuedCode("ABC234", 1750000300000)));
+        store._onCodeResponse(done(200, { code: "ABC234", expiresAt: 1750000300000, pollIntervalSeconds: 3 }));
 
         compare(store.status, "", "a response for a request nothing is waiting on changes nothing");
         compare(store.code, "");
-        compare(store.qrPayload, "");
     }
 
     function test_onCodeResponseSurfacesAMalformedBody() {
@@ -195,7 +184,6 @@ TestCase {
         makeStore();
         store.status = "waiting";
         store.code = "ABC234";
-        store.qrPayload = "HABITTRACKER:1:ABC234";
         store._pollTimer.start();
 
         store._onPollResponse(done(200, { status: "Approved", token: "a-bearer-token" }));
@@ -203,7 +191,6 @@ TestCase {
         compare(store.settingsStore.token, "a-bearer-token");
         compare(store.status, "");
         compare(store.code, "");
-        compare(store.qrPayload, "");
         verify(!store._pollTimer.running);
     }
 
@@ -211,7 +198,6 @@ TestCase {
         makeStore();
         store.status = "waiting";
         store.code = "ABC234";
-        store.qrPayload = "HABITTRACKER:1:ABC234";
         store._pollTimer.start();
 
         store._onPollResponse(done(200, { status: "Expired", token: null }));
@@ -310,7 +296,6 @@ TestCase {
         makeStore({ token: "a-bearer-token" });
         store.status = "waiting";
         store.code = "ABC234";
-        store.qrPayload = "HABITTRACKER:1:ABC234";
         store._pollTimer.start();
 
         store.disconnect();
@@ -318,7 +303,6 @@ TestCase {
         compare(store.settingsStore.token, "");
         compare(store.status, "");
         compare(store.code, "");
-        compare(store.qrPayload, "");
         verify(!store._pollTimer.running);
     }
 
@@ -332,7 +316,6 @@ TestCase {
 
         compare(store.status, "");
         compare(store.code, "");
-        compare(store.qrPayload, "");
         verify(!store._pollTimer.running);
         compare(store.settingsStore.token, "a-bearer-token", "cancel must not sign the device out");
     }
@@ -432,7 +415,7 @@ TestCase {
         compare(store.status, "requesting");
 
         // The first (abandoned) request finally answers, after a second one is already in flight.
-        xhrs[0].respond(200, issuedCode("OLD234", Date.now() + 300000));
+        xhrs[0].respond(200, { code: "OLD234", expiresAt: Date.now() + 300000, pollIntervalSeconds: 3 });
 
         compare(store.code, "", "a stray reply from the abandoned request must not overwrite the fresh one's state");
         compare(store.status, "requesting", "the fresh request must still be the one considered in flight");

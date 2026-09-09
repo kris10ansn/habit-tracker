@@ -22,7 +22,6 @@ QtObject {
     // "expired" | "error".
     property string status: ""
     property string code: ""
-    property string qrPayload: ""
     property double expiresAt: 0
     property int pollIntervalSeconds: 3
     property string errorMessage: ""
@@ -94,7 +93,6 @@ QtObject {
         pairingStore._abandonActiveRequest();
         pairingStore.status = "";
         pairingStore.code = "";
-        pairingStore.qrPayload = "";
         pairingStore.expiresAt = 0;
         pairingStore.errorMessage = "";
     }
@@ -159,7 +157,6 @@ QtObject {
         }
 
         pairingStore.code = parsed.code;
-        pairingStore.qrPayload = parsed.qrPayload;
         pairingStore.expiresAt = parsed.expiresAt;
         // Assigned before status flips to "waiting": the Timer's interval binding reads this
         // property, so it must already hold the server's value by the time restart() below (or a
@@ -200,7 +197,6 @@ QtObject {
             }
             pairingStore.status = "";
             pairingStore.code = "";
-            pairingStore.qrPayload = "";
             pairingStore.expiresAt = 0;
             return;
         }
