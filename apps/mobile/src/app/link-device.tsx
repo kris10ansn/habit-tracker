@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Loading } from "@/components/ui/Loading";
 import { TextInputField, TextInputLabel } from "@/components/ui/TextField";
-import { initialPairingCode } from "@/screenshots/config";
 import { usePairingApprove, usePairingLookup } from "@/state/queries";
 
 const CODE_LENGTH = 6;
@@ -18,7 +17,7 @@ const CODE_LENGTH = 6;
 // so the owner never approves a device they can't identify.
 export default function LinkDeviceScreen() {
     const router = useRouter();
-    const [code, setCode] = useState(initialPairingCode);
+    const [code, setCode] = useState("");
     const [approvedDeviceName, setApprovedDeviceName] = useState<string | null>(
         null,
     );

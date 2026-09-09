@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { execFileSync } from "node:child_process";
+import { access } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -16,7 +17,7 @@ const defaultApk = path.join(
 function usage(message) {
     if (message) process.stderr.write(`${message}\n\n`);
     process.stderr.write(
-        "Usage: pnpm screenshots:android:install -- --serial <emulator-serial> [--apk <path>]\n",
+        "Usage: pnpm mobile:test:install -- --serial <emulator-serial> [--apk <path>]\n",
     );
     process.exit(2);
 }
@@ -44,6 +45,12 @@ function execute(executable, arguments_) {
 }
 
 const options = parseArguments(process.argv.slice(2));
+await access(options.apk).catch(() => {
+    throw new Error(
+        `Test APK not found at ${options.apk}; run pnpm mobile:test:build`,
+    );
+});
+
 const devices = parseAdbDevices(execute("adb", ["devices", "-l"]));
 const target = devices.find((device) => device.serial === options.serial);
 if (!target) throw new Error(`${options.serial} is not listed by adb`);
@@ -60,7 +67,7 @@ const qemu = execute("adb", [
 ]);
 validateEmulatorTarget(options.serial, target.state, qemu);
 
-process.stdout.write(`installing screenshot build on ${options.serial}\n`);
+process.stdout.write(`installing test app on ${options.serial}\n`);
 process.stdout.write(
     execute("adb", ["-s", options.serial, "install", "-r", options.apk]),
 );

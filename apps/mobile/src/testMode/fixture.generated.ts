@@ -1,7 +1,7 @@
-// Generated from tools/readme-screenshots/fixture.json. Do not edit by hand.
-import type { ScreenshotFixture } from "./types";
+// Generated test data. Run pnpm mobile:test:fixture after editing the shared fixture.
+import type { TestFixture } from "./types";
 
-export const screenshotFixture: ScreenshotFixture = {
+export const testFixture: TestFixture = {
     "today": "2026-09-09",
     "now": 1788946860000,
     "settings": {

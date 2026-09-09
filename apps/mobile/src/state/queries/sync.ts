@@ -5,7 +5,6 @@ import { useDatabase } from "@/db/client";
 import * as repo from "@/db/repo";
 import { updateSettings } from "@/db/repo/settings";
 import { monthKey } from "@/domain/dates";
-import { currentDate, currentTime } from "@/screenshots/config";
 
 import { useSettings } from "@/state/queries/settings";
 import {
@@ -55,12 +54,12 @@ export function useSync() {
                 );
             }
 
-            const now = currentDate();
+            const now = new Date();
             const currentMonthKey =
                 variables.currentMonthKey ??
                 monthKey(now.getFullYear(), now.getMonth());
 
-            const syncStartedAt = currentTime();
+            const syncStartedAt = Date.now();
             const monthKeys = await repo.monthsToSync(
                 db,
                 currentMonthKey,

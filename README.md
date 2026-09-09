@@ -217,13 +217,13 @@ make suspend-writer-test
 ```
 
 README images use a deterministic fictional fixture. The reMarkable set can be regenerated without
-a tablet; the Android workflow builds an isolated app and requires an explicitly selected emulator:
+a tablet. Mobile uses an isolated test app that you navigate and capture manually:
 
 ```sh
 pnpm screenshots:remarkable
-pnpm screenshots:android:build
-pnpm screenshots:android:install -- --serial emulator-5554
-pnpm screenshots:android -- --serial emulator-5554
+pnpm mobile:test:build
+pnpm mobile:test:install -- --serial emulator-5554
+pnpm mobile:test:capture -- --serial emulator-5554 --name today
 ```
 
 [Screenshot workflow and safety contract →](tools/readme-screenshots/README.md)

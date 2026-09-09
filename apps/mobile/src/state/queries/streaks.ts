@@ -2,9 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 
 import { useDatabase } from "@/db/client";
 import * as repo from "@/db/repo";
-import { todayKey } from "@/domain/dates";
 import type { Habit } from "@/domain/types";
-import { currentDate } from "@/screenshots/config";
 
 import { streaksKey } from "./keys";
 
@@ -20,7 +18,7 @@ export function useStreaks(habits: Habit[]) {
         .join(",");
     return useQuery({
         queryKey: [...streaksKey, signature],
-        queryFn: () => repo.getStreaks(db, habits, todayKey(currentDate())),
+        queryFn: () => repo.getStreaks(db, habits),
         enabled: habits.length > 0,
     });
 }

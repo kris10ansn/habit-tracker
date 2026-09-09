@@ -16,6 +16,9 @@ import { parseAdbDevices, validateEmulatorTarget } from "../lib/adb.mjs";
 
 const fixturePath = new URL("../fixture.json", import.meta.url);
 const require = createRequire(import.meta.url);
+const {
+    installFrozenDate,
+} = require("../../../apps/mobile/src/testMode/freezeDate.js");
 
 test("canonical fixture is internally consistent", async () => {
     const fixture = await loadFixture(fixturePath);
@@ -70,6 +73,7 @@ test("scenario selection is explicit", () => {
     assert.equal(Object.keys(scenarios.remarkable).length, 5);
     assert.equal(Object.keys(scenarios.android).length, 6);
     assert.deepEqual(selectScenarios("android", "devices")[0][0], "devices");
+    assert.equal("route" in scenarios.android.devices, false);
     assert.throws(
         () => selectScenarios("android", "grid"),
         /Unknown android scenario/,
@@ -106,7 +110,7 @@ test("emulator validation rejects physical, offline, and non-QEMU targets", () =
     );
 });
 
-test("screenshot app identity leaves ordinary Expo config unchanged", async () => {
+test("test app identity leaves ordinary Expo config unchanged", async () => {
     const appConfig = require("../../../apps/mobile/app.config.js");
     const appJson = JSON.parse(
         await readFile(
@@ -114,26 +118,42 @@ test("screenshot app identity leaves ordinary Expo config unchanged", async () =
             "utf8",
         ),
     ).expo;
-    const previous = process.env.README_SCREENSHOT_BUILD;
+    const previous = process.env.APP_TEST_BUILD;
 
     try {
-        delete process.env.README_SCREENSHOT_BUILD;
+        delete process.env.APP_TEST_BUILD;
         assert.deepEqual(appConfig({ config: appJson }), appJson);
 
-        process.env.README_SCREENSHOT_BUILD = "1";
-        const screenshotConfig = appConfig({ config: appJson });
-        assert.equal(screenshotConfig.name, "Habit Tracker Screenshots");
-        assert.equal(screenshotConfig.scheme, "habittracker-readme");
+        process.env.APP_TEST_BUILD = "1";
+        const testConfig = appConfig({ config: appJson });
+        assert.equal(testConfig.name, "Habit Tracker Test");
+        assert.equal(testConfig.scheme, "habittracker-test");
+        assert.equal(testConfig.android.package, "no.silli.habittracker.test");
         assert.equal(
-            screenshotConfig.android.package,
-            "no.silli.habittracker.readme",
-        );
-        assert.equal(
-            screenshotConfig.ios.bundleIdentifier,
-            appJson.ios.bundleIdentifier,
+            testConfig.ios.bundleIdentifier,
+            "no.silli.habittracker.test",
         );
     } finally {
-        if (previous === undefined) delete process.env.README_SCREENSHOT_BUILD;
-        else process.env.README_SCREENSHOT_BUILD = previous;
+        if (previous === undefined) delete process.env.APP_TEST_BUILD;
+        else process.env.APP_TEST_BUILD = previous;
     }
+});
+
+test("test clock freezes implicit dates without changing explicit dates", () => {
+    const NativeDate = globalThis.Date;
+    const instant = Date.UTC(2026, 8, 9, 9, 41);
+    const restore = installFrozenDate(instant);
+
+    try {
+        assert.equal(Date.now(), instant);
+        assert.equal(new Date().getTime(), instant);
+        assert.equal(new Date(2000, 0, 1).getFullYear(), 2000);
+        assert.equal(Date.parse("2026-09-09T00:00:00Z"), 1788912000000);
+        assert.match(Date(), /2026/);
+        assert.equal(new Date() instanceof NativeDate, true);
+    } finally {
+        restore();
+    }
+
+    assert.equal(globalThis.Date, NativeDate);
 });

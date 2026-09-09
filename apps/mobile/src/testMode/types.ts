@@ -1,7 +1,7 @@
 import type { PairingRequestInfo, SessionDto, UserDto } from "@/api/gen";
 import type { Entry, Habit } from "@/domain/types";
 
-export interface ScreenshotFixture {
+export interface TestFixture {
     today: string;
     now: number;
     settings: {

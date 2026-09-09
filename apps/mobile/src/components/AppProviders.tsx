@@ -20,8 +20,7 @@ import { ActivityIndicator, Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
 
-import { screenshotDatabaseName, screenshotMode } from "@/screenshots/config";
-import { seedScreenshotDatabase } from "@/screenshots/database";
+import { appRuntime } from "@/runtime";
 
 // A function declaration, not an arrow: it is referenced by the caches below, which are built
 // before `queryClient` exists. Hoisting makes that legal, and it only ever reads `queryClient` at
@@ -63,22 +62,24 @@ function DatabaseGate({ children }: { children: ReactNode }) {
     const sqlite = useSQLiteContext();
     const db = useDatabase();
     const { success, error } = useMigrations(db, migrations);
-    const [fixtureReady, setFixtureReady] = useState(!screenshotMode);
+    const [runtimeReady, setRuntimeReady] = useState(
+        !appRuntime.prepareDatabase,
+    );
 
     useEffect(() => {
-        if (!success || !screenshotMode) return;
+        if (!success || !appRuntime.prepareDatabase) return;
 
         let active = true;
-        seedScreenshotDatabase(sqlite)
+        appRuntime
+            .prepareDatabase(sqlite)
             .then(() => {
                 if (!active) return;
-                console.info("README_SCREENSHOT_MODE_READY");
-                setFixtureReady(true);
+                setRuntimeReady(true);
             })
-            .catch((seedError: unknown) => {
+            .catch((setupError: unknown) => {
                 if (!active) return;
-                setFixtureReady(false);
-                console.error("README screenshot fixture failed", seedError);
+                setRuntimeReady(false);
+                console.error("App runtime database setup failed", setupError);
             });
 
         return () => {
@@ -90,7 +91,7 @@ function DatabaseGate({ children }: { children: ReactNode }) {
         return <BootScreen>{`Database error: ${error.message}`}</BootScreen>;
     }
 
-    if (!success || !fixtureReady) {
+    if (!success || !runtimeReady) {
         return <BootScreen />;
     }
 
@@ -103,7 +104,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
         <GestureHandlerRootView>
             <KeyboardProvider>
                 <SQLiteProvider
-                    databaseName={screenshotDatabaseName}
+                    databaseName={appRuntime.databaseName}
                     onInit={enableWal}
                 >
                     <QueryClientProvider client={queryClient}>

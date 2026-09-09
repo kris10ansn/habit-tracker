@@ -21,8 +21,6 @@ import {
     getAuthSession,
     setAuthSession,
 } from "@/auth/session";
-import { screenshotAuthSession, screenshotMode } from "@/screenshots/config";
-import { screenshotFixture } from "@/screenshots/fixture.generated";
 
 import { useSettings } from "@/state/queries/settings";
 import { authSessionKey, linkedSessionsKey, pairingCodeKey } from "./keys";
@@ -46,8 +44,7 @@ function useBaseUrl(): string {
 export function useAuthSession() {
     return useQuery({
         queryKey: authSessionKey,
-        queryFn: () =>
-            screenshotMode ? screenshotAuthSession() : getAuthSession(),
+        queryFn: getAuthSession,
         staleTime: Infinity,
     });
 }
@@ -177,10 +174,7 @@ export function useSessions() {
 
     return useQuery({
         queryKey: linkedSessionsKey,
-        queryFn: () =>
-            screenshotMode
-                ? Promise.resolve(screenshotFixture.sessions)
-                : getApiSessions({ baseURL }),
+        queryFn: () => getApiSessions({ baseURL }),
         enabled: Boolean(authSession.data) && Boolean(baseURL),
     });
 }
@@ -222,10 +216,7 @@ export function usePairingLookup(code: string) {
 
     return useQuery({
         queryKey: pairingCodeKey(normalized),
-        queryFn: () =>
-            screenshotMode
-                ? Promise.resolve(screenshotFixture.pairing)
-                : getApiPairingCode(normalized, { baseURL }),
+        queryFn: () => getApiPairingCode(normalized, { baseURL }),
         enabled: normalized.length === 6 && Boolean(baseURL),
         retry: false,
     });

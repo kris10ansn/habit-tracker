@@ -1,10 +1,10 @@
 import type { SQLiteDatabase } from "expo-sqlite";
 
-import { screenshotFixture } from "./fixture.generated";
+import { testFixture } from "./fixture.generated";
 
-// Destructive only inside the dedicated habits-readme-screenshots.db selected by screenshot mode.
-// Every launch starts from the same rows, so captures cannot inherit state from a previous run.
-export async function seedScreenshotDatabase(
+// Test mode selects its own database before this runs. Resetting on launch keeps manual QA and
+// captures deterministic without affecting the ordinary app's data.
+export async function prepareTestDatabase(
     sqlite: SQLiteDatabase,
 ): Promise<void> {
     await sqlite.withExclusiveTransactionAsync(async (transaction) => {
@@ -12,7 +12,7 @@ export async function seedScreenshotDatabase(
             "DELETE FROM entries; DELETE FROM habits; DELETE FROM settings;",
         );
 
-        for (const habit of screenshotFixture.habits) {
+        for (const habit of testFixture.habits) {
             await transaction.runAsync(
                 `INSERT INTO habits
                     (id, name, polarity, position, isPrivate, createdAt, editedAt, deletedAt)
@@ -28,7 +28,7 @@ export async function seedScreenshotDatabase(
             );
         }
 
-        for (const entry of screenshotFixture.entries) {
+        for (const entry of testFixture.entries) {
             await transaction.runAsync(
                 `INSERT INTO entries
                     (habitId, date, outcome, editedAt, deletedAt)
@@ -44,9 +44,9 @@ export async function seedScreenshotDatabase(
         await transaction.runAsync(
             `INSERT INTO settings (id, syncServerUrl, lastSyncedAt, updatedAt)
              VALUES (0, ?, ?, ?)`,
-            screenshotFixture.settings.syncServerUrl,
-            screenshotFixture.settings.lastSyncedAt,
-            screenshotFixture.now,
+            testFixture.settings.syncServerUrl,
+            testFixture.settings.lastSyncedAt,
+            testFixture.now,
         );
     });
 }

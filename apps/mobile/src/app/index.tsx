@@ -12,7 +12,6 @@ import {
 } from "@/domain/dates";
 import { entryIndex, outcomeAt } from "@/domain/entries";
 import { isSuccess } from "@/domain/marks";
-import { currentDate } from "@/screenshots/config";
 import {
     useHabits,
     useMonthEntries,
@@ -25,7 +24,7 @@ import { RefreshControl } from "react-native";
 // Today: the primary daily surface — log each habit at a glance. Always pinned to the real
 // current month, whatever the Month tab is viewing.
 export default function TodayScreen() {
-    const now = currentDate();
+    const now = new Date();
     const view = currentMonthView(now);
     const today = todayKey(now);
 

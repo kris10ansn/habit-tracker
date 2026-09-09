@@ -14,60 +14,56 @@ pnpm screenshots:remarkable -- --scenario pairing
 ```
 
 The normal pages come from the live `apps/remarkable/src/Main.qml` scene through an offscreen Qt
-Quick host. The suspend image still comes from the existing production suspend renderer; the tool
-only rotates its framebuffer-oriented result for readable README presentation.
+Quick host. The suspend image still comes from the production suspend renderer; the tool only
+rotates its framebuffer-oriented result for readable README presentation.
 
-## Android captures
+## Mobile test mode and manual captures
 
-The build has been verified against the Android Studio `Pixel_9a` AVD on API 36. Start that existing
-AVD yourself, accept its one-time adb authorization prompt, and note its serial with `adb devices`.
-The commands do not create or wipe an AVD, automate the desktop, or accept a physical or network
-target.
+Mobile uses a general deterministic test mode rather than screenshot-specific screen code. Its
+test entry freezes implicit `Date` construction and `Date.now()` before Expo Router loads. A test
+runtime adapter then selects an isolated database, seeds the fixture after migrations, keeps the
+fictional session in memory, answers device and pairing reads locally, and rejects unexpected
+network requests. Feature screens and query modules keep their ordinary production code.
 
-Build the isolated release variant, then install it on an explicitly selected emulator:
+Agents leave native builds, emulator launches, installation, and other resource-heavy steps to the
+user unless the user explicitly requests that specific operation.
 
-```sh
-pnpm screenshots:android:fixture
-pnpm screenshots:android:build
-pnpm screenshots:android:install -- --serial emulator-5554
-```
-
-Building only produces the APK; it never starts or selects an emulator. Installation and capture
-are separate, explicit operations.
-
-It installs as `no.silli.habittracker.readme`, uses the `habittracker-readme` URL scheme, stores
-data in `habits-readme-screenshots.db`, supplies local auth/pairing/session reads, and rejects every
-backend network request. It can coexist with the ordinary development app.
-
-Capture all routes, or one route, from the already-running emulator:
+Build the test APK without starting an emulator:
 
 ```sh
-pnpm screenshots:android -- --serial emulator-5554
-pnpm screenshots:android -- --serial emulator-5554 --scenario devices
+pnpm mobile:test:fixture
+pnpm mobile:test:build
 ```
 
-The install and capture runners verify both the `emulator-*` serial and Android's QEMU property
-before changing anything.
-It normalizes animation scale, portrait rotation, and font scale for the capture and restores the
-previous values afterward. It never starts an emulator, runs a cloud build, or contacts another
-device.
+The build installs as `no.silli.habittracker.test`, uses the `habittracker-test` URL scheme, and
+stores data in `habits-test.db`. It can coexist with the ordinary app.
 
-Once the Android screenshot build is installed, refresh both clients with:
+Start and authorize an existing emulator yourself, then install on its explicit serial:
 
 ```sh
-pnpm screenshots -- --serial emulator-5554
+pnpm mobile:test:install -- --serial emulator-5554
 ```
 
-Use `--out-dir <path>` to review captures elsewhere and `--keep-temp` to retain a failed run's
-staging directory. The platform commands also accept `--scenario <name>`.
+Navigate the app manually. Android Studio's screenshot button is the simplest capture mechanism.
+The optional helper below only saves the currently visible portrait screen under the selected
+scenario name; it does not launch an emulator, navigate, click, alter settings, or automate the
+desktop.
+
+```sh
+pnpm mobile:test:capture -- --serial emulator-5554 --name today
+pnpm mobile:test:capture -- --serial emulator-5554 --name devices
+```
+
+Both helpers require an `emulator-*` serial and verify Android's QEMU property. They reject
+physical, network, offline, and ambiguous targets.
 
 ## Changing the fixture or scenarios
 
 1. Edit `fixture.json` in backend vocabulary and add any scenario metadata to `scenarios.mjs`.
-2. Run `pnpm screenshots:android:fixture` to refresh the generated mobile copy.
-3. Add a renderer route/view mapping only in the relevant platform runner.
-4. Run `pnpm screenshots:fixtures:test`, the platform checks, and the captures.
+2. Run `pnpm mobile:test:fixture` to refresh the generated mobile test data.
+3. Add reMarkable presentation state or a mobile output name to the scenario registry.
+4. Run `pnpm screenshots:fixtures:test`, the platform checks, and review new captures manually.
 
 Fixture validation rejects duplicate identities and positions, unknown polarity/outcome spellings,
 future entries, ambiguous pairing codes, and inconsistent session state. Generated and staged data
-must stay inside the screenshot-only locations described above.
+must stay inside the isolated test locations described above.
