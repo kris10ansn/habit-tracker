@@ -11,17 +11,11 @@ import {
     QueryClientProvider,
 } from "@tanstack/react-query";
 import { useMigrations } from "drizzle-orm/expo-sqlite/migrator";
-import {
-    SQLiteProvider,
-    useSQLiteContext,
-    type SQLiteDatabase,
-} from "expo-sqlite";
-import { useEffect, useState, type ReactNode } from "react";
+import { SQLiteProvider, type SQLiteDatabase } from "expo-sqlite";
+import { type ReactNode } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
-
-import { appRuntime } from "@/runtime";
 
 function handleAuthError(error: unknown) {
     if (error instanceof ApiError && error.status === 401) {
@@ -59,39 +53,14 @@ const BootScreen = ({ children }: { children?: string }) => (
 
 // Applies Drizzle migrations before any screen queries the database.
 function DatabaseGate({ children }: { children: ReactNode }) {
-    const sqlite = useSQLiteContext();
     const db = useDatabase();
     const { success, error } = useMigrations(db, migrations);
-    const [runtimeReady, setRuntimeReady] = useState(
-        !appRuntime.prepareDatabase,
-    );
-
-    useEffect(() => {
-        if (!success || !appRuntime.prepareDatabase) return;
-
-        let active = true;
-        appRuntime
-            .prepareDatabase(sqlite)
-            .then(() => {
-                if (!active) return;
-                setRuntimeReady(true);
-            })
-            .catch((setupError: unknown) => {
-                if (!active) return;
-                setRuntimeReady(false);
-                console.error("App runtime database setup failed", setupError);
-            });
-
-        return () => {
-            active = false;
-        };
-    }, [sqlite, success]);
 
     if (error) {
         return <BootScreen>{`Database error: ${error.message}`}</BootScreen>;
     }
 
-    if (!success || !runtimeReady) {
+    if (!success) {
         return <BootScreen />;
     }
 
@@ -103,10 +72,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
     return (
         <GestureHandlerRootView>
             <KeyboardProvider>
-                <SQLiteProvider
-                    databaseName={appRuntime.databaseName}
-                    onInit={enableWal}
-                >
+                <SQLiteProvider databaseName="habits.db" onInit={enableWal}>
                     <QueryClientProvider client={queryClient}>
                         <DatabaseGate>{children}</DatabaseGate>
                     </QueryClientProvider>

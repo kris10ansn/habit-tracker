@@ -17,13 +17,14 @@ The normal pages come from the live `apps/remarkable/src/Main.qml` scene through
 Quick host. The suspend image still comes from the production suspend renderer; the tool only
 rotates its framebuffer-oriented result for readable README presentation.
 
-## Mobile test mode and manual captures
+## Mobile test target and manual captures
 
-Mobile uses a general deterministic test mode rather than screenshot-specific screen code. Its
-test entry freezes implicit `Date` construction and `Date.now()` before Expo Router loads. A test
-runtime adapter then selects an isolated database, seeds the fixture after migrations, keeps the
-fictional session in memory, answers device and pairing reads locally, and rejects unexpected
-network requests. Feature screens and query modules keep their ordinary production code.
+Mobile's existing application source is unchanged. The isolated build selects a test-only entry
+with `ENTRY_FILE`; that entry freezes implicit `Date` construction and `Date.now()`, replaces the
+global fetch implementation, then starts Expo Router normally. For this build only, Metro replaces
+the root layout's `AppProviders` import with a test adapter. The adapter wraps the real production
+provider, seeds SQLite and SecureStore after migrations, answers device and pairing reads locally,
+and rejects unexpected requests before they reach a network.
 
 Agents leave native builds, emulator launches, installation, and other resource-heavy steps to the
 user unless the user explicitly requests that specific operation.
@@ -35,8 +36,9 @@ pnpm mobile:test:fixture
 pnpm mobile:test:build
 ```
 
-The build installs as `no.silli.habittracker.test`, uses the `habittracker-test` URL scheme, and
-stores data in `habits-test.db`. It can coexist with the ordinary app.
+The build installs as `no.silli.habittracker.test` and uses the `habittracker-test` URL scheme. Its
+ordinary `habits.db` and SecureStore values live in that test application's native sandbox, so it
+can coexist with the normal app without sharing data.
 
 Start and authorize an existing emulator yourself, then install on its explicit serial:
 

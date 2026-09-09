@@ -1,6 +1,6 @@
 {
   "name": "@habit-tracker/mobile",
-  "main": "index.js",
+  "main": "expo-router/entry",
   "version": "1.0.0",
   "dependencies": {
     "@expo/ui": "~56.0.18",
@@ -70,7 +70,7 @@
     "lint": "expo lint",
     "db:generate": "drizzle-kit generate",
     "api:generate": "kubb generate",
-    "test:build": "APP_TEST_BUILD=1 EXPO_PUBLIC_APP_MODE=test expo prebuild --platform android --no-install && cd android && ANDROID_HOME=${ANDROID_HOME:-$HOME/Android/Sdk} APP_TEST_BUILD=1 EXPO_PUBLIC_APP_MODE=test ./gradlew app:assembleRelease -PreactNativeArchitectures=x86_64"
+    "test:build": "APP_TEST_BUILD=1 expo prebuild --platform android --no-install && cd android && ANDROID_HOME=${ANDROID_HOME:-$HOME/Android/Sdk} APP_TEST_BUILD=1 ENTRY_FILE=src/testMode/entry.js ./gradlew app:assembleRelease -PreactNativeArchitectures=x86_64"
   },
   "private": true
 }

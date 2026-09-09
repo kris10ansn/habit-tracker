@@ -3,7 +3,7 @@
 ## Status
 
 The shared fixture, reMarkable offscreen host, suspend-renderer integration, and real reMarkable
-image set are implemented. Mobile now uses a reusable test runtime and a manual capture workflow.
+image set are implemented. Mobile now uses an additive test target and a manual capture workflow.
 The Android test APK must still be installed and visually reviewed on an already-authorized
 emulator before its images replace the clearly labeled AI-generated mobile concept.
 
@@ -37,11 +37,11 @@ tools/readme-screenshots/fixture.json
              /          \
   reMarkable adapter    generated mobile test data
            |                        |
- temporary JSON files        mobile test runtime
-           |                  /      |       \
-  Qt Quick host +       isolated DB  session  local fetch
-  suspend writer              |
-           |            manually operated app
+ temporary JSON files       test-only entry + provider
+           |                  /       |       \
+  Qt Quick host +       frozen Date  fixture  local fetch
+  suspend writer                         |
+           |            manually operated test app
            |                        |
            +-------- committed PNGs +
 ```
@@ -83,30 +83,32 @@ pnpm screenshots:remarkable -- --scenario pairing
 Captures stage to a temporary directory and replace committed outputs only after the requested set
 succeeds.
 
-## Mobile test mode
+## Mobile test target
 
 ### Clean seam
 
-Feature screens, domain functions, query hooks, and formatting code keep their ordinary `new Date()`
-and `Date.now()` calls and contain no screenshot conditionals. Variation is concentrated at startup
-and three existing infrastructure seams:
+Every pre-existing production file under `apps/mobile/src` matches `main`. Screens, domain
+functions, query hooks, transport, authentication, database setup, and formatting code contain no
+test or screenshot conditionals; the new files live under `src/testMode`.
 
-| Runtime capability | Production adapter | Test adapter                          |
-| ------------------ | ------------------ | ------------------------------------- |
-| Database           | `habits.db`        | `habits-test.db`, reset after migrate |
-| Session storage    | SecureStore        | In-memory fictional session           |
-| Fetch              | Network fetch      | Local pairing/device responses        |
+`APP_TEST_BUILD=1` introduces two build-time substitutions outside that code:
 
-The `AppRuntime` interface contains only those capabilities. Query modules continue to call the
-ordinary session and generated backend clients; those modules delegate to the selected adapter.
-Unexpected test-mode requests throw before any network operation.
+1. `ENTRY_FILE=src/testMode/entry.js` selects a test-only entry instead of changing the package's
+   normal `expo-router/entry`.
+2. Metro resolves the root layout's `@/components/AppProviders` import to a test adapter. That
+   adapter wraps the real provider, waits for its normal migrations, then seeds the fixture before
+   allowing screens to render.
+
+The adapter writes to the real `habits.db` and SecureStore used by production code. Isolation comes
+from the test target's separate native application identity and sandbox, not alternate behavior in
+those modules. The test entry replaces global fetch with local pairing and device responses;
+unexpected requests return a clear failure without reaching a network.
 
 ### Frozen time
 
-Expo Router loads through a custom entry point. When `EXPO_PUBLIC_APP_MODE=test`, that entry installs
-a test-only `Date` replacement before importing `expo-router/entry`. It freezes both implicit
-construction and `Date.now()` while preserving explicitly constructed dates, `Date.parse`,
-`Date.UTC`, and real timers. Production startup installs nothing.
+The build-only entry installs a test `Date` replacement before importing `expo-router/entry`. It
+freezes both implicit construction and `Date.now()` while preserving explicitly constructed dates,
+`Date.parse`, `Date.UTC`, and real timers. Production continues to load Expo Router directly.
 
 Overriding only `Date.now()` would be insufficient because `new Date()` reads the system clock
 independently.
@@ -119,8 +121,8 @@ independently.
 - package/bundle ID: `no.silli.habittracker.test`;
 - scheme: `habittracker-test`.
 
-The normal app retains its existing name, identifiers, database, SecureStore session, real clock,
-and network behavior.
+The normal app retains its existing entry, provider, name, identifiers, database, SecureStore
+session, clock, and network behavior.
 
 ```sh
 pnpm mobile:test:fixture
@@ -165,9 +167,12 @@ build service.
 - Run `pnpm remarkable:test` and the suspend-writer smoke test.
 - Run mobile typechecking and linting.
 - Verify normal and test Expo config resolve to their respective identities.
-- Export or build both production and test native bundles to exercise the custom entry point.
+- Confirm all pre-existing files under `apps/mobile/src` match `main`; only additive `testMode`
+  files may differ.
+- Verify Metro delegates normally without `APP_TEST_BUILD` and selects the provider adapter with it.
+- When the user runs native validation, exercise the test entry and separate application identity.
 - Assert test time freezes both `new Date()` and `Date.now()` without changing explicit dates.
-- Confirm feature directories contain no screenshot-specific imports or conditionals.
+- Confirm feature directories contain no test- or screenshot-specific imports or conditionals.
 - Inspect every committed image at GitHub-rendered size and full resolution.
 - Replace the AI mobile concept only after all six native screens have been manually reviewed.
 

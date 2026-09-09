@@ -1,12 +1,13 @@
 import type { SQLiteDatabase } from "expo-sqlite";
 
+import { setAuthSession } from "@/auth/session";
+
 import { testFixture } from "./fixture.generated";
 
-// Test mode selects its own database before this runs. Resetting on launch keeps manual QA and
-// captures deterministic without affecting the ordinary app's data.
-export async function prepareTestDatabase(
-    sqlite: SQLiteDatabase,
-): Promise<void> {
+// The test target has its own native application identity and therefore its own SQLite and
+// SecureStore sandboxes. Resetting them on launch keeps manual QA deterministic without touching
+// an ordinary app installation.
+export async function prepareTestData(sqlite: SQLiteDatabase): Promise<void> {
     await sqlite.withExclusiveTransactionAsync(async (transaction) => {
         await transaction.execAsync(
             "DELETE FROM entries; DELETE FROM habits; DELETE FROM settings;",
@@ -48,5 +49,10 @@ export async function prepareTestDatabase(
             testFixture.settings.lastSyncedAt,
             testFixture.now,
         );
+    });
+
+    await setAuthSession({
+        token: "local-test-mode-token",
+        user: testFixture.user,
     });
 }

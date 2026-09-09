@@ -19,6 +19,10 @@ const require = createRequire(import.meta.url);
 const {
     installFrozenDate,
 } = require("../../../apps/mobile/src/testMode/freezeDate.js");
+const {
+    APP_PROVIDERS_IMPORT,
+    withTestTarget,
+} = require("../../../apps/mobile/src/testMode/metro.js");
 
 test("canonical fixture is internally consistent", async () => {
     const fixture = await loadFixture(fixturePath);
@@ -132,6 +136,76 @@ test("test app identity leaves ordinary Expo config unchanged", async () => {
         assert.equal(
             testConfig.ios.bundleIdentifier,
             "no.silli.habittracker.test",
+        );
+    } finally {
+        if (previous === undefined) delete process.env.APP_TEST_BUILD;
+        else process.env.APP_TEST_BUILD = previous;
+    }
+});
+
+test("test target leaves the normal entry and resolver unchanged", async () => {
+    const mobilePackage = JSON.parse(
+        await readFile(
+            new URL("../../../apps/mobile/package.json", import.meta.url),
+            "utf8",
+        ),
+    );
+    const previous = process.env.APP_TEST_BUILD;
+    const config = { resolver: {} };
+
+    try {
+        delete process.env.APP_TEST_BUILD;
+        assert.equal(mobilePackage.main, "expo-router/entry");
+        assert.match(
+            mobilePackage.scripts["test:build"],
+            /ENTRY_FILE=src\/testMode\/entry\.js/,
+        );
+        assert.doesNotMatch(
+            mobilePackage.scripts["test:build"],
+            /EXPO_PUBLIC_APP_MODE/,
+        );
+        assert.equal(withTestTarget(config, "/mobile"), config);
+        assert.equal(config.resolver.resolveRequest, undefined);
+    } finally {
+        if (previous === undefined) delete process.env.APP_TEST_BUILD;
+        else process.env.APP_TEST_BUILD = previous;
+    }
+});
+
+test("test target substitutes only the root provider import", () => {
+    const previous = process.env.APP_TEST_BUILD;
+    const delegated = { type: "sourceFile", filePath: "/default.ts" };
+    const context = {
+        resolveRequest() {
+            return delegated;
+        },
+    };
+
+    try {
+        process.env.APP_TEST_BUILD = "1";
+        const config = withTestTarget({ resolver: {} }, "/mobile");
+
+        assert.deepEqual(
+            config.resolver.resolveRequest(
+                context,
+                APP_PROVIDERS_IMPORT,
+                "android",
+            ),
+            {
+                type: "sourceFile",
+                filePath: path.join(
+                    "/mobile",
+                    "src/testMode/TestAppProviders.tsx",
+                ),
+            },
+        );
+        assert.equal(
+            config.resolver.resolveRequest(
+                context,
+                "../components/AppProviders",
+                "android",
+            ),
+            delegated,
         );
     } finally {
         if (previous === undefined) delete process.env.APP_TEST_BUILD;

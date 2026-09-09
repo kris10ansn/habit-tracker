@@ -1,14 +1,6 @@
-import type { AuthSession } from "@/auth/session";
-import type { AppRuntime } from "@/runtime/types";
-
-import { prepareTestDatabase } from "./database";
 import { testFixture } from "./fixture.generated";
 
-let session: AuthSession | null = {
-    token: "local-test-mode-token",
-    user: testFixture.user,
-};
-let sessions = testFixture.sessions.map((item) => ({ ...item }));
+let sessions = testFixture.sessions.map((session) => ({ ...session }));
 
 function jsonResponse(data: unknown, status = 200): Response {
     return new Response(data === undefined ? null : JSON.stringify(data), {
@@ -23,7 +15,7 @@ function requestUrl(input: RequestInfo | URL): URL {
     return new URL(input.url);
 }
 
-async function testFetch(
+export async function testFetch(
     input: RequestInfo | URL,
     init?: RequestInit,
 ): Promise<Response> {
@@ -54,34 +46,14 @@ async function testFetch(
         const id = decodeURIComponent(
             url.pathname.slice("/api/sessions/".length),
         );
-        sessions = sessions.filter((item) => item.id !== id);
+        sessions = sessions.filter((session) => session.id !== id);
         return jsonResponse(undefined, 204);
     }
 
     return jsonResponse(
         {
-            title: `Test mode has no local response for ${method} ${url.pathname}`,
+            title: `Test target has no response for ${method} ${url.pathname}`,
         },
         501,
     );
 }
-
-export const testRuntime: AppRuntime = {
-    databaseName: "habits-test.db",
-    prepareDatabase: async (database) => {
-        await prepareTestDatabase(database);
-        console.info("TEST_MODE_READY");
-    },
-    sessionStore: {
-        async get() {
-            return session;
-        },
-        async set(nextSession) {
-            session = nextSession;
-        },
-        async clear() {
-            session = null;
-        },
-    },
-    fetch: testFetch,
-};

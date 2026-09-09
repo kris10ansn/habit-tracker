@@ -1,5 +1,5 @@
-// Keep the deterministic test app physically separate from an ordinary development install. The
-// public mode flag selects its runtime adapter; this private flag controls native identity only.
+// Keep the deterministic test target physically separate from an ordinary development install.
+// Without this build-only flag, Expo receives the normal app configuration unchanged.
 module.exports = ({ config }) => {
     if (process.env.APP_TEST_BUILD !== "1") return config;
 
