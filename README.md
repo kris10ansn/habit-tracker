@@ -13,10 +13,9 @@
   </tr>
 </table>
 
-The screen pixels are captures from the real reMarkable interface and suspend renderer, populated
-with fictional sample data. A deterministic compositor fits them into the device artwork retained
-from the linking concept. The mobile screens shown later are explicitly marked as AI-generated
-placeholders until the native Android capture workflow is validated end to end.
+The screen pixels are captures from the real reMarkable and Android interfaces, populated with
+fictional sample data. A deterministic compositor fits them into the device artwork retained from
+the linking concept.
 
 This repository contains three parts of one habit-tracking system:
 
@@ -42,13 +41,12 @@ The reMarkable requests a short pairing code. The signed-in mobile app identifie
   <img src="docs/assets/screenshots/framed/remarkable-pairing.png" alt="The real reMarkable pairing screen showing fictional code H7K9Q2 inside a device frame" width="100%">
 </p>
 
-> [!WARNING]
-> **AI-generated placeholder:** The tablet screen below is a real capture fitted into the retained
-> device artwork. The mobile screens remain a visual concept until native Android captures are
-> added.
+> [!NOTE]
+> The device shells below are retained AI-generated artwork. All three screen interiors are real,
+> deterministic captures from the reMarkable and Android clients.
 
 <p align="center">
-  <img src="docs/assets/screenshots/framed/device-linking.png" alt="A real reMarkable pairing capture alongside AI-generated placeholders for mobile approval and linked devices, all fitted into device frames" width="100%">
+  <img src="docs/assets/screenshots/framed/device-linking.png" alt="Real reMarkable pairing, Android approval, and Android linked-device screens fitted into device frames" width="100%">
 </p>
 
 ## The reMarkable workflow
@@ -65,6 +63,31 @@ enough for an e-ink display.
   <tr>
     <td align="center"><sub>Edit, reorder, and change habits</sub></td>
     <td align="center"><sub>Control privacy, suspend rendering, and sync</sub></td>
+  </tr>
+</table>
+
+## The mobile workflow
+
+The native Android captures use the same fictional fixture as the tablet and backend. They show
+daily logging, month review, habit management, and the explicit sync state without contacting a
+live account.
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/assets/screenshots/framed/android-today.png" alt="The real Android Today screen inside a device frame"></td>
+    <td width="50%"><img src="docs/assets/screenshots/framed/android-month.png" alt="The real Android Month screen inside a device frame"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Log today and follow streaks</sub></td>
+    <td align="center"><sub>Review the month</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/assets/screenshots/framed/android-habits.png" alt="The real Android Habits screen inside a device frame"></td>
+    <td width="50%"><img src="docs/assets/screenshots/framed/android-sync.png" alt="The real Android Sync screen inside a device frame"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Manage habits and polarity</sub></td>
+    <td align="center"><sub>Control account and sync state</sub></td>
   </tr>
 </table>
 

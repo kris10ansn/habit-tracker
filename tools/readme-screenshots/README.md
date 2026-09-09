@@ -26,9 +26,9 @@ pnpm screenshots:frame -- --client android --scenario devices
 ```
 
 The three-device linking scene is generated separately. It replaces every source screen currently
-available and leaves the original concept pixels in any missing slot. That means the committed
-example can use the real tablet capture today, then pick up either Android screen independently as
-soon as its raw capture is added:
+available and leaves the original concept pixels in any missing slot. The committed example uses
+real captures in all three slots; the fallback only keeps partial regeneration possible if one is
+temporarily unavailable:
 
 ```sh
 pnpm screenshots:linking
