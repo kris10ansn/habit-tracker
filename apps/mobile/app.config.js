@@ -1,6 +1,5 @@
-// Keep the deterministic test target separate from an ordinary development install. Expo Go uses
-// the distinct slug as its project scope; standalone builds use the distinct native identifiers.
-// Without this flag, Expo receives the normal app configuration unchanged.
+// Give the deterministic Expo Go target its own project storage scope. Without this flag, Expo
+// receives the normal app configuration unchanged.
 module.exports = ({ config }) => {
     if (process.env.APP_TEST_MODE !== "1") return config;
 
@@ -12,15 +11,7 @@ module.exports = ({ config }) => {
         ...config,
         name: "Habit Tracker Test",
         slug: "habit-tracker-test",
-        scheme: "habittracker-test",
+        userInterfaceStyle: "light",
         extra: testExtra,
-        ios: {
-            ...config.ios,
-            bundleIdentifier: "no.silli.habittracker.test",
-        },
-        android: {
-            ...config.android,
-            package: "no.silli.habittracker.test",
-        },
     };
 };

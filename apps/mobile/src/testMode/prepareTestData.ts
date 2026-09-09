@@ -4,9 +4,8 @@ import { setAuthSession } from "@/auth/session";
 
 import { testFixture } from "./fixture.generated";
 
-// Expo Go uses a separate project identity for this target; standalone builds use a separate
-// native application identity. In either case, SQLite and SecureStore are isolated from the
-// ordinary app. Resetting them on launch keeps manual QA deterministic.
+// Expo Go uses a separate project identity for this target, so its SQLite and SecureStore values
+// are isolated from the ordinary project. Resetting them on launch keeps test runs deterministic.
 export async function prepareTestData(sqlite: SQLiteDatabase): Promise<void> {
     await sqlite.withExclusiveTransactionAsync(async (transaction) => {
         await transaction.execAsync(

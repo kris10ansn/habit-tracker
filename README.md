@@ -217,16 +217,16 @@ make suspend-writer-test
 ```
 
 README images use a deterministic fictional fixture. The reMarkable set can be regenerated without
-a tablet. Mobile uses an isolated Expo Go test project that you navigate and capture manually:
+a tablet. The mobile set uses the same fixture in an isolated Expo Go test project and a user-run
+Maestro flow:
 
 ```sh
 pnpm screenshots:remarkable
-pnpm mobile:test:fixture
-pnpm mobile:test:go
+pnpm mobile:test:screenshots -- --avd Pixel_9a
 ```
 
-The standalone test APK and adb capture helpers remain available when an APK-specific capture is
-needed.
+The mobile command starts and stops the named AVD when needed, but never stops an emulator that was
+already running. Expo Go, Maestro, and Android SDK setup are documented in the workflow guide.
 
 [Screenshot workflow and safety contract →](tools/readme-screenshots/README.md)
 

@@ -11,8 +11,15 @@ import {
     validateFixture,
     writeRemarkableFixture,
 } from "../lib/fixture.mjs";
+import {
+    chooseAvd,
+    chooseEmulatorPort,
+    discoverExpoGoUrl,
+    expoGoRouteUrl,
+} from "../lib/expo-go.mjs";
 import { scenarios, selectScenarios } from "../scenarios.mjs";
 import { parseAdbDevices, validateEmulatorTarget } from "../lib/adb.mjs";
+import { parseArguments } from "../capture-mobile.mjs";
 
 const fixturePath = new URL("../fixture.json", import.meta.url);
 const require = createRequire(import.meta.url);
@@ -114,6 +121,102 @@ test("emulator validation rejects physical, offline, and non-QEMU targets", () =
     );
 });
 
+test("Expo Go route URLs preserve the project URL", () => {
+    assert.equal(
+        expoGoRouteUrl("exp://127.0.0.1:8090", "month"),
+        "exp://127.0.0.1:8090/--/month",
+    );
+    assert.equal(
+        expoGoRouteUrl("exps://example.test/project/", "/devices/"),
+        "exps://example.test/project/--/devices",
+    );
+    assert.equal(
+        expoGoRouteUrl("exp://127.0.0.1:8090", ""),
+        "exp://127.0.0.1:8090",
+    );
+    assert.throws(
+        () => expoGoRouteUrl("https://example.test", "month"),
+        /Expected an Expo Go URL/,
+    );
+});
+
+test("Expo Go discovery requests the Android Expo runtime", async () => {
+    let requestedUrl;
+    const result = await discoverExpoGoUrl(
+        "http://127.0.0.1:8090",
+        async (url) => {
+            requestedUrl = url;
+            return {
+                ok: true,
+                async json() {
+                    return {
+                        runtime: "expo",
+                        url: "exp://127.0.0.1:8090",
+                    };
+                },
+            };
+        },
+    );
+
+    assert.equal(result, "exp://127.0.0.1:8090");
+    assert.equal(requestedUrl.pathname, "/_expo/open");
+    assert.equal(requestedUrl.searchParams.get("platform"), "android");
+    assert.equal(requestedUrl.searchParams.get("runtime"), "expo");
+});
+
+test("AVD and emulator-port selection stay explicit", () => {
+    assert.equal(chooseAvd(["Pixel_9a"], undefined), "Pixel_9a");
+    assert.equal(chooseAvd(["Pixel_8", "Pixel_9a"], "Pixel_9a"), "Pixel_9a");
+    assert.throws(
+        () => chooseAvd(["Pixel_8", "Pixel_9a"], undefined),
+        /choose one with --avd/,
+    );
+    assert.throws(() => chooseAvd([], undefined), /No Android AVDs/);
+    assert.equal(
+        chooseEmulatorPort([
+            { serial: "emulator-5554", state: "device" },
+            { serial: "R5CT123", state: "device" },
+        ]),
+        5556,
+    );
+});
+
+test("mobile capture arguments never accept a physical device", () => {
+    assert.deepEqual(parseArguments(["--avd", "Pixel_9a"]), {
+        avd: "Pixel_9a",
+        metroPort: 8090,
+        outputDirectory: path.resolve("docs/assets/screenshots"),
+        keepEmulator: false,
+    });
+    assert.throws(
+        () => parseArguments(["--serial", "R5CT123"]),
+        /local Android emulator/,
+    );
+    assert.throws(() => parseArguments(["--avd"]), /requires a value/);
+    assert.throws(
+        () => parseArguments(["--out-dir", "--keep-emulator"]),
+        /requires a value/,
+    );
+    assert.throws(
+        () =>
+            parseArguments(["--avd", "Pixel_9a", "--serial", "emulator-5554"]),
+        /mutually exclusive/,
+    );
+});
+
+test("Maestro flow is parameterized and captures every Android scenario", async () => {
+    const flow = await readFile(
+        new URL("../maestro/capture.yaml", import.meta.url),
+        "utf8",
+    );
+    assert.match(flow, /appId: \$\{APP_ID\}/);
+    assert.match(flow, /openLink: \$\{EXPO_ROOT_URL\}/);
+    assert.match(flow, /inputText: \$\{PAIRING_CODE\}/);
+    for (const scenario of Object.values(scenarios.android)) {
+        assert.match(flow, new RegExp(path.parse(scenario.output).name));
+    }
+});
+
 test("test app identity leaves ordinary Expo config unchanged", async () => {
     const appConfig = require("../../../apps/mobile/app.config.js");
     const appJson = JSON.parse(
@@ -132,12 +235,10 @@ test("test app identity leaves ordinary Expo config unchanged", async () => {
         const testConfig = appConfig({ config: appJson });
         assert.equal(testConfig.name, "Habit Tracker Test");
         assert.equal(testConfig.slug, "habit-tracker-test");
-        assert.equal(testConfig.scheme, "habittracker-test");
-        assert.equal(testConfig.android.package, "no.silli.habittracker.test");
-        assert.equal(
-            testConfig.ios.bundleIdentifier,
-            "no.silli.habittracker.test",
-        );
+        assert.equal(testConfig.userInterfaceStyle, "light");
+        assert.equal(testConfig.scheme, appJson.scheme);
+        assert.deepEqual(testConfig.android, appJson.android);
+        assert.deepEqual(testConfig.ios, appJson.ios);
         assert.equal("eas" in testConfig.extra, false);
         assert.deepEqual(testConfig.extra.router, {});
     } finally {
@@ -170,12 +271,7 @@ test("test mode leaves the normal entry and resolver unchanged", async () => {
             mobilePackage.scripts["test:go"],
             "APP_TEST_MODE=1 expo start --go",
         );
-        assert.match(mobilePackage.scripts["test:build"], /APP_TEST_MODE=1/);
-        assert.doesNotMatch(mobilePackage.scripts["test:build"], /ENTRY_FILE/);
-        assert.doesNotMatch(
-            mobilePackage.scripts["test:build"],
-            /EXPO_PUBLIC_APP_MODE/,
-        );
+        assert.equal("test:build" in mobilePackage.scripts, false);
         assert.match(testProviders, /^import "\.\/installGlobals";/);
         assert.equal(withTestTarget(config, "/mobile"), config);
         assert.equal(config.resolver.resolveRequest, undefined);

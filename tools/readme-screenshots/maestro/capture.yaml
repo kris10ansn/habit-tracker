@@ -1,0 +1,52 @@
+appId: ${APP_ID}
+name: Capture README mobile screenshots
+---
+- setOrientation: PORTRAIT
+- killApp
+- openLink: ${EXPO_ROOT_URL}
+- extendedWaitUntil:
+      visible: "Read 20 min"
+      timeout: 120000
+- waitForAnimationToEnd
+- takeScreenshot: android-today
+
+- openLink: ${EXPO_MONTH_URL}
+- extendedWaitUntil:
+      visible: "Overview"
+      timeout: 30000
+- waitForAnimationToEnd
+- takeScreenshot: android-month
+
+- openLink: ${EXPO_HABITS_URL}
+- extendedWaitUntil:
+      visible: "Read 20 min"
+      timeout: 30000
+- waitForAnimationToEnd
+- takeScreenshot: android-habits
+
+- openLink: ${EXPO_SYNC_URL}
+- extendedWaitUntil:
+      visible: "alex@example.com"
+      timeout: 30000
+- waitForAnimationToEnd
+- takeScreenshot: android-sync
+
+- openLink: ${EXPO_DEVICES_URL}
+- extendedWaitUntil:
+      visible: "Pixel 9a"
+      timeout: 30000
+- waitForAnimationToEnd
+- takeScreenshot: android-devices
+
+- openLink: ${EXPO_PAIRING_URL}
+- extendedWaitUntil:
+      visible: "ABCDEF"
+      timeout: 30000
+- tapOn: "ABCDEF"
+- inputText: ${PAIRING_CODE}
+- hideKeyboard
+- extendedWaitUntil:
+      visible: "Approve"
+      timeout: 30000
+- waitForAnimationToEnd
+- takeScreenshot: android-pairing

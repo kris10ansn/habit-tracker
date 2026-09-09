@@ -17,7 +17,7 @@ The normal pages come from the live `apps/remarkable/src/Main.qml` scene through
 Quick host. The suspend image still comes from the production suspend renderer; the tool only
 rotates its framebuffer-oriented result for readable README presentation.
 
-## Mobile test target and manual captures
+## Mobile test target
 
 Mobile's existing application source is unchanged. With `APP_TEST_MODE=1`, Metro replaces only the
 root layout's `AppProviders` import with a test adapter. Before that adapter loads the production
@@ -26,58 +26,69 @@ implementation. It then wraps the real provider, seeds SQLite and SecureStore af
 answers device and pairing reads locally, and rejects unexpected requests before they reach a
 network. Expo Router remains the package entry point in both modes.
 
-Agents leave native builds, emulator launches, installation, and other resource-heavy steps to the
-user unless the user explicitly requests that specific operation.
+The test Expo config changes the project name and slug, fixes presentation to light mode, and
+removes the production EAS project ID. The normal scheme and native identifiers are untouched.
+Expo Go therefore gives the test project its own storage scope without introducing a
+screenshot-specific APK target.
 
-### Expo Go (recommended)
+### Automated Expo Go captures
 
-Regenerate the fixture, then start the test project:
+Install these user-run prerequisites once:
+
+- Android SDK command-line tools, with a named AVD configured;
+- an SDK 56-compatible Expo Go client installed in that AVD;
+- Maestro CLI and its Java 17-or-newer runtime.
+
+Then regenerate all six mobile images with:
+
+```sh
+pnpm mobile:test:screenshots -- --avd Pixel_9a
+```
+
+If exactly one AVD is configured, `--avd` can be omitted. To reuse an emulator that is already
+running, pass its explicit local serial instead:
+
+```sh
+pnpm mobile:test:screenshots -- --serial emulator-5554
+```
+
+The command refreshes the generated fixture, starts test-mode Metro, starts the selected AVD
+headlessly when necessary, checks that Expo Go is installed, and connects the emulator to Metro
+with an adb reverse. One parameterized Maestro flow opens each Expo Router URL, waits for
+fixture-backed UI, enters the fictional pairing code, and captures Today, Month, Habits, Sync,
+Devices, and Link device.
+
+Maestro writes to a temporary artifact directory. The wrapper verifies that every expected PNG
+exists and is portrait before replacing anything under `docs/assets/screenshots/`. A failed run
+keeps its logs and partial artifacts and prints their path.
+
+The wrapper cleans up only resources it created:
+
+- it always stops the Metro process it started;
+- it removes only the adb reverse it added;
+- it stops a newly started AVD unless `--keep-emulator` was passed;
+- it never stops an emulator supplied with `--serial` or one that was already running;
+- it rejects physical, network, offline, ambiguous, and non-QEMU device targets.
+
+The script deliberately starts the chosen AVD through the Android emulator CLI instead of
+`maestro start-device`. A named AVD retains the SDK-compatible Expo Go installation and fixes the
+device profile used for README images; a generic Maestro-managed device may not provide either.
+
+This is intentionally a resource-heavy, user-invoked command. Agents may maintain it and run its
+lightweight tests, but do not execute Expo, Maestro, Java, or emulator steps unless the user
+explicitly requests that operation.
+
+### Manual Expo Go review
+
+For visual debugging without the automation wrapper, run:
 
 ```sh
 pnpm mobile:test:fixture
 pnpm mobile:test:go
 ```
 
-Open the displayed project in an SDK 56-compatible Expo Go installation yourself. The command does
-not select or launch an emulator. Test mode uses the separate `habit-tracker-test` Expo project
-identity and omits the production EAS project ID, so its Expo Go SQLite and SecureStore data do not
-share the ordinary project's storage scope.
-
-Navigate Today, Month, Habits, Sync, Link device, and Devices normally. Type the fixture pairing code
-`H7K9Q2` when capturing Link device. Android Studio's screenshot button is the simplest capture
-mechanism. Stop the Expo development server when finished.
-
-### Optional standalone APK
-
-Use this route when Expo Go is unsuitable or a standalone application capture is specifically
-needed:
-
-```sh
-pnpm mobile:test:fixture
-pnpm mobile:test:build
-```
-
-The build installs as `no.silli.habittracker.test` and uses the `habittracker-test` URL scheme. Its
-ordinary `habits.db` and SecureStore values live in that test application's native sandbox, so it
-can coexist with the normal app without sharing data.
-
-Start and authorize an existing emulator yourself, then install on its explicit serial:
-
-```sh
-pnpm mobile:test:install -- --serial emulator-5554
-```
-
-Navigate the app manually. The optional helper below is for the standalone APK only. It saves the
-currently visible portrait screen under the selected scenario name; it does not launch an emulator,
-navigate, click, alter settings, or automate the desktop.
-
-```sh
-pnpm mobile:test:capture -- --serial emulator-5554 --name today
-pnpm mobile:test:capture -- --serial emulator-5554 --name devices
-```
-
-Both helpers require an `emulator-*` serial and verify Android's QEMU property. They reject
-physical, network, offline, and ambiguous targets.
+Open the displayed project yourself in the compatible Expo Go client, navigate normally, and use
+Android Studio's screenshot control. Enter `H7K9Q2` on Link device. Stop Metro when finished.
 
 ## Changing the fixture or scenarios
 
@@ -88,4 +99,5 @@ physical, network, offline, and ambiguous targets.
 
 Fixture validation rejects duplicate identities and positions, unknown polarity/outcome spellings,
 future entries, ambiguous pairing codes, and inconsistent session state. Generated and staged data
-must stay inside the isolated test locations described above.
+must stay inside the isolated test locations described above. The mobile automation always captures
+the complete set so the README cannot silently mix fixture generations.
