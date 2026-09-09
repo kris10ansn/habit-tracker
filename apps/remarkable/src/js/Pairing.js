@@ -6,6 +6,18 @@ const PENDING = "Pending";
 const APPROVED = "Approved";
 const EXPIRED = "Expired";
 
+const parseJson = (responseText) => {
+    if (typeof responseText !== "string") {
+        return null;
+    }
+
+    try {
+        return JSON.parse(responseText);
+    } catch (error) {
+        return null;
+    }
+};
+
 function buildCodeRequest(deviceName) {
     return { deviceName: deviceName };
 }
@@ -14,9 +26,11 @@ function buildPollRequest(code) {
     return { code: code };
 }
 
-// Null on anything that isn't the documented shape — refused rather than guessed at, mirroring
-// Sync.js's own parse. The caller treats null as a malformed-response error.
-function parseCodeResponse(body) {
+// Null on anything that isn't the documented JSON shape — refused rather than guessed at,
+// mirroring Sync.js's own parse. The caller treats null as a malformed-response error.
+function parseCodeResponse(responseText) {
+    const body = parseJson(responseText);
+
     if (!body || typeof body !== "object") {
         return null;
     }
@@ -40,7 +54,9 @@ function parseCodeResponse(body) {
 // The PairingStatus member-name spelling ("Pending"/"Approved"/"Expired") is load-bearing across
 // three apps — never lower-cased or reworded here. A token is required on Approved, forbidden
 // (well, tolerated as null) otherwise.
-function parsePollResponse(body) {
+function parsePollResponse(responseText) {
+    const body = parseJson(responseText);
+
     if (!body || typeof body !== "object") {
         return null;
     }

@@ -169,7 +169,7 @@ JsonStore {
             return;
         }
 
-        const response = syncStore._parse(xhr.responseText);
+        const response = Sync.parseResponse(xhr.responseText, requestMonthKey);
         if (!response) {
             syncStore._fail("error", "Malformed server response");
             return;
@@ -277,13 +277,5 @@ JsonStore {
         }
 
         return syncStore.settingsStore.token || "";
-    }
-
-    function _parse(text) {
-        try {
-            return JSON.parse(text);
-        } catch (e) {
-            return null;
-        }
     }
 }

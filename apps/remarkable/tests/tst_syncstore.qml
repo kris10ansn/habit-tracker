@@ -76,7 +76,7 @@ TestCase {
 
     function wireHabit(overrides) {
         return Object.assign(
-            { id: "a", name: "Alpha", polarity: "Positive", position: 0, createdAt: 1750000000000, editedAt: 1750000000000, deletedAt: null },
+            { id: "a", name: "Alpha", polarity: "Positive", position: 0, isPrivate: false, createdAt: 1750000000000, editedAt: 1750000000000, deletedAt: null },
             overrides || {});
     }
 
@@ -292,12 +292,26 @@ TestCase {
         compare(store.habitsStore.applySyncedCalls, 0);
     }
 
+    // Valid JSON is not enough: treating a missing envelope as an empty authoritative roster would
+    // erase the local model. The wire parser must refuse it before applySynced is reached.
+    function test_aJsonBodyWithTheWrongShapeCannotReplaceLocalData() {
+        makeStore(undefined, undefined, [Fixtures.habitRow({ id: "a" })]);
+        const request = Sync.buildRequest([Fixtures.rosterRow({ id: "a" })], [], [], "2026-08");
+
+        store._handleDone(done(200, {}), request, "2026-08");
+
+        compare(store.status, "error");
+        compare(store.errorMessage, "Malformed server response");
+        compare(store.habitsStore.applySyncedCalls, 0);
+        compare(store.habitsStore.purgeCalls, 0);
+    }
+
     // The ADR 0004 guard. The response describes the month that was requested, not what is on
     // screen — applying it would fold one month's entries onto another.
     function test_aResponseForAMonthNoLongerViewedIsDiscarded() {
         makeStore("http://example.test", "2026-09");
         const request = Sync.buildRequest([], [], [], "2026-08");
-        const body = response([wireHabit()], [{ habitId: "a", date: "2026-08-01", outcome: "Success", editedAt: 9 }], "2026-08");
+        const body = response([wireHabit()], [{ habitId: "a", date: "2026-08-01", outcome: "Success", editedAt: 9, deletedAt: null }], "2026-08");
 
         store._handleDone(done(200, body), request, "2026-08");
 
@@ -331,7 +345,7 @@ TestCase {
         const request = Sync.buildRequest([Fixtures.rosterRow({ id: "a", name: "Alpha" })], [], [], "2026-08");
         const body = response(
             [wireHabit({ id: "a", name: "Renamed on another device", editedAt: 1750000009000 })],
-            [{ habitId: "a", date: "2026-08-02", outcome: "Failure", editedAt: 1750000009000 }]);
+            [{ habitId: "a", date: "2026-08-02", outcome: "Failure", editedAt: 1750000009000, deletedAt: null }]);
 
         store._handleDone(done(200, body), request, "2026-08");
 
@@ -353,8 +367,8 @@ TestCase {
         compare(store.habitsStore.purgeCalls, 1);
     }
 
-    // applySynced validates before it writes; a refusal must surface rather than being reported
-    // as a successful sync.
+    // applySynced can still refuse a valid wire response that this client cannot store; that must
+    // surface rather than being reported as a successful sync.
     function test_aRefusedResponseIsAnError() {
         makeStore();
         store.habitsStore.applySyncedResult = false;

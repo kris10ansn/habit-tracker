@@ -149,7 +149,7 @@ QtObject {
             return;
         }
 
-        const parsed = Pairing.parseCodeResponse(pairingStore._parse(xhr.responseText));
+        const parsed = Pairing.parseCodeResponse(xhr.responseText);
         if (!parsed) {
             pairingStore.status = "error";
             pairingStore.errorMessage = "Malformed server response";
@@ -182,7 +182,7 @@ QtObject {
             return;
         }
 
-        const parsed = Pairing.parsePollResponse(pairingStore._parse(xhr.responseText));
+        const parsed = Pairing.parsePollResponse(xhr.responseText);
         if (!parsed) {
             pairingStore._pollTimer.stop();
             pairingStore.status = "error";
@@ -281,13 +281,5 @@ QtObject {
         }
 
         return ServerUrl.withDefaultScheme(pairingStore.settingsStore.serverUrl);
-    }
-
-    function _parse(text) {
-        try {
-            return JSON.parse(text);
-        } catch (e) {
-            return null;
-        }
     }
 }

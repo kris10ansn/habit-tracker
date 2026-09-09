@@ -8,9 +8,66 @@
 
 const SUCCESS = "Success";
 const FAILURE = "Failure";
+const POSITIVE = "Positive";
+const NEGATIVE = "Negative";
 
 const outcomeToWire = (outcome) => (outcome === Entries.X ? SUCCESS : FAILURE);
 const outcomeFromWire = (outcome) => (outcome === SUCCESS ? Entries.X : Entries.O);
+const isObject = (value) =>
+    !!value && typeof value === "object" && !Array.isArray(value);
+const isTimestamp = (value) => typeof value === "number" && isFinite(value);
+const isHabitResponse = (habit) =>
+    isObject(habit) &&
+    typeof habit.id === "string" &&
+    !!habit.id &&
+    typeof habit.name === "string" &&
+    !!habit.name &&
+    [POSITIVE, NEGATIVE].includes(habit.polarity) &&
+    typeof habit.position === "number" &&
+    Math.floor(habit.position) === habit.position &&
+    typeof habit.isPrivate === "boolean" &&
+    isTimestamp(habit.createdAt) &&
+    isTimestamp(habit.editedAt) &&
+    habit.deletedAt === null;
+const isEntryResponse = (entry) =>
+    isObject(entry) &&
+    typeof entry.habitId === "string" &&
+    !!entry.habitId &&
+    typeof entry.date === "string" &&
+    !!entry.date &&
+    [SUCCESS, FAILURE].includes(entry.outcome) &&
+    isTimestamp(entry.editedAt) &&
+    entry.deletedAt === null;
+const isMonthResponse = (month) =>
+    isObject(month) &&
+    typeof month.month === "string" &&
+    !!month.month &&
+    Array.isArray(month.entries) &&
+    month.entries.every(isEntryResponse);
+
+// The response is authoritative replacement state. A missing array or requested month must be
+// refused, because treating either as empty would erase valid local data.
+function parseResponse(responseText, requestedMonthKey) {
+    let response;
+    try {
+        response = JSON.parse(responseText);
+    } catch (error) {
+        return null;
+    }
+
+    if (
+        !isObject(response) ||
+        !Array.isArray(response.habits) ||
+        !response.habits.every(isHabitResponse) ||
+        !Array.isArray(response.months) ||
+        !response.months.every(isMonthResponse) ||
+        !response.months.some((month) => month.month === requestedMonthKey)
+    ) {
+        return null;
+    }
+
+    return response;
+}
 
 // Build the sync request. roster: alive habit rows in display order (index becomes Position).
 // tombstones: soft-deleted habit rows carrying deletedAt. entryRows: the viewed month's entry rows,

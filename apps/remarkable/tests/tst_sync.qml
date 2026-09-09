@@ -25,6 +25,56 @@ TestCase {
         compare(Sync.outcomeFromWire("nonsense"), Entries.O);
     }
 
+    // --- parseResponse -------------------------------------------------------------------------
+
+    function test_parseResponseAcceptsTheDocumentedShape() {
+        const body = {
+            habits: [{
+                id: "habit-1",
+                name: "Read 20 pages",
+                polarity: "Positive",
+                position: 0,
+                isPrivate: false,
+                createdAt: 1750000000000,
+                editedAt: 1750000000000,
+                deletedAt: null
+            }],
+            months: [{
+                month: "2026-08",
+                entries: [{
+                    habitId: "habit-1",
+                    date: "2026-08-01",
+                    outcome: "Success",
+                    editedAt: 1750000000000,
+                    deletedAt: null
+                }]
+            }]
+        };
+
+        const parsed = Sync.parseResponse(JSON.stringify(body), "2026-08");
+
+        compare(parsed.habits[0].id, "habit-1");
+        compare(parsed.months[0].entries[0].outcome, "Success");
+    }
+
+    function test_parseResponseRejectsMalformedJsonAndWrongShapes() {
+        const invalidResponses = [
+            "<html>not json</html>",
+            JSON.stringify(null),
+            JSON.stringify([]),
+            JSON.stringify({}),
+            JSON.stringify({ habits: [], months: "2026-08" }),
+            JSON.stringify({ habits: [], months: [] }),
+            JSON.stringify({ habits: [], months: [{ month: "2026-09", entries: [] }] }),
+            JSON.stringify({ habits: [{ id: "habit-1" }], months: [] }),
+            JSON.stringify({ habits: [], months: [{ month: "2026-08", entries: [{}] }] })
+        ];
+
+        invalidResponses.forEach(responseText => {
+            compare(Sync.parseResponse(responseText, "2026-08"), null, `${responseText} should be rejected`);
+        });
+    }
+
     // --- buildRequest -------------------------------------------------------------------------
 
     function test_buildRequestNumbersPositionsByRosterIndex() {
