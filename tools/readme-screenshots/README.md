@@ -73,8 +73,16 @@ started by the run are cleaned up. Pre-existing emulators and reverse rules are 
 runs preserve their Metro/emulator logs and staged files at the path printed in the error.
 
 Use `--port <port>` to require a particular Metro port, `--out-dir <path>` to capture elsewhere, or
-`--keep-temp` to preserve successful-run logs. `pnpm mobile:test:go` remains available for manually
-inspecting the isolated test project without running the capture wrapper.
+`--keep-temp` to preserve successful-run logs. Normal output reports connection and UI-readiness
+progress. Add `--verbose` to also stream Metro output and log every subprocess command:
+
+```sh
+pnpm mobile:test:screenshots -- --serial emulator-5554 --verbose
+```
+
+On failure, the retained directory includes the Metro log plus a screenshot, UI hierarchy, and
+foreground-window dump for the failed scenario. `pnpm mobile:test:go` remains available for
+manually inspecting the isolated test project without running the capture wrapper.
 
 ## Changing the fixture or scenarios
 

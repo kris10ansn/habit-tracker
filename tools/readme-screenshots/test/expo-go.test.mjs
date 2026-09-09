@@ -6,6 +6,7 @@ import {
     chooseEmulatorPort,
     editableCenter,
     expoGoRouteUrl,
+    foregroundSummary,
     hasReverseRule,
     metroEnvironment,
     missingUiText,
@@ -13,6 +14,7 @@ import {
     validatePng,
     validateScreenshotSet,
 } from "../lib/expo-go.mjs";
+import { scenarios } from "../scenarios.mjs";
 
 test("Metro and Expo Go use the same IPv4 route", () => {
     const environment = metroEnvironment({ NODE_OPTIONS: "--trace-warnings" });
@@ -52,16 +54,34 @@ test("UI hierarchy readiness and input targeting use Android attributes", () => 
     const nodes = parseUiHierarchy(`<?xml version="1.0"?>
         <hierarchy>
             <node text="Link a device" class="android.widget.TextView" bounds="[10,20][200,60]" />
-            <node text="" content-desc="Pairing code &amp; lookup" class="android.widget.TextView" bounds="[10,70][200,90]" />
+            <node text="PAIRING CODE" class="android.widget.TextView" bounds="[10,70][200,90]" />
             <node text="ABCDEF" class="android.widget.EditText" enabled="true" bounds="[20,100][220,180]" />
         </hierarchy>`);
 
     assert.deepEqual(
-        missingUiText(nodes, ["Link a device", "Pairing code"]),
+        missingUiText(nodes, scenarios.android.pairing.readyText),
         [],
     );
     assert.deepEqual(editableCenter(nodes), { x: 120, y: 140 });
     assert.deepEqual(missingUiText(nodes, ["reMarkable 1"]), ["reMarkable 1"]);
+});
+
+test("foreground diagnostics retain the focused Android window", () => {
+    assert.equal(
+        foregroundSummary(`
+            Window #1 Window{launcher}:
+              mCurrentFocus=Window{123 u0 host.exp.exponent/host.exp.exponent.experience.HomeActivity}
+              mFocusedApp=ActivityRecord{456 u0 host.exp.exponent/.experience.HomeActivity t9}
+        `),
+        "mCurrentFocus=Window{123 u0 host.exp.exponent/host.exp.exponent.experience.HomeActivity} | mFocusedApp=ActivityRecord{456 u0 host.exp.exponent/.experience.HomeActivity t9}",
+    );
+    assert.equal(
+        foregroundSummary(`
+            mTopFocusedDisplayId=0
+            imeInputTarget in display# 0 Window{789 u0 host.exp.exponent/host.exp.exponent.experience.ExperienceActivity}
+        `),
+        "imeInputTarget in display# 0 Window{789 u0 host.exp.exponent/host.exp.exponent.experience.ExperienceActivity}",
+    );
 });
 
 const crcTable = Array.from({ length: 256 }, (_, value) => {

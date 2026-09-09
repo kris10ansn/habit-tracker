@@ -132,6 +132,14 @@ export function editableCenter(nodes) {
     };
 }
 
+export function foregroundSummary(windowDump) {
+    return windowDump
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter((line) => /mCurrentFocus|mFocusedApp|imeInputTarget/.test(line))
+        .join(" | ");
+}
+
 const pngSignature = Buffer.from("89504e470d0a1a0a", "hex");
 const crcTable = Array.from({ length: 256 }, (_, value) => {
     let crc = value;

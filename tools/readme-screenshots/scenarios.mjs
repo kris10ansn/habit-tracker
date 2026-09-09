@@ -58,7 +58,7 @@ export const scenarios = Object.freeze({
         pairing: Object.freeze({
             output: "android-pairing.png",
             route: "link-device",
-            readyText: Object.freeze(["Link a device", "Pairing code"]),
+            readyText: Object.freeze(["Link a device", "PAIRING CODE"]),
         }),
     }),
 });

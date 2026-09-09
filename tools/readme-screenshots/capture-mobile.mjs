@@ -24,6 +24,7 @@ import {
     editableCenter,
     EXPO_GO_PACKAGE,
     expoGoRouteUrl,
+    foregroundSummary,
     hasReverseRule,
     metroEnvironment,
     missingUiText,
@@ -53,10 +54,13 @@ const fixtureGenerator = path.join(
 function usage(message) {
     if (message) process.stderr.write(`${message}\n\n`);
     process.stderr.write(
-        "Usage: pnpm mobile:test:screenshots -- (--avd <name> | --serial <emulator-serial>) [--port <port>] [--out-dir <path>] [--keep-temp]\n",
+        "Usage: pnpm mobile:test:screenshots -- (--avd <name> | --serial <emulator-serial>) [--port <port>] [--out-dir <path>] [--keep-temp] [--verbose]\n",
     );
     process.stderr.write(
         "  --avd starts that AVD headlessly; --serial reuses and preserves a running emulator.\n",
+    );
+    process.stderr.write(
+        "  --verbose streams Metro output and logs each subprocess command.\n",
     );
     process.exit(message ? 2 : 0);
 }
@@ -67,6 +71,7 @@ export function parseArguments(arguments_) {
         port: 8081,
         portWasRequested: false,
         keepTemp: false,
+        verbose: false,
     };
 
     for (let index = 0; index < arguments_.length; index += 1) {
@@ -80,6 +85,7 @@ export function parseArguments(arguments_) {
         } else if (argument === "--out-dir") {
             options.outDir = path.resolve(arguments_[++index] ?? "");
         } else if (argument === "--keep-temp") options.keepTemp = true;
+        else if (argument === "--verbose") options.verbose = true;
         else if (argument === "--help" || argument === "-h") usage();
         else usage(`Unknown argument: ${argument}`);
     }
@@ -105,6 +111,10 @@ function commandText(executable, arguments_) {
         .join(" ");
 }
 
+function debug(message) {
+    if (options.verbose) process.stderr.write(`[debug] ${message}\n`);
+}
+
 async function execute(executable, arguments_, options = {}) {
     const {
         cwd = repositoryRoot,
@@ -113,6 +123,10 @@ async function execute(executable, arguments_, options = {}) {
         timeoutMs = 30_000,
         allowFailure = false,
     } = options;
+
+    const renderedCommand = commandText(executable, arguments_);
+    const startedAt = Date.now();
+    debug(`run ${renderedCommand}`);
 
     return await new Promise((resolve, reject) => {
         const child = spawn(executable, arguments_, {
@@ -130,6 +144,7 @@ async function execute(executable, arguments_, options = {}) {
         }, timeoutMs);
         child.once("error", (error) => {
             clearTimeout(timeout);
+            debug(`could not start ${renderedCommand}: ${error.message}`);
             reject(
                 new Error(
                     `Could not run ${executable}: ${error.message}. Check the prerequisites in tools/readme-screenshots/README.md.`,
@@ -140,10 +155,13 @@ async function execute(executable, arguments_, options = {}) {
             clearTimeout(timeout);
             const output = Buffer.concat(stdout);
             const errorOutput = Buffer.concat(stderr).toString("utf8").trim();
+            debug(
+                `${renderedCommand} ${signal ? `received ${signal}` : `exited ${code}`} after ${Date.now() - startedAt}ms`,
+            );
             if (code !== 0 && !allowFailure) {
                 reject(
                     new Error(
-                        `${commandText(executable, arguments_)} failed${
+                        `${renderedCommand} failed${
                             signal ? ` (${signal})` : ` with exit code ${code}`
                         }${errorOutput ? `:\n${errorOutput}` : ""}`,
                     ),
@@ -181,9 +199,18 @@ async function startLoggedProcess(executable, arguments_, options) {
     });
     child.stdout.pipe(output, { end: false });
     child.stderr.pipe(output, { end: false });
+    if (options.verbose) {
+        child.stdout.pipe(process.stderr, { end: false });
+        child.stderr.pipe(process.stderr, { end: false });
+    }
 
     await new Promise((resolve, reject) => {
-        child.once("spawn", resolve);
+        child.once("spawn", () => {
+            debug(
+                `started ${commandText(executable, arguments_)} as PID ${child.pid}; log: ${options.logPath}`,
+            );
+            resolve();
+        });
         child.once("error", (error) =>
             reject(
                 new Error(`Could not start ${executable}: ${error.message}`),
@@ -193,6 +220,9 @@ async function startLoggedProcess(executable, arguments_, options) {
     const exited = new Promise((resolve) => {
         child.once("close", (code, signal) => {
             output.end();
+            debug(
+                `${commandText(executable, arguments_)} ${signal ? `received ${signal}` : `exited ${code}`}`,
+            );
             resolve({ code, signal });
         });
     });
@@ -380,11 +410,27 @@ async function validateRunningEmulator(adb, serial) {
     validateEmulatorTarget(serial, target.state, qemu);
 }
 
+async function wakeDevice(adb, serial) {
+    await adbFor(adb, serial, ["shell", "input", "keyevent", "KEYCODE_WAKEUP"]);
+    await execute(adb, ["-s", serial, "shell", "wm", "dismiss-keyguard"], {
+        allowFailure: true,
+    });
+}
+
+async function readForeground(adb, serial) {
+    const windowDump = await execute(
+        adb,
+        ["-s", serial, "shell", "dumpsys", "window", "windows"],
+        { allowFailure: true, timeoutMs: 15_000 },
+    );
+    return { summary: foregroundSummary(windowDump), windowDump };
+}
+
 async function dumpUi(adb, serial, remotePath) {
     try {
         await adbFor(adb, serial, ["shell", "uiautomator", "dump", remotePath]);
         const xml = await adbFor(adb, serial, ["exec-out", "cat", remotePath]);
-        return parseUiHierarchy(xml);
+        return { nodes: parseUiHierarchy(xml), xml };
     } finally {
         await execute(adb, ["-s", serial, "shell", "rm", "-f", remotePath], {
             allowFailure: true,
@@ -393,27 +439,94 @@ async function dumpUi(adb, serial, remotePath) {
     }
 }
 
-async function waitForUi(adb, serial, remotePath, expectedText, metroLog) {
-    const deadline = Date.now() + 60_000;
+async function captureFailureDiagnostics(
+    adb,
+    serial,
+    diagnosticDirectory,
+    scenarioName,
+    uiHierarchy,
+) {
+    const prefix = path.join(diagnosticDirectory, `failure-${scenarioName}`);
+    if (uiHierarchy) await writeFile(`${prefix}-ui.xml`, uiHierarchy);
+
+    const { summary, windowDump } = await readForeground(adb, serial);
+    await writeFile(`${prefix}-window.txt`, windowDump);
+
+    try {
+        const screenshot = await adbBinary(adb, serial, [
+            "exec-out",
+            "screencap",
+            "-p",
+        ]);
+        await writeFile(`${prefix}.png`, screenshot);
+    } catch {}
+
+    return summary || "unavailable";
+}
+
+async function waitForUi(
+    adb,
+    serial,
+    remotePath,
+    expectedText,
+    metroLog,
+    diagnosticDirectory,
+    scenarioName,
+) {
+    const startedAt = Date.now();
+    const deadline = startedAt + 60_000;
+    let nextProgressAt = 0;
     let lastNodes = [];
+    let lastHierarchy = "";
     let lastError;
     while (Date.now() < deadline) {
         try {
-            lastNodes = await dumpUi(adb, serial, remotePath);
-            if (missingUiText(lastNodes, expectedText).length === 0) {
+            // The first bundle can take longer than an emulator's display timeout. WAKEUP is
+            // idempotent, so keep the selected emulator visible without changing its settings.
+            await wakeDevice(adb, serial);
+            const dump = await dumpUi(adb, serial, remotePath);
+            lastNodes = dump.nodes;
+            lastHierarchy = dump.xml;
+            const missingText = missingUiText(lastNodes, expectedText);
+            if (missingText.length === 0) {
                 await delay(500);
+                process.stdout.write(
+                    `  ${scenarioName} UI ready after ${Math.ceil((Date.now() - startedAt) / 1000)}s\n`,
+                );
                 return lastNodes;
+            }
+
+            if (options.verbose || Date.now() >= nextProgressAt) {
+                const visible =
+                    visibleUiText(lastNodes).slice(0, 12).join(" | ") || "none";
+                const foreground =
+                    (await readForeground(adb, serial)).summary ||
+                    "unavailable";
+                process.stdout.write(
+                    `  waiting for ${scenarioName} UI (${Math.ceil((Date.now() - startedAt) / 1000)}s): missing ${missingText.join(", ")}; visible ${visible}; foreground ${foreground}\n`,
+                );
+                nextProgressAt = Date.now() + 5_000;
             }
         } catch (error) {
             lastError = error;
+            if (options.verbose) {
+                debug(`UI probe for ${scenarioName} failed: ${error.message}`);
+            }
         }
         await delay(750);
     }
 
     const missing = missingUiText(lastNodes, expectedText).join(", ");
     const visible = visibleUiText(lastNodes).slice(0, 30).join(" | ") || "none";
+    const foreground = await captureFailureDiagnostics(
+        adb,
+        serial,
+        diagnosticDirectory,
+        scenarioName,
+        lastHierarchy,
+    );
     throw new Error(
-        `Timed out waiting for app UI (${missing || lastError?.message || "unknown readiness error"}).\nVisible emulator text: ${visible}\nIf Expo Go is showing onboarding or an SDK error, open it once manually and resolve that prompt.\nMetro log:\n${await tail(metroLog)}`,
+        `Timed out waiting for app UI (${missing || lastError?.message || "unknown readiness error"}).\nVisible emulator text: ${visible}\nForeground window: ${foreground}\nA failure screenshot, UI hierarchy, and window dump were retained with the logs.\nMetro log:\n${await tail(metroLog)}`,
     );
 }
 
@@ -466,7 +579,9 @@ async function enterPairingCode(adb, serial, nodes, code) {
     }
     await adbFor(adb, serial, ["shell", "input", "text", code]);
     await delay(750);
-    await adbFor(adb, serial, ["shell", "input", "keyevent", "KEYCODE_BACK"]);
+    // A Back event can reach Expo Router when the emulator has no visible IME and leave the
+    // pairing route. Enter submits and blurs this single-line React Native input instead.
+    await adbFor(adb, serial, ["shell", "input", "keyevent", "KEYCODE_ENTER"]);
 }
 
 async function promoteCaptures(captures, outputDirectory) {
@@ -512,6 +627,9 @@ async function cleanup() {
         resources.serial &&
         resources.reversePort
     ) {
+        debug(
+            `removing adb reverse tcp:${resources.reversePort} created for ${resources.serial}`,
+        );
         await execute(
             resources.adb,
             [
@@ -524,9 +642,12 @@ async function cleanup() {
             { allowFailure: true, timeoutMs: 10_000 },
         );
     }
+    if (processIsRunning(resources.metro))
+        debug("stopping Metro started by this run");
     await stopProcess(resources.metro);
 
     if (resources.emulator && resources.adb && resources.serial) {
+        debug(`stopping AVD ${resources.serial} started by this run`);
         await execute(resources.adb, ["-s", resources.serial, "emu", "kill"], {
             allowFailure: true,
             timeoutMs: 10_000,
@@ -539,6 +660,7 @@ async function cleanup() {
     }
 
     if (resources.temporaryDirectory && !resources.keepTemporaryDirectory) {
+        debug(`removing temporary directory ${resources.temporaryDirectory}`);
         await rm(resources.temporaryDirectory, {
             recursive: true,
             force: true,
@@ -564,6 +686,9 @@ async function main() {
         "screenshots",
     );
     await mkdir(stagedDirectory);
+    process.stdout.write(
+        `working directory: ${resources.temporaryDirectory} (kept on failure)\n`,
+    );
 
     const adb = await executableFromAndroidSdk("adb", "platform-tools");
     resources.adb = adb;
@@ -586,6 +711,7 @@ async function main() {
     );
     await access(generatedFixture);
     const fixture = await loadFixture(path.join(directory, "fixture.json"));
+    process.stdout.write("prerequisites and deterministic fixture verified\n");
 
     const initialDevices = parseAdbDevices(
         await execute(adb, ["devices", "-l"]),
@@ -627,23 +753,13 @@ async function main() {
                 "-no-boot-anim",
                 "-no-snapshot",
             ],
-            { logPath: emulatorLog },
+            { logPath: emulatorLog, verbose: options.verbose },
         );
         await waitForBoot(adb, resources.serial, resources.emulator);
         await validateRunningEmulator(adb, resources.serial);
     }
 
-    await adbFor(adb, resources.serial, [
-        "shell",
-        "input",
-        "keyevent",
-        "KEYCODE_WAKEUP",
-    ]);
-    await execute(
-        adb,
-        ["-s", resources.serial, "shell", "wm", "dismiss-keyguard"],
-        { allowFailure: true },
-    );
+    await wakeDevice(adb, resources.serial);
 
     const expoGoPath = await adbFor(adb, resources.serial, [
         "shell",
@@ -656,6 +772,7 @@ async function main() {
             `Expo Go (${EXPO_GO_PACKAGE}) is not installed on ${resources.serial}. Install an SDK 56-compatible Expo Go client in that AVD, open it once to clear onboarding, then retry.`,
         );
     }
+    process.stdout.write(`verified Expo Go on ${resources.serial}\n`);
 
     const port = await selectMetroPort(options);
     const reverseList = await adbFor(adb, resources.serial, [
@@ -670,6 +787,13 @@ async function main() {
         ]);
         resources.reverseCreated = true;
         resources.reversePort = port;
+        process.stdout.write(
+            `created adb reverse tcp:${port} -> tcp:${port} for ${resources.serial}\n`,
+        );
+    } else {
+        process.stdout.write(
+            `reusing existing adb reverse tcp:${port} -> tcp:${port} for ${resources.serial}\n`,
+        );
     }
 
     const metroLog = path.join(resources.temporaryDirectory, "metro.log");
@@ -691,27 +815,32 @@ async function main() {
         {
             env: metroEnvironment(process.env),
             logPath: metroLog,
+            verbose: options.verbose,
         },
     );
     const projectUrl = await waitForExpoGoUrl(resources.metro, port);
+    process.stdout.write(`Expo Go launch URL ready: ${projectUrl}\n`);
     const remoteUiPath = `/data/local/tmp/habit-tracker-readme-${process.pid}.xml`;
     const captures = [];
 
     for (const [name, scenario] of selectScenarios("android")) {
-        process.stdout.write(`capturing ${name}\n`);
-        await openRoute(
-            adb,
-            resources.serial,
-            expoGoRouteUrl(projectUrl, scenario.route),
+        const routeUrl = expoGoRouteUrl(projectUrl, scenario.route);
+        process.stdout.write(
+            `capturing ${name}: opening ${routeUrl}; waiting for ${scenario.readyText.join(", ")}\n`,
         );
+        await wakeDevice(adb, resources.serial);
+        await openRoute(adb, resources.serial, routeUrl);
         let nodes = await waitForUi(
             adb,
             resources.serial,
             remoteUiPath,
             scenario.readyText,
             metroLog,
+            resources.temporaryDirectory,
+            name,
         );
         if (name === "pairing") {
+            process.stdout.write("  entering deterministic pairing code\n");
             await enterPairingCode(
                 adb,
                 resources.serial,
@@ -724,6 +853,8 @@ async function main() {
                 remoteUiPath,
                 [...scenario.readyText, fixture.pairing.deviceName],
                 metroLog,
+                resources.temporaryDirectory,
+                name,
             );
         }
 
@@ -732,7 +863,7 @@ async function main() {
             "screencap",
             "-p",
         ]);
-        validatePng(bytes, name);
+        const dimensions = validatePng(bytes, name);
         const screenshotPath = path.join(stagedDirectory, scenario.output);
         await writeFile(screenshotPath, bytes);
         captures.push({
@@ -741,6 +872,9 @@ async function main() {
             path: screenshotPath,
             bytes,
         });
+        process.stdout.write(
+            `  staged ${scenario.output} (${dimensions.width}x${dimensions.height}, ${bytes.length} bytes)\n`,
+        );
     }
 
     const dimensions = validateScreenshotSet(captures);
