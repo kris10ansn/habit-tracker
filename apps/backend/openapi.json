@@ -910,12 +910,16 @@
       "PairingCodeResponse": {
         "required": [
           "code",
+          "qrPayload",
           "expiresAt",
           "pollIntervalSeconds"
         ],
         "type": "object",
         "properties": {
           "code": {
+            "type": "string"
+          },
+          "qrPayload": {
             "type": "string"
           },
           "expiresAt": {

@@ -74,7 +74,7 @@ export function PairingScanner({ onCodeScanned, onCancel }: Props) {
                             pointerEvents="none"
                             className="flex-1 items-center justify-center"
                         >
-                            <View className="h-48 w-48 rounded-2xl border-2 border-white" />
+                            <View className="h-48 w-48 rounded-2xl border-2 border-surface" />
                         </View>
                     </CameraView>
                 )}

@@ -120,11 +120,14 @@ registered emails.
 `/api/invites` (POST, admin only) — mints a 7-day single-use invite code, returned once.
 
 `/api/pairing` — the reMarkable's device-code pairing flow: `POST /code` (anonymous) issues a
-6-character code the tablet displays and polls with `POST /poll` (anonymous) every few seconds. The
-phone looks the code up with `GET /{code}` (authenticated) to see the requesting device's name, then
-`POST /approve` (authenticated) to bind it to its account. The tablet's next poll after approval
-returns a bearer token — the only time that token exists on the wire for this flow — and the code is
-deleted in that same request, so a second poll on the same code reports it expired.
+6-character code plus the backend-owned QR payload `HABITTRACKER:1:<code>`. The payload is only a
+versioned representation of that same short-lived code: it contains no bearer token or server
+address, and clients do not construct it themselves. The tablet displays both forms and polls with
+`POST /poll` (anonymous) every few seconds. The phone looks the code up with `GET /{code}`
+(authenticated) to see the requesting device's name, then `POST /approve` (authenticated) to bind it
+to its account. The tablet's next poll after approval returns a bearer token — the only time that
+token exists on the wire for this flow — and the code is deleted in that same request, so a second
+poll on the same code reports it expired.
 
 Every endpoint above except the four marked anonymous requires `Authorization: Bearer <token>`; a
 missing or unknown token gets `401`. See [`CLAUDE.md`](./CLAUDE.md) for the auth layer's shape.

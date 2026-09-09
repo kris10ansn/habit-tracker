@@ -15,28 +15,39 @@ TestCase {
         compare(Pairing.buildPollRequest("ABC234").code, "ABC234");
     }
 
-    function test_buildQrPayloadWrapsANormalizedExistingCode() {
-        compare(Pairing.buildQrPayload(" abc234 "), "HABITTRACKER:1:ABC234");
-    }
-
-    function test_buildQrPayloadRejectsAnythingOutsideTheBackendCodeAlphabet() {
-        [undefined, null, "", "ABC23", "ABC2345", "ABC230", "ABC23O"].forEach(code => {
-            compare(Pairing.buildQrPayload(code), "", `${code} should be rejected`);
-        });
-    }
-
     // --- parseCodeResponse ----------------------------------------------------------------------
 
     function test_parseCodeResponseAcceptsTheDocumentedShape() {
-        const parsed = Pairing.parseCodeResponse({ code: "ABC234", expiresAt: 1750000300000, pollIntervalSeconds: 3 });
+        const parsed = Pairing.parseCodeResponse({
+            code: "ABC234",
+            qrPayload: "HABITTRACKER:1:ABC234",
+            expiresAt: 1750000300000,
+            pollIntervalSeconds: 3
+        });
 
         compare(parsed.code, "ABC234");
+        compare(parsed.qrPayload, "HABITTRACKER:1:ABC234");
         compare(parsed.expiresAt, 1750000300000);
         compare(parsed.pollIntervalSeconds, 3);
     }
 
     function test_parseCodeResponseRejectsAnythingElse() {
-        [undefined, null, {}, { code: "" }, { code: "ABC234" }, { code: "ABC234", expiresAt: "soon" }, { code: "ABC234", expiresAt: 1, pollIntervalSeconds: "3" }, "ABC234"].forEach(body => {
+        const complete = {
+            code: "ABC234",
+            qrPayload: "HABITTRACKER:1:ABC234",
+            expiresAt: 1,
+            pollIntervalSeconds: 3
+        };
+        [
+            undefined,
+            null,
+            {},
+            Object.assign({}, complete, { code: "" }),
+            Object.assign({}, complete, { qrPayload: "" }),
+            Object.assign({}, complete, { expiresAt: "soon" }),
+            Object.assign({}, complete, { pollIntervalSeconds: "3" }),
+            "ABC234"
+        ].forEach(body => {
             compare(Pairing.parseCodeResponse(body), null, `${JSON.stringify(body)} should be rejected`);
         });
     }

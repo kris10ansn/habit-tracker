@@ -7,6 +7,7 @@ import { z } from "zod/v4";
 
 export const pairingCodeResponseSchema = z.object({
     code: z.string(),
+    qrPayload: z.string(),
     expiresAt: z.int(),
     pollIntervalSeconds: z.int(),
 });

@@ -196,6 +196,7 @@ public class PairingServiceTests
             var response = await pairing.RequestCodeAsync("reMarkable");
 
             Assert.Equal(6, response.Code.Length);
+            Assert.Equal("HABITTRACKER:1:" + response.Code, response.QrPayload);
             Assert.All(response.Code, c => Assert.True(AuthTokens.CodeAlphabet.Contains(c)));
             Assert.False(response.Code.Contains('0'));
             Assert.False(response.Code.Contains('O'));

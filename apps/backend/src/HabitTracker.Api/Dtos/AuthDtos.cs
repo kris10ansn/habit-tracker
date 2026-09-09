@@ -58,7 +58,17 @@ public record InviteDto(string Code, long ExpiresAt);
 
 public record PairingCodeRequest([Required, MaxLength(120)] string DeviceName);
 
-public record PairingCodeResponse(string Code, long ExpiresAt, int PollIntervalSeconds);
+/// <summary>
+/// What the requesting device displays while it polls. <see cref="QrPayload"/> is the
+/// backend-owned, versioned representation of <see cref="Code"/> for a scanner to decode; it
+/// contains no bearer token or server address.
+/// </summary>
+public record PairingCodeResponse(
+    string Code,
+    string QrPayload,
+    long ExpiresAt,
+    int PollIntervalSeconds
+);
 
 public record PairingCodeStatusRequest([Required, MaxLength(16)] string Code);
 

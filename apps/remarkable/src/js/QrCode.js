@@ -20,22 +20,19 @@ function encodeAlphanumeric(text) {
     qrCode.make();
 
     const size = qrCode.getModuleCount();
-    const modules = [];
-    for (let row = 0; row < size; row += 1) {
-        const moduleRow = [];
-        for (let column = 0; column < size; column += 1) {
-            moduleRow.push(qrCode.isDark(row, column));
-        }
-        modules.push(moduleRow);
-    }
 
-    return modules;
+    return new Array(size).fill(null).map((unusedRow, row) =>
+        new Array(size)
+            .fill(null)
+            .map((unusedColumn, column) => qrCode.isDark(row, column)),
+    );
 }
 
-function _validateText(text) {
+const _validateText = (text) => {
     if (typeof text !== "string" || !text.length) {
         throw new Error("QR text must not be empty");
     }
+
     if (text.length > MAXIMUM_ALPHANUMERIC_CHARACTERS) {
         throw new Error("QR text is too long");
     }
@@ -48,4 +45,4 @@ function _validateText(text) {
             `QR text contains unsupported character: ${unsupportedCharacter}`,
         );
     }
-}
+};

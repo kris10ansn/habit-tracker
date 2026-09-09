@@ -9,6 +9,10 @@ export type PairingCodeResponse = {
      */
     code: string;
     /**
+     * @type string
+     */
+    qrPayload: string;
+    /**
      * @type integer, int64
      */
     expiresAt: number;

@@ -1,6 +1,6 @@
 import { useCameraPermissions } from "expo-camera";
-import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useFocusEffect, useIsFocused, useRouter } from "expo-router";
+import { useCallback, useState } from "react";
 import { Text, View } from "react-native";
 
 import { PairingScanner } from "@/components/account/PairingScanner";
@@ -19,6 +19,7 @@ const CODE_LENGTH = 6;
 // offered, so the owner never approves a device they can't identify.
 export default function LinkDeviceScreen() {
     const router = useRouter();
+    const isFocused = useIsFocused();
     const [code, setCode] = useState("");
     const [approvedDeviceName, setApprovedDeviceName] = useState<string | null>(
         null,
@@ -29,6 +30,12 @@ export default function LinkDeviceScreen() {
     >(null);
     const [requestingCamera, setRequestingCamera] = useState(false);
     const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+
+    useFocusEffect(
+        useCallback(() => {
+            return () => setScannerOpen(false);
+        }, []),
+    );
 
     const normalized = code.trim().toUpperCase();
     const ready = normalized.length === CODE_LENGTH;
@@ -89,7 +96,7 @@ export default function LinkDeviceScreen() {
             onBack={() => router.back()}
         >
             <Card className="flex-col gap-3.5">
-                {scannerOpen ? (
+                {scannerOpen && isFocused ? (
                     <PairingScanner
                         onCodeScanned={onCodeScanned}
                         onCancel={() => setScannerOpen(false)}

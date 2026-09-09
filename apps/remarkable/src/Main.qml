@@ -414,6 +414,7 @@ Rectangle {
             pairingConnected: settingsStore.token !== ""
             pairingStatus: pairingStore.status
             pairingCode: pairingStore.code
+            pairingQrPayload: pairingStore.qrPayload
             pairingErrorMessage: pairingStore.errorMessage
             onApplyRequested: root.applySuspendSetting(value)
             onShowPrivateHabitsApplied: settingsStore.setShowPrivateHabits(value)
