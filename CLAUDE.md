@@ -18,6 +18,13 @@ the recognized identity in the commit and name the exact model in an `## Attribu
 the PR description. Omit the model only when the harness does not expose it. Attribute only agents
 that actually wrote and committed the changes.
 
+## Pull request feedback
+
+Before committing a user-requested course correction to an existing pull request, post the
+instruction in the PR conversation. When authenticated as the user, write the feedback directly in
+the user's voice. When authenticated as an agent or bot, identify it as user feedback. The comment
+must exist before the corrective commit.
+
 ## What this is
 
 A **habit tracker** built as a pnpm monorepo: two clients over one shared habit domain, plus the
