@@ -3,9 +3,6 @@
 // state, and optimistic mutations. `useSync` (below) is where the backend round-trip slots in.
 // Split per entity; this index is the public surface (streaksKey stays internal).
 export {
-    authErrorReason,
-    invalidateSessionOnUnauthorized,
-    pairingErrorReason,
     useAuthSession,
     useLogin,
     useLogout,
@@ -28,4 +25,4 @@ export {
 export { entriesKey, habitsKey } from "./keys";
 export { useSettings, useUpdateSettings } from "./settings";
 export { useStreaks } from "./streaks";
-export { syncErrorReason, useHasUnsyncedChanges, useSync } from "./sync";
+export { useHasUnsyncedChanges, useSync } from "./sync";

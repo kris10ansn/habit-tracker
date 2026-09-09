@@ -9,11 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { Loading } from "@/components/ui/Loading";
 import { TextInputField, TextInputLabel } from "@/components/ui/TextField";
-import {
-    pairingErrorReason,
-    usePairingApprove,
-    usePairingLookup,
-} from "@/state/queries";
+import { usePairingApprove, usePairingLookup } from "@/state/queries";
 
 const CODE_LENGTH = 6;
 
@@ -136,7 +132,7 @@ export default function LinkDeviceScreen() {
 
                 {ready && lookup.isError ? (
                     <Text className="text-[13px] text-slip">
-                        {pairingErrorReason(lookup.error)}
+                        {lookup.error.message}
                     </Text>
                 ) : null}
 
@@ -157,7 +153,7 @@ export default function LinkDeviceScreen() {
 
                             {approve.isError ? (
                                 <Text className="text-[13px] text-slip">
-                                    {pairingErrorReason(approve.error)}
+                                    {approve.error.message}
                                 </Text>
                             ) : null}
 

@@ -97,9 +97,12 @@ function problemTitle(body: unknown): string | null {
 
 /** The request never left the device (offline, DNS failure, unreachable host, timeout). */
 export class NetworkError extends Error {
+    readonly url: string;
+
     constructor(url: string, cause: unknown) {
-        super(`Could not reach the backend at ${url}`);
+        super("Couldn't reach the server — check the URL and your connection.");
         this.name = "NetworkError";
+        this.url = url;
         this.cause = cause;
     }
 }

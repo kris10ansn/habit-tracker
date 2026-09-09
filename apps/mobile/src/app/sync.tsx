@@ -11,7 +11,6 @@ import { cn } from "@/lib/cn";
 import { relativeTime } from "@/lib/relativeTime";
 import { useUpdateEffect } from "@/lib/useUpdateEffect";
 import {
-    syncErrorReason,
     useHasUnsyncedChanges,
     useSettings,
     useSync,
@@ -73,9 +72,7 @@ export default function SyncScreen() {
             <SyncStatusCard
                 state={state}
                 lastSynced={relativeTime(lastSyncedAt)}
-                errorReason={
-                    sync.isError ? syncErrorReason(sync.error) : undefined
-                }
+                errorMessage={sync.isError ? sync.error.message : undefined}
                 onSyncNow={() => sync.mutate({})}
             />
 

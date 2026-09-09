@@ -6,7 +6,7 @@ import type { AuthSession } from "@/auth/session";
 import { Card } from "@/components/ui/Card";
 import { Icon, type MaterialIconName } from "@/components/ui/Icon";
 import { Pill } from "@/components/ui/Pill";
-import { authErrorReason, useLogout } from "@/state/queries";
+import { useLogout } from "@/state/queries";
 
 interface Props {
     session: AuthSession;
@@ -56,7 +56,7 @@ export function AccountSummary({ session }: Props) {
 
             {logout.isError ? (
                 <Text className="text-[13px] text-slip">
-                    {authErrorReason(logout.error)}
+                    {logout.error.message}
                 </Text>
             ) : null}
         </Card>
