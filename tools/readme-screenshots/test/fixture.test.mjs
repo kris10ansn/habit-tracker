@@ -77,7 +77,15 @@ test("scenario selection is explicit", () => {
     assert.equal(Object.keys(scenarios.remarkable).length, 5);
     assert.equal(Object.keys(scenarios.android).length, 6);
     assert.deepEqual(selectScenarios("android", "devices")[0][0], "devices");
-    assert.equal("route" in scenarios.android.devices, false);
+    assert.deepEqual(
+        Object.values(scenarios.android).map(({ route }) => route),
+        ["", "month", "habits", "sync", "devices", "link-device"],
+    );
+    assert.ok(
+        Object.values(scenarios.android).every(
+            ({ readyText }) => readyText.length >= 2,
+        ),
+    );
     assert.throws(
         () => selectScenarios("android", "grid"),
         /Unknown android scenario/,
@@ -170,12 +178,7 @@ test("test mode leaves the normal entry and resolver unchanged", async () => {
             mobilePackage.scripts["test:go"],
             "APP_TEST_MODE=1 expo start --go",
         );
-        assert.match(mobilePackage.scripts["test:build"], /APP_TEST_MODE=1/);
-        assert.doesNotMatch(mobilePackage.scripts["test:build"], /ENTRY_FILE/);
-        assert.doesNotMatch(
-            mobilePackage.scripts["test:build"],
-            /EXPO_PUBLIC_APP_MODE/,
-        );
+        assert.equal("test:build" in mobilePackage.scripts, false);
         assert.match(testProviders, /^import "\.\/installGlobals";/);
         assert.equal(withTestTarget(config, "/mobile"), config);
         assert.equal(config.resolver.resolveRequest, undefined);

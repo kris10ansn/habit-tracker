@@ -28,21 +28,37 @@ export const scenarios = Object.freeze({
     android: Object.freeze({
         today: Object.freeze({
             output: "android-today.png",
+            route: "",
+            readyText: Object.freeze(["September 9", "Read 20 min"]),
         }),
         month: Object.freeze({
             output: "android-month.png",
+            route: "month",
+            readyText: Object.freeze(["Month", "September 2026"]),
         }),
         habits: Object.freeze({
             output: "android-habits.png",
+            route: "habits",
+            readyText: Object.freeze(["Habits", "Read 20 min"]),
         }),
         sync: Object.freeze({
             output: "android-sync.png",
-        }),
-        pairing: Object.freeze({
-            output: "android-pairing.png",
+            route: "sync",
+            readyText: Object.freeze(["Sync", "alex@example.com"]),
         }),
         devices: Object.freeze({
             output: "android-devices.png",
+            route: "devices",
+            readyText: Object.freeze([
+                "Linked devices",
+                "Pixel 9a",
+                "reMarkable 1",
+            ]),
+        }),
+        pairing: Object.freeze({
+            output: "android-pairing.png",
+            route: "link-device",
+            readyText: Object.freeze(["Link a device", "Pairing code"]),
         }),
     }),
 });

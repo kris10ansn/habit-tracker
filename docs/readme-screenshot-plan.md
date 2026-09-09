@@ -3,16 +3,16 @@
 ## Status
 
 The shared fixture, reMarkable offscreen host, suspend-renderer integration, and real reMarkable
-image set are implemented. Mobile now uses an additive test target and a manual capture workflow.
-The Expo Go test project must still be opened and visually reviewed by the user before its images
-replace the clearly labeled AI-generated mobile concept.
+image set are implemented. Mobile uses an additive test target plus a user-run Node wrapper that
+captures six screens from Expo Go with direct, emulator-scoped `adb` commands. The generated images
+still require user review before they replace the clearly labeled AI-generated mobile concept.
 
 ## Goal
 
 Refresh realistic README imagery without a reMarkable device, physical phone, Expo web, live
 backend, credentials, or access to user data. The reMarkable workflow is automated because Qt can
-host its real QML scene offscreen. Mobile supplies deterministic test state but leaves navigation
-and screenshot timing to a person.
+host its real QML scene offscreen. Mobile supplies deterministic test state and automates emulator
+navigation, readiness, pairing-code input, and capture without a native build or desktop automation.
 
 | Client     | Scenario   | Intended README use                        |
 | ---------- | ---------- | ------------------------------------------ |
@@ -41,9 +41,11 @@ tools/readme-screenshots/fixture.json
            |                  /       |       \
   Qt Quick host +       frozen Date  fixture  local fetch
   suspend writer                         |
-           |            manually operated test app
+           |              Expo Go on an emulator
            |                        |
-           +-------- committed PNGs +
+           |              direct scoped adb commands
+           |                        |
+           +-------- validated PNGs +
 ```
 
 The fixture uses backend vocabulary. Client adapters only translate into their intentional storage
@@ -99,10 +101,10 @@ test or screenshot conditionals; the new files live under `src/testMode`.
    screens to render.
 
 The adapter writes to the real `habits.db` and SecureStore used by production code. Isolation comes
-from the test target's separate Expo project identity in Expo Go or native application identity in
-a standalone build, not alternate behavior in those modules. The adapter replaces global fetch with
-local pairing and device responses; unexpected requests return a clear failure without reaching a
-network. Expo Router remains the package entry point in both production and test mode.
+from the test target's separate Expo project identity in Expo Go, not alternate behavior in those
+modules. The adapter replaces global fetch with local pairing and device responses; unexpected
+requests return a clear failure without reaching a network. Expo Router remains the package entry
+point in both production and test mode.
 
 ### Frozen time
 
@@ -114,65 +116,57 @@ ordinary module graph.
 Overriding only `Date.now()` would be insufficient because `new Date()` reads the system clock
 independently.
 
-### Isolated targets
+### Isolated target
 
 `APP_TEST_MODE=1` changes identity only during Expo config resolution:
 
 - name: `Habit Tracker Test`;
 - Expo slug: `habit-tracker-test`, without the production EAS project ID;
-- package/bundle ID: `no.silli.habittracker.test`;
-- scheme: `habittracker-test`.
 
-The separate Expo slug gives Expo Go its own project storage scope. The package/bundle ID gives the
-optional standalone build its own native sandbox. The normal app retains its existing entry,
-provider, name, identifiers, database, SecureStore session, clock, and network behavior.
+The separate Expo slug gives Expo Go its own project storage scope. The normal app retains its
+existing entry, provider, name, identifiers, database, SecureStore session, clock, and network
+behavior.
 
 ```sh
-pnpm mobile:test:fixture
 pnpm mobile:test:go
 ```
 
 `mobile:test:go` starts Metro in Expo Go mode but does not start or select an emulator. The user opens
-the project in an SDK 56-compatible Expo Go client and handles all device interaction.
+the project in an SDK 56-compatible Expo Go client and handles all device interaction. It remains a
+manual diagnostic path; the capture workflow below starts its own test-mode Metro process.
 
-## Manual Android capture
+## Automated Android capture
 
-Open the test project in Expo Go and navigate Today, Month, Habits, Sync, Link device, and Devices
-normally. Type the fixture pairing code when capturing Link device. Use Android Studio's screenshot
-control to capture the current screen.
-
-If a standalone APK is specifically needed, build it without starting an emulator:
+The user runs one of these commands after installing Expo Go in the target AVD and opening it once to
+clear onboarding:
 
 ```sh
-pnpm mobile:test:build
+pnpm mobile:test:screenshots -- --avd Pixel_9a
+pnpm mobile:test:screenshots -- --serial emulator-5554
 ```
 
-Then start and authorize an existing emulator yourself. Installation requires its explicit serial:
+`--avd` starts the named AVD with the Android emulator CLI in headless, cold-boot mode. `--serial`
+selects a caller-started emulator and never stops it. Both paths reject physical, network, offline,
+missing, and non-QEMU targets. The script never creates, wipes, or builds an AVD or application.
 
-```sh
-pnpm mobile:test:install -- --serial emulator-5554
-```
+The wrapper then:
 
-The APK-only helper can save the currently visible screen with:
+1. verifies the committed generated fixture and the required Android/Expo tools;
+2. starts test-mode Metro on an available IPv4 loopback port and adds a scoped `adb reverse`;
+3. opens each Expo Router path with `adb shell am start` and an Expo Go `/--/` deep link;
+4. polls `uiautomator dump` for scenario-specific visible text;
+5. focuses and fills the pairing-code field with `adb shell input`;
+6. captures each settled view with `adb exec-out screencap -p`;
+7. validates PNG structure, CRCs, decoded pixels, portrait dimensions, and distinct content before
+   promoting any output.
 
-```sh
-pnpm mobile:test:capture -- --serial emulator-5554 --name devices
-```
+Today, Month, Habits, Sync, Devices, and pairing are always staged as one set. There is no Maestro,
+Java, Appium, xdotool, desktop interaction, or additional npm dependency.
 
-The helper selects only the destination name. It does not launch an emulator, deep-link, click,
-alter device settings, use desktop input automation, or decide that a screen is visually ready.
-
-Both install and capture:
-
-1. require a caller-supplied `--serial`;
-2. require an `emulator-*` serial in adb's `device` state;
-3. verify `ro.kernel.qemu=1`;
-4. scope every adb call with that serial;
-5. reject physical, network, offline, missing, and non-QEMU targets.
-
-No tool creates, deletes, starts, stops, or wipes an AVD. No tool contacts a reMarkable or cloud
-build service. Agents do not start Expo, build the APK, install it, or run an emulator without an
-explicit request for that specific operation.
+Cleanup is ownership-aware: Metro is always stopped because the wrapper started it; only a reverse
+rule added by the run is removed; only an AVD launched by the run is stopped. Failures preserve logs
+and staged screenshots for diagnosis. Agents verify the wrapper without starting Expo or an
+emulator; the user owns the native end-to-end run.
 
 ## Verification
 
@@ -183,13 +177,14 @@ explicit request for that specific operation.
 - Confirm all pre-existing files under `apps/mobile/src` match `main`; only additive `testMode`
   files may differ.
 - Verify Metro delegates normally without `APP_TEST_MODE` and selects the provider adapter with it.
-- When the user runs native validation, exercise the Expo Go project identity and, if needed, the
-  separate standalone application identity.
+- When the user runs native validation, exercise both a named AVD and an explicit existing serial.
+- Assert that every Android scenario has a direct route and stable readiness text.
+- Validate complete PNG structure and decoded pixels before promoting the six-file set.
 - Assert test time freezes both `new Date()` and `Date.now()` without changing explicit dates.
 - Confirm feature directories contain no test- or screenshot-specific imports or conditionals.
 - Inspect every committed image at GitHub-rendered size and full resolution.
 - Replace the AI mobile concept only after all six native screens have been manually reviewed.
 
-The workflow is complete when the test project can be opened in Expo Go, shows deterministic fixture
-data on every target screen without a backend, and lets a person capture the current screen without
-exposing normal app state or automating their desktop.
+The workflow is complete when one user-run command opens the test project in Expo Go, captures the
+six deterministic screens without a backend, validates the complete set, and preserves all
+pre-existing emulator processes and reverse rules.

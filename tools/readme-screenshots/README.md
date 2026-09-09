@@ -17,7 +17,7 @@ The normal pages come from the live `apps/remarkable/src/Main.qml` scene through
 Quick host. The suspend image still comes from the production suspend renderer; the tool only
 rotates its framebuffer-oriented result for readable README presentation.
 
-## Mobile test target and manual captures
+## Mobile captures through Expo Go
 
 Mobile's existing application source is unchanged. With `APP_TEST_MODE=1`, Metro replaces only the
 root layout's `AppProviders` import with a test adapter. Before that adapter loads the production
@@ -26,64 +26,61 @@ implementation. It then wraps the real provider, seeds SQLite and SecureStore af
 answers device and pairing reads locally, and rejects unexpected requests before they reach a
 network. Expo Router remains the package entry point in both modes.
 
-Agents leave native builds, emulator launches, installation, and other resource-heavy steps to the
-user unless the user explicitly requests that specific operation.
+The capture wrapper is a user-run tool. Agents do not start Expo or an emulator while developing or
+verifying it.
 
-### Expo Go (recommended)
+### Prerequisites
 
-Regenerate the fixture, then start the test project:
+- Run `pnpm install` at the repository root.
+- Install Android SDK Platform Tools and put `adb` on `PATH`, or set `ANDROID_HOME` or
+  `ANDROID_SDK_ROOT`.
+- For `--avd`, install the Android Emulator command-line tool and create a portrait AVD with an SDK
+  56-compatible Expo Go client. Open Expo Go once yourself to clear any onboarding prompt.
+- For `--serial`, start an existing local Android emulator and find its serial with `adb devices`.
 
-```sh
-pnpm mobile:test:fixture
-pnpm mobile:test:go
-```
+The tool does not build an app, install Expo Go, create or wipe an AVD, use a physical device, or
+contact a backend.
 
-Open the displayed project in an SDK 56-compatible Expo Go installation yourself. The command does
-not select or launch an emulator. Test mode uses the separate `habit-tracker-test` Expo project
-identity and omits the production EAS project ID, so its Expo Go SQLite and SecureStore data do not
-share the ordinary project's storage scope.
+### Capture all six screens
 
-Navigate Today, Month, Habits, Sync, Link device, and Devices normally. Type the fixture pairing code
-`H7K9Q2` when capturing Link device. Android Studio's screenshot button is the simplest capture
-mechanism. Stop the Expo development server when finished.
-
-### Optional standalone APK
-
-Use this route when Expo Go is unsuitable or a standalone application capture is specifically
-needed:
+Start a named AVD headlessly for this run:
 
 ```sh
-pnpm mobile:test:fixture
-pnpm mobile:test:build
+pnpm mobile:test:screenshots -- --avd Pixel_9a
 ```
 
-The build installs as `no.silli.habittracker.test` and uses the `habittracker-test` URL scheme. Its
-ordinary `habits.db` and SecureStore values live in that test application's native sandbox, so it
-can coexist with the normal app without sharing data.
-
-Start and authorize an existing emulator yourself, then install on its explicit serial:
+Or reuse a running emulator without stopping it afterward:
 
 ```sh
-pnpm mobile:test:install -- --serial emulator-5554
+pnpm mobile:test:screenshots -- --serial emulator-5554
 ```
 
-Navigate the app manually. The optional helper below is for the standalone APK only. It saves the
-currently visible portrait screen under the selected scenario name; it does not launch an emulator,
-navigate, click, alter settings, or automate the desktop.
+The command checks the generated fixture, starts test-mode Metro on an available IPv4 localhost
+port, adds an emulator-scoped `adb reverse`, and opens Expo Go with direct `adb` deep links. It waits
+for scenario-specific text in Android's UI hierarchy, enters `H7K9Q2` into the pairing screen with
+`adb input`, and captures Today, Month, Habits, Sync, Devices, and pairing with `adb screencap`.
+There is no desktop interaction layer, native build, Maestro, Appium, Java, or added npm dependency.
 
-```sh
-pnpm mobile:test:capture -- --serial emulator-5554 --name today
-pnpm mobile:test:capture -- --serial emulator-5554 --name devices
-```
+Every `adb` command is scoped to the selected `emulator-*` serial, which must also report
+`ro.kernel.qemu=1`. Physical, network, offline, missing, and non-QEMU targets are rejected. A named
+AVD is launched with `-no-window`, `-no-audio`, `-no-boot-anim`, and `-no-snapshot`; an existing
+serial is never stopped.
 
-Both helpers require an `emulator-*` serial and verify Android's QEMU property. They reject
-physical, network, offline, and ambiguous targets.
+All six PNGs remain in a temporary staging directory until they have valid PNG chunks and checksums,
+decodable nonblank pixels, matching portrait dimensions, and distinct content. Only then are they
+promoted to `docs/assets/screenshots/`. Metro, an `adb reverse` created by the run, and a named AVD
+started by the run are cleaned up. Pre-existing emulators and reverse rules are preserved. Failed
+runs preserve their Metro/emulator logs and staged files at the path printed in the error.
+
+Use `--port <port>` to require a particular Metro port, `--out-dir <path>` to capture elsewhere, or
+`--keep-temp` to preserve successful-run logs. `pnpm mobile:test:go` remains available for manually
+inspecting the isolated test project without running the capture wrapper.
 
 ## Changing the fixture or scenarios
 
 1. Edit `fixture.json` in backend vocabulary and add any scenario metadata to `scenarios.mjs`.
 2. Run `pnpm mobile:test:fixture` to refresh the generated mobile test data.
-3. Add reMarkable presentation state or a mobile output name to the scenario registry.
+3. Add reMarkable presentation state or Android route/readiness text to the scenario registry.
 4. Run `pnpm screenshots:fixtures:test`, the platform checks, and review new captures manually.
 
 Fixture validation rejects duplicate identities and positions, unknown polarity/outcome spellings,
