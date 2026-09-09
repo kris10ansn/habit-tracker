@@ -1,8 +1,9 @@
+import { ApiError } from "@/api/client";
 import { useDatabase } from "@/db/client";
 import { migrations } from "@/db/migrations";
+import { authSessionKey } from "@/state/queries/keys";
 import { colors } from "@/theme/colors";
 
-import { invalidateSessionOnUnauthorized } from "@/state/queries";
 import {
     MutationCache,
     QueryCache,
@@ -22,19 +23,18 @@ import { KeyboardProvider } from "react-native-keyboard-controller";
 
 import { appRuntime } from "@/runtime";
 
-// A function declaration, not an arrow: it is referenced by the caches below, which are built
-// before `queryClient` exists. Hoisting makes that legal, and it only ever reads `queryClient` at
-// call time, long after construction.
 function handleAuthError(error: unknown) {
-    invalidateSessionOnUnauthorized(queryClient, error);
+    if (error instanceof ApiError && error.status === 401) {
+        queryClient.invalidateQueries({ queryKey: authSessionKey });
+    }
 }
 
 // Local SQLite is the source of truth, so data only changes through our own mutations (which
 // invalidate) — queries never need to refetch on their own. Visited months linger for 30 min.
 //
-// The cache-level `onError`s are the single place a rejected bearer token is reacted to: see
-// invalidateSessionOnUnauthorized. Wiring it here rather than per-hook is what stops a new query
-// from silently leaving the UI claiming "signed in" against a token the transport already dropped.
+// The cache-level `onError`s are the single place a rejected bearer token is reacted to. Wiring it
+// here rather than per-hook is what stops a new query from silently leaving the UI claiming
+// "signed in" against a token the transport already dropped.
 const queryClient = new QueryClient({
     defaultOptions: {
         queries: { staleTime: Infinity, gcTime: 1000 * 60 * 30, retry: false },

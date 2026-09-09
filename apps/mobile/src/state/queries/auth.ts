@@ -1,11 +1,5 @@
-import {
-    useMutation,
-    useQuery,
-    useQueryClient,
-    type QueryClient,
-} from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { ApiError } from "@/api/client";
 import {
     deleteApiSessionsId,
     getApiPairingCode,
@@ -139,32 +133,6 @@ export function useLogout() {
             queryClient.invalidateQueries({ queryKey: linkedSessionsKey });
         },
     });
-}
-
-/** True when `error` is the backend rejecting a bearer token. */
-function isUnauthorized(error: unknown): boolean {
-    return error instanceof ApiError && error.status === 401;
-}
-
-/**
- * The single reaction to the backend rejecting a bearer token. By the time this runs, `client.ts`
- * has already discarded the dead token from SecureStore (see its 401 handling), so all that's left
- * is letting `useAuthSession()` re-read the now-missing session and the UI settle on signed-out —
- * nothing else is touched, least of all SQLite.
- *
- * Wired once onto the QueryClient's query and mutation caches in `AppProviders`, so no individual
- * query or mutation has to remember it — forgetting it used to mean the UI kept claiming "signed
- * in" against a token the transport had already thrown away. It also fires for the 401 a
- * wrong-password login returns, which is a harmless no-op: that request carried no token, so there
- * is no session to re-read.
- */
-export function invalidateSessionOnUnauthorized(
-    queryClient: QueryClient,
-    error: unknown,
-): void {
-    if (isUnauthorized(error)) {
-        queryClient.invalidateQueries({ queryKey: authSessionKey });
-    }
 }
 
 /** The linked-devices list (GET /api/sessions) — every device holding a session for this account. */
