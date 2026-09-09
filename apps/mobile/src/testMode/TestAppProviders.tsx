@@ -1,3 +1,5 @@
+import "./installGlobals";
+
 import { useSQLiteContext, type SQLiteDatabase } from "expo-sqlite";
 import { useEffect, useState, type ReactNode } from "react";
 

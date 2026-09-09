@@ -4,5 +4,3 @@ const { installFrozenDate } = require("./freezeDate");
 
 installFrozenDate(testFixture.now);
 globalThis.fetch = testFetch;
-
-require("expo-router/entry");

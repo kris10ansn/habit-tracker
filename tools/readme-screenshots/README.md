@@ -19,17 +19,38 @@ rotates its framebuffer-oriented result for readable README presentation.
 
 ## Mobile test target and manual captures
 
-Mobile's existing application source is unchanged. The isolated build selects a test-only entry
-with `ENTRY_FILE`; that entry freezes implicit `Date` construction and `Date.now()`, replaces the
-global fetch implementation, then starts Expo Router normally. For this build only, Metro replaces
-the root layout's `AppProviders` import with a test adapter. The adapter wraps the real production
-provider, seeds SQLite and SecureStore after migrations, answers device and pairing reads locally,
-and rejects unexpected requests before they reach a network.
+Mobile's existing application source is unchanged. With `APP_TEST_MODE=1`, Metro replaces only the
+root layout's `AppProviders` import with a test adapter. Before that adapter loads the production
+provider, it freezes implicit `Date` construction and `Date.now()` and replaces the global fetch
+implementation. It then wraps the real provider, seeds SQLite and SecureStore after migrations,
+answers device and pairing reads locally, and rejects unexpected requests before they reach a
+network. Expo Router remains the package entry point in both modes.
 
 Agents leave native builds, emulator launches, installation, and other resource-heavy steps to the
 user unless the user explicitly requests that specific operation.
 
-Build the test APK without starting an emulator:
+### Expo Go (recommended)
+
+Regenerate the fixture, then start the test project:
+
+```sh
+pnpm mobile:test:fixture
+pnpm mobile:test:go
+```
+
+Open the displayed project in an SDK 56-compatible Expo Go installation yourself. The command does
+not select or launch an emulator. Test mode uses the separate `habit-tracker-test` Expo project
+identity and omits the production EAS project ID, so its Expo Go SQLite and SecureStore data do not
+share the ordinary project's storage scope.
+
+Navigate Today, Month, Habits, Sync, Link device, and Devices normally. Type the fixture pairing code
+`H7K9Q2` when capturing Link device. Android Studio's screenshot button is the simplest capture
+mechanism. Stop the Expo development server when finished.
+
+### Optional standalone APK
+
+Use this route when Expo Go is unsuitable or a standalone application capture is specifically
+needed:
 
 ```sh
 pnpm mobile:test:fixture
@@ -46,10 +67,9 @@ Start and authorize an existing emulator yourself, then install on its explicit 
 pnpm mobile:test:install -- --serial emulator-5554
 ```
 
-Navigate the app manually. Android Studio's screenshot button is the simplest capture mechanism.
-The optional helper below only saves the currently visible portrait screen under the selected
-scenario name; it does not launch an emulator, navigate, click, alter settings, or automate the
-desktop.
+Navigate the app manually. The optional helper below is for the standalone APK only. It saves the
+currently visible portrait screen under the selected scenario name; it does not launch an emulator,
+navigate, click, alter settings, or automate the desktop.
 
 ```sh
 pnpm mobile:test:capture -- --serial emulator-5554 --name today

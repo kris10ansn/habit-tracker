@@ -122,58 +122,71 @@ test("test app identity leaves ordinary Expo config unchanged", async () => {
             "utf8",
         ),
     ).expo;
-    const previous = process.env.APP_TEST_BUILD;
+    const previous = process.env.APP_TEST_MODE;
 
     try {
-        delete process.env.APP_TEST_BUILD;
+        delete process.env.APP_TEST_MODE;
         assert.deepEqual(appConfig({ config: appJson }), appJson);
 
-        process.env.APP_TEST_BUILD = "1";
+        process.env.APP_TEST_MODE = "1";
         const testConfig = appConfig({ config: appJson });
         assert.equal(testConfig.name, "Habit Tracker Test");
+        assert.equal(testConfig.slug, "habit-tracker-test");
         assert.equal(testConfig.scheme, "habittracker-test");
         assert.equal(testConfig.android.package, "no.silli.habittracker.test");
         assert.equal(
             testConfig.ios.bundleIdentifier,
             "no.silli.habittracker.test",
         );
+        assert.equal("eas" in testConfig.extra, false);
+        assert.deepEqual(testConfig.extra.router, {});
     } finally {
-        if (previous === undefined) delete process.env.APP_TEST_BUILD;
-        else process.env.APP_TEST_BUILD = previous;
+        if (previous === undefined) delete process.env.APP_TEST_MODE;
+        else process.env.APP_TEST_MODE = previous;
     }
 });
 
-test("test target leaves the normal entry and resolver unchanged", async () => {
+test("test mode leaves the normal entry and resolver unchanged", async () => {
     const mobilePackage = JSON.parse(
         await readFile(
             new URL("../../../apps/mobile/package.json", import.meta.url),
             "utf8",
         ),
     );
-    const previous = process.env.APP_TEST_BUILD;
+    const testProviders = await readFile(
+        new URL(
+            "../../../apps/mobile/src/testMode/TestAppProviders.tsx",
+            import.meta.url,
+        ),
+        "utf8",
+    );
+    const previous = process.env.APP_TEST_MODE;
     const config = { resolver: {} };
 
     try {
-        delete process.env.APP_TEST_BUILD;
+        delete process.env.APP_TEST_MODE;
         assert.equal(mobilePackage.main, "expo-router/entry");
-        assert.match(
-            mobilePackage.scripts["test:build"],
-            /ENTRY_FILE=src\/testMode\/entry\.js/,
+        assert.equal(
+            mobilePackage.scripts["test:go"],
+            "APP_TEST_MODE=1 expo start --go",
         );
+        assert.match(mobilePackage.scripts["test:build"], /APP_TEST_MODE=1/);
+        assert.doesNotMatch(mobilePackage.scripts["test:build"], /ENTRY_FILE/);
         assert.doesNotMatch(
             mobilePackage.scripts["test:build"],
             /EXPO_PUBLIC_APP_MODE/,
         );
+        assert.match(testProviders, /^import "\.\/installGlobals";/);
         assert.equal(withTestTarget(config, "/mobile"), config);
         assert.equal(config.resolver.resolveRequest, undefined);
     } finally {
-        if (previous === undefined) delete process.env.APP_TEST_BUILD;
-        else process.env.APP_TEST_BUILD = previous;
+        if (previous === undefined) delete process.env.APP_TEST_MODE;
+        else process.env.APP_TEST_MODE = previous;
     }
 });
 
 test("test target substitutes only the root provider import", () => {
-    const previous = process.env.APP_TEST_BUILD;
+    const previous = process.env.APP_TEST_MODE;
     const delegated = { type: "sourceFile", filePath: "/default.ts" };
     const context = {
         resolveRequest() {
@@ -182,7 +195,7 @@ test("test target substitutes only the root provider import", () => {
     };
 
     try {
-        process.env.APP_TEST_BUILD = "1";
+        process.env.APP_TEST_MODE = "1";
         const config = withTestTarget({ resolver: {} }, "/mobile");
 
         assert.deepEqual(
@@ -208,8 +221,8 @@ test("test target substitutes only the root provider import", () => {
             delegated,
         );
     } finally {
-        if (previous === undefined) delete process.env.APP_TEST_BUILD;
-        else process.env.APP_TEST_BUILD = previous;
+        if (previous === undefined) delete process.env.APP_TEST_MODE;
+        else process.env.APP_TEST_MODE = previous;
     }
 });
 

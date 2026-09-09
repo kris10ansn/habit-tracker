@@ -4,8 +4,8 @@
 
 The shared fixture, reMarkable offscreen host, suspend-renderer integration, and real reMarkable
 image set are implemented. Mobile now uses an additive test target and a manual capture workflow.
-The Android test APK must still be installed and visually reviewed on an already-authorized
-emulator before its images replace the clearly labeled AI-generated mobile concept.
+The Expo Go test project must still be opened and visually reviewed by the user before its images
+replace the clearly labeled AI-generated mobile concept.
 
 ## Goal
 
@@ -37,7 +37,7 @@ tools/readme-screenshots/fixture.json
              /          \
   reMarkable adapter    generated mobile test data
            |                        |
- temporary JSON files       test-only entry + provider
+ temporary JSON files        test-only provider
            |                  /       |       \
   Qt Quick host +       frozen Date  fixture  local fetch
   suspend writer                         |
@@ -91,57 +91,69 @@ Every pre-existing production file under `apps/mobile/src` matches `main`. Scree
 functions, query hooks, transport, authentication, database setup, and formatting code contain no
 test or screenshot conditionals; the new files live under `src/testMode`.
 
-`APP_TEST_BUILD=1` introduces two build-time substitutions outside that code:
+`APP_TEST_MODE=1` introduces one test-time substitution outside that code:
 
-1. `ENTRY_FILE=src/testMode/entry.js` selects a test-only entry instead of changing the package's
-   normal `expo-router/entry`.
-2. Metro resolves the root layout's `@/components/AppProviders` import to a test adapter. That
-   adapter wraps the real provider, waits for its normal migrations, then seeds the fixture before
-   allowing screens to render.
+1. Metro resolves the root layout's `@/components/AppProviders` import to a test adapter. Before
+   loading the production provider, that adapter installs the frozen clock and local fetch. It then
+   wraps the real provider, waits for its normal migrations, and seeds the fixture before allowing
+   screens to render.
 
 The adapter writes to the real `habits.db` and SecureStore used by production code. Isolation comes
-from the test target's separate native application identity and sandbox, not alternate behavior in
-those modules. The test entry replaces global fetch with local pairing and device responses;
-unexpected requests return a clear failure without reaching a network.
+from the test target's separate Expo project identity in Expo Go or native application identity in
+a standalone build, not alternate behavior in those modules. The adapter replaces global fetch with
+local pairing and device responses; unexpected requests return a clear failure without reaching a
+network. Expo Router remains the package entry point in both production and test mode.
 
 ### Frozen time
 
-The build-only entry installs a test `Date` replacement before importing `expo-router/entry`. It
-freezes both implicit construction and `Date.now()` while preserving explicitly constructed dates,
-`Date.parse`, `Date.UTC`, and real timers. Production continues to load Expo Router directly.
+The provider adapter installs a test `Date` replacement before loading any production provider
+modules. It freezes both implicit construction and `Date.now()` while preserving explicitly
+constructed dates, `Date.parse`, `Date.UTC`, and real timers. The adapter does not exist in the
+ordinary module graph.
 
 Overriding only `Date.now()` would be insufficient because `new Date()` reads the system clock
 independently.
 
-### Isolated build
+### Isolated targets
 
-`APP_TEST_BUILD=1` changes native identity only during Expo config resolution:
+`APP_TEST_MODE=1` changes identity only during Expo config resolution:
 
 - name: `Habit Tracker Test`;
+- Expo slug: `habit-tracker-test`, without the production EAS project ID;
 - package/bundle ID: `no.silli.habittracker.test`;
 - scheme: `habittracker-test`.
 
-The normal app retains its existing entry, provider, name, identifiers, database, SecureStore
-session, clock, and network behavior.
+The separate Expo slug gives Expo Go its own project storage scope. The package/bundle ID gives the
+optional standalone build its own native sandbox. The normal app retains its existing entry,
+provider, name, identifiers, database, SecureStore session, clock, and network behavior.
 
 ```sh
 pnpm mobile:test:fixture
-pnpm mobile:test:build
+pnpm mobile:test:go
 ```
 
-Building produces a local x86_64 release APK. It does not start or select an emulator.
+`mobile:test:go` starts Metro in Expo Go mode but does not start or select an emulator. The user opens
+the project in an SDK 56-compatible Expo Go client and handles all device interaction.
 
 ## Manual Android capture
 
-Start and authorize an existing emulator yourself. Installation requires its explicit serial:
+Open the test project in Expo Go and navigate Today, Month, Habits, Sync, Link device, and Devices
+normally. Type the fixture pairing code when capturing Link device. Use Android Studio's screenshot
+control to capture the current screen.
+
+If a standalone APK is specifically needed, build it without starting an emulator:
+
+```sh
+pnpm mobile:test:build
+```
+
+Then start and authorize an existing emulator yourself. Installation requires its explicit serial:
 
 ```sh
 pnpm mobile:test:install -- --serial emulator-5554
 ```
 
-Navigate Today, Month, Habits, Sync, Link device, and Devices normally. Type the fixture pairing code
-when capturing Link device. Use Android Studio's screenshot control, or save only the currently
-visible screen with:
+The APK-only helper can save the currently visible screen with:
 
 ```sh
 pnpm mobile:test:capture -- --serial emulator-5554 --name devices
@@ -159,23 +171,25 @@ Both install and capture:
 5. reject physical, network, offline, missing, and non-QEMU targets.
 
 No tool creates, deletes, starts, stops, or wipes an AVD. No tool contacts a reMarkable or cloud
-build service.
+build service. Agents do not start Expo, build the APK, install it, or run an emulator without an
+explicit request for that specific operation.
 
 ## Verification
 
 - Run `pnpm screenshots:fixtures:test` and verify the generated mobile test data is current.
 - Run `pnpm remarkable:test` and the suspend-writer smoke test.
 - Run mobile typechecking and linting.
-- Verify normal and test Expo config resolve to their respective identities.
+- Verify normal and test Expo config resolve to their respective Expo and native identities.
 - Confirm all pre-existing files under `apps/mobile/src` match `main`; only additive `testMode`
   files may differ.
-- Verify Metro delegates normally without `APP_TEST_BUILD` and selects the provider adapter with it.
-- When the user runs native validation, exercise the test entry and separate application identity.
+- Verify Metro delegates normally without `APP_TEST_MODE` and selects the provider adapter with it.
+- When the user runs native validation, exercise the Expo Go project identity and, if needed, the
+  separate standalone application identity.
 - Assert test time freezes both `new Date()` and `Date.now()` without changing explicit dates.
 - Confirm feature directories contain no test- or screenshot-specific imports or conditionals.
 - Inspect every committed image at GitHub-rendered size and full resolution.
 - Replace the AI mobile concept only after all six native screens have been manually reviewed.
 
-The workflow is complete when the test app can be installed on an already-authorized emulator,
-shows deterministic fixture data on every target screen without a backend, and lets a person capture
-the current screen without exposing normal app state or automating their desktop.
+The workflow is complete when the test project can be opened in Expo Go, shows deterministic fixture
+data on every target screen without a backend, and lets a person capture the current screen without
+exposing normal app state or automating their desktop.

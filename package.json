@@ -33,6 +33,7 @@
         "screenshots:fixtures:test": "node --test tools/readme-screenshots/test/*.test.mjs && node tools/readme-screenshots/generate-mobile-test-fixture.mjs --check",
         "screenshots:remarkable": "node tools/readme-screenshots/capture-remarkable.mjs",
         "mobile:test:fixture": "node tools/readme-screenshots/generate-mobile-test-fixture.mjs",
+        "mobile:test:go": "pnpm --filter @habit-tracker/mobile run test:go",
         "mobile:test:build": "pnpm --filter @habit-tracker/mobile run test:build",
         "mobile:test:install": "node tools/readme-screenshots/install-mobile-test.mjs",
         "mobile:test:capture": "node tools/readme-screenshots/capture-mobile-test.mjs"
