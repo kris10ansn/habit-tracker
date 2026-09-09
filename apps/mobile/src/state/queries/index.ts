@@ -3,7 +3,6 @@
 // state, and optimistic mutations. `useSync` (below) is where the backend round-trip slots in.
 // Split per entity; this index is the public surface (streaksKey stays internal).
 export {
-    invalidateSessionOnUnauthorized,
     useAuthSession,
     useLogin,
     useLogout,
