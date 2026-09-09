@@ -23,6 +23,7 @@ import {
     discoverExpoGoUrl,
     EXPO_GO_APP_ID,
     expoGoRouteUrl,
+    metroEnvironment,
     pngDimensions,
 } from "./lib/expo-go.mjs";
 import { loadFixture } from "./lib/fixture.mjs";
@@ -342,10 +343,7 @@ async function startMetro(port, logPath) {
         ],
         {
             cwd: repositoryRoot,
-            env: {
-                ...process.env,
-                CI: "1",
-            },
+            env: metroEnvironment(process.env),
         },
         logPath,
     );

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { createRequire } from "node:module";
 import { mkdtemp, readFile } from "node:fs/promises";
 import os from "node:os";
@@ -16,6 +17,7 @@ import {
     chooseEmulatorPort,
     discoverExpoGoUrl,
     expoGoRouteUrl,
+    metroEnvironment,
 } from "../lib/expo-go.mjs";
 import { scenarios, selectScenarios } from "../scenarios.mjs";
 import { parseAdbDevices, validateEmulatorTarget } from "../lib/adb.mjs";
@@ -162,6 +164,38 @@ test("Expo Go discovery requests the Android Expo runtime", async () => {
     assert.equal(requestedUrl.pathname, "/_expo/open");
     assert.equal(requestedUrl.searchParams.get("platform"), "android");
     assert.equal(requestedUrl.searchParams.get("runtime"), "expo");
+});
+
+test("Metro localhost is reachable through the IPv4 adb reverse", () => {
+    const probe = spawnSync(
+        process.execPath,
+        [
+            "-e",
+            `const http = require("node:http");
+const server = http.createServer((_request, response) => response.end("ok"));
+server.listen(0, "localhost", async () => {
+    const address = server.address();
+    try {
+        const response = await fetch("http://127.0.0.1:" + address.port);
+        if (!response.ok) throw new Error("HTTP " + response.status);
+        console.log(address.address);
+    } catch (error) {
+        console.error(error.cause?.code ?? error.message);
+        process.exitCode = 1;
+    } finally {
+        server.close();
+    }
+});`,
+        ],
+        {
+            encoding: "utf8",
+            env: metroEnvironment(process.env),
+            timeout: 5_000,
+        },
+    );
+
+    assert.equal(probe.status, 0, probe.stderr);
+    assert.equal(probe.stdout.trim(), "127.0.0.1");
 });
 
 test("AVD and emulator-port selection stay explicit", () => {

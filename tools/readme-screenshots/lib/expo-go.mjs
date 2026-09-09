@@ -1,5 +1,20 @@
 export const EXPO_GO_APP_ID = "host.exp.exponent";
 
+export function metroEnvironment(baseEnvironment) {
+    // Expo's localhost server binds Node's first DNS result, while adb reverse and the Expo Go URL
+    // use 127.0.0.1. Linux commonly resolves ::1 first, which makes the IPv4 route unreachable.
+    const ipv4First = "--dns-result-order=ipv4first";
+    const existingNodeOptions = baseEnvironment.NODE_OPTIONS?.trim();
+
+    return {
+        ...baseEnvironment,
+        CI: "1",
+        NODE_OPTIONS: existingNodeOptions
+            ? `${existingNodeOptions} ${ipv4First}`
+            : ipv4First,
+    };
+}
+
 export function expoGoRouteUrl(projectUrl, route) {
     const url = new URL(projectUrl);
     if (url.protocol !== "exp:" && url.protocol !== "exps:") {
