@@ -46,6 +46,12 @@ TestCase {
         verify(_rows(first) !== _rows(different));
     }
 
+    function test_acceptsTheFullVersionTwoAlphanumericCapacity() {
+        const modules = QrCode.encodeAlphanumeric("A".repeat(38));
+
+        compare(modules.length, 25);
+    }
+
     function test_rejectsUnsupportedOrOversizedText() {
         _verifyThrows(() => QrCode.encodeAlphanumeric(""));
         _verifyThrows(() => QrCode.encodeAlphanumeric("lowercase"));

@@ -42,6 +42,8 @@
         <file>src/js/ServerUrl.js</file>
         <file>src/js/Pairing.js</file>
         <file>src/js/QrCode.js</file>
+        <file>src/js/vendor/qrcode-generator.js</file>
+        <file>src/js/vendor/qrcode-generator.LICENSE</file>
         <file>src/js/Scroll.js</file>
     </qresource>
 </RCC>
