@@ -236,24 +236,11 @@ public class SyncService
         // happened to return.
         var habitEntities = await _db
             .Habits.Where(h => h.UserId == _currentUser.UserId && h.DeletedAt == null)
-            .OrderBy(h => h.Position)
-            .ThenBy(h => h.CreatedAt)
-            .ThenBy(h => h.Id)
+            .InRosterOrder()
             .ToListAsync(cancellationToken);
 
         // Alive rows only, so every DeletedAt below is null — a delete reaches the client as absence.
-        var habits = habitEntities
-            .Select(h => new HabitDto(
-                h.Id,
-                h.Name,
-                h.Polarity,
-                h.Position,
-                h.IsPrivate,
-                ToUnixMs(h.CreatedAt),
-                ToUnixMs(h.EditedAt),
-                null
-            ))
-            .ToList();
+        var habits = habitEntities.Select(habit => habit.ToAliveDto()).ToList();
 
         var responseMonths = new List<SyncMonth>();
         foreach (var month in months)
@@ -270,9 +257,7 @@ public class SyncService
                 )
                 .ToListAsync(cancellationToken);
 
-            var entries = entryEntities
-                .Select(e => new EntryDto(e.HabitId, e.Date, e.Outcome, ToUnixMs(e.EditedAt), null))
-                .ToList();
+            var entries = entryEntities.Select(entry => entry.ToAliveDto()).ToList();
 
             responseMonths.Add(new SyncMonth(month.Month, entries));
         }
@@ -319,5 +304,4 @@ public class SyncService
     private static DateTimeOffset? FromUnixMsOrNull(long? ms) =>
         ms is null ? null : FromUnixMs(ms.Value);
 
-    private static long ToUnixMs(DateTimeOffset value) => value.ToUnixTimeMilliseconds();
 }

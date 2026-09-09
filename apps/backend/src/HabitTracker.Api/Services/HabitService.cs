@@ -25,14 +25,12 @@ public class HabitService
     )
     {
         // Materialize before projecting: the epoch-ms conversion has no SQL translation. The
-        // tie-break matches Sync's, so both surfaces agree on roster order (see SyncService).
+        // shared read model keeps REST and Sync in the same deterministic roster order.
         var habits = await OwnedHabits()
-            .OrderBy(h => h.Position)
-            .ThenBy(h => h.CreatedAt)
-            .ThenBy(h => h.Id)
+            .InRosterOrder()
             .ToListAsync(cancellationToken);
 
-        return habits.Select(ToDto).ToList();
+        return habits.Select(h => h.ToAliveDto()).ToList();
     }
 
     public async Task<HabitDto?> GetHabitAsync(
@@ -41,7 +39,7 @@ public class HabitService
     )
     {
         var habit = await FindOwnedAsync(id, cancellationToken);
-        return habit is null ? null : ToDto(habit);
+        return habit is null ? null : habit.ToAliveDto();
     }
 
     public async Task<HabitDto> CreateHabitAsync(
@@ -66,7 +64,7 @@ public class HabitService
         _db.Habits.Add(habit);
         await _db.SaveChangesAsync(cancellationToken);
 
-        return ToDto(habit);
+        return habit.ToAliveDto();
     }
 
     public async Task<HabitDto?> UpdateHabitAsync(
@@ -87,7 +85,7 @@ public class HabitService
         habit.EditedAt = DateTimeOffset.UtcNow;
         await _db.SaveChangesAsync(cancellationToken);
 
-        return ToDto(habit);
+        return habit.ToAliveDto();
     }
 
     public async Task<bool> DeleteHabitAsync(
@@ -129,7 +127,7 @@ public class HabitService
             .OrderBy(e => e.Date)
             .ToListAsync(cancellationToken);
 
-        return entries.Select(ToDto).ToList();
+        return entries.Select(entry => entry.ToAliveDto()).ToList();
     }
 
     private IQueryable<Habit> OwnedHabits() =>
@@ -138,21 +136,4 @@ public class HabitService
     private Task<Habit?> FindOwnedAsync(Guid id, CancellationToken cancellationToken) =>
         OwnedHabits().FirstOrDefaultAsync(h => h.Id == id, cancellationToken);
 
-    // These endpoints serve alive rows only, so DeletedAt is null on everything they project.
-    private static HabitDto ToDto(Habit habit) =>
-        new(
-            habit.Id,
-            habit.Name,
-            habit.Polarity,
-            habit.Position,
-            habit.IsPrivate,
-            ToUnixMs(habit.CreatedAt),
-            ToUnixMs(habit.EditedAt),
-            null
-        );
-
-    private static EntryDto ToDto(Entry entry) =>
-        new(entry.HabitId, entry.Date, entry.Outcome, ToUnixMs(entry.EditedAt), null);
-
-    private static long ToUnixMs(DateTimeOffset value) => value.ToUnixTimeMilliseconds();
 }
