@@ -24,8 +24,9 @@ It renders the Habit × Entry model in the backend's shape over a mobile-native,
 Drizzle) read through TanStack Query, so marking a day, renaming a habit, flipping its polarity,
 reordering the roster, and adding or deleting habits all persist across restarts. The Sync screen
 stores a **Server URL** (blank = standalone) and offers a manual **Sync now**; the Month screen also
-background-syncs whichever month is being viewed. A fresh install starts empty and fills in from its
-first sync. The backend at [`apps/backend/`](../backend/) owns the merge (last-write-wins on
+passes whichever month is being viewed when you pull to refresh, while Today and Habits can also be
+refreshed to sync. A fresh install starts empty and fills in from its first sync. The backend at
+[`apps/backend/`](../backend/) owns the merge (last-write-wins on
 `editedAt`) — this client submits its state and accepts the result rather than resolving conflicts
 itself.
 

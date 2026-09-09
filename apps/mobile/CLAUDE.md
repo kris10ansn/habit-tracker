@@ -5,13 +5,17 @@
 The `apps/mobile/` client of the habit-tracker monorepo: Expo (SDK 56) + expo-router + TypeScript,
 styled with NativeWind (Tailwind for React Native).
 
-## Hard rule: never run the app on web
+## Hard rule: native-only execution
 
 Never run `expo start --web` (or any command that serves the app to a browser) — the web target
 was deliberately removed from `package.json` and `app.json`; do not add it back or bypass it with
-`pnpm exec expo start --web`. This app is native-only: verify with `pnpm typecheck` / `pnpm lint`,
-and leave running the app on a device or emulator to the user — describe what to check and wait
-for their report.
+`pnpm exec expo start --web`. This app is native-only: verify ordinary changes with
+`pnpm typecheck` / `pnpm lint` and leave interactive device checks to the user.
+
+An agent may launch a local Android emulator only when the user explicitly asks it to run or
+capture the mobile UI, including through the documented README-screenshot workflow. Resolve the
+`adb` target first and proceed only when it is an emulator; physical devices and cloud builds stay
+user-run unless the user explicitly requests them.
 
 ## Hard rule: the backend is mobile's only reference
 
@@ -41,8 +45,8 @@ Query** hooks (`src/state/queries/`) over a thin repo (`src/db/repo/`). Tapping 
 Today or Month cycles its state; the Habits tab renames, flips polarity, and drag-to-reorders (drag
 a row by its handle — the generic `components/ui/SortableList` with an inline `HabitRow` in
 `app/habits.tsx`). The Sync tab persists a **Server URL** setting (empty = standalone) and offers a
-manual **Sync now**; the Month screen also background-syncs whichever month is being viewed
-whenever a Server URL is set.
+manual **Sync now**. Today, Month, and Habits also sync on pull-to-refresh; Month includes whichever
+month is being viewed.
 
 Sync itself is one round trip: `useSync` (`src/state/queries/sync.ts`) gathers local state — the
 months with entries edited since `lastSyncedAt` plus the month currently in view — via
