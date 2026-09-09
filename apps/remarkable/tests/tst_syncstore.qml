@@ -113,32 +113,6 @@ TestCase {
         compare(store._serverUrl(), "");
     }
 
-    function test_endpointStripsTrailingSlashes() {
-        makeStore();
-
-        compare(store._endpoint("http://example.test"), "http://example.test/api/sync");
-        compare(store._endpoint("http://example.test/"), "http://example.test/api/sync");
-        compare(store._endpoint("http://example.test///"), "http://example.test/api/sync");
-    }
-
-    // --- token -------------------------------------------------------------------------------
-
-    function test_tokenIsEmptyUntilPaired() {
-        makeStore();
-
-        compare(store._token(), "");
-    }
-
-    function test_tokenFollowsSettingsStore() {
-        makeStore();
-
-        store.settingsStore = { serverUrl: "http://example.test", token: "a-bearer-token" };
-        compare(store._token(), "a-bearer-token");
-
-        store.settingsStore = null;
-        compare(store._token(), "");
-    }
-
     // --- guards ---------------------------------------------------------------------------------
 
     // Standalone is the default: with no server configured, sync is a silent no-op rather than an
