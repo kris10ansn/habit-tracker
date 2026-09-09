@@ -223,6 +223,7 @@ export function usePairingLookup(code: string) {
 }
 
 export function usePairingApprove() {
+    const queryClient = useQueryClient();
     const baseURL = useBaseUrl();
 
     return useMutation({
@@ -233,6 +234,9 @@ export function usePairingApprove() {
                 { code: code.trim().toUpperCase() },
                 { baseURL },
             );
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: linkedSessionsKey });
         },
     });
 }
