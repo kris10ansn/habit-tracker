@@ -4,7 +4,7 @@ import { Pressable, Text, View } from "react-native";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { TextInputField, TextInputLabel } from "@/components/ui/TextField";
-import { authErrorReason, useLogin, useSignup } from "@/state/queries";
+import { useLogin, useSignup } from "@/state/queries";
 import { twMerge } from "tailwind-merge";
 
 // The password rule the backend enforces (min length, no composition rules) — mirrored here only
@@ -116,7 +116,7 @@ export function AuthForms() {
 
             {pending.isError ? (
                 <Text className="text-[13px] text-slip">
-                    {authErrorReason(pending.error)}
+                    {pending.error.message}
                 </Text>
             ) : null}
 

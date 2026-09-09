@@ -113,8 +113,10 @@ since it crosses month partitions.
   `client.ts` is the **only** hand-written file here — the fetch transport, which takes `baseURL`
   per call (no module-level state to go stale against the editable Server URL setting) and throws
   `ApiError` (non-2xx; its message comes from the backend's `ProblemDetails.title`, with a status
-  fallback, while `body` retains the response for diagnostics) or `NetworkError`. Server rejection
-  copy belongs to the backend; mobile owns only client-side failures and presentation around it.
+  fallback, while `body` retains the response for diagnostics) or `NetworkError` (a user-safe
+  message, with its URL and cause retained separately). Error messages are display-ready at this
+  seam, so screens render `error.message` directly: server rejection copy belongs to the backend,
+  while mobile owns client-side failure copy.
 - `src/theme/colors.ts` — raw palette for non-className APIs. `src/lib/` — `cn.ts` (classname joiner
   for conditional classes) and `useUpdateEffect.ts` (effect that skips the first run, used to
   re-seed local form state from a query without clobbering typing).

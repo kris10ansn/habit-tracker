@@ -9,12 +9,7 @@ import { IconButton } from "@/components/ui/IconButton";
 import { Loading } from "@/components/ui/Loading";
 import { Pill } from "@/components/ui/Pill";
 import { relativeTime } from "@/lib/relativeTime";
-import {
-    authErrorReason,
-    useAuthSession,
-    useRevokeSession,
-    useSessions,
-} from "@/state/queries";
+import { useAuthSession, useRevokeSession, useSessions } from "@/state/queries";
 
 // Pushed from the Sync tab's Account card. Not a tab itself — see _layout.tsx, where it's
 // registered with `href: null` so it's reachable via router.push without showing in the tab bar.
@@ -60,7 +55,7 @@ export default function DevicesScreen() {
                     ) : sessions.isError ? (
                         <Card>
                             <Text className="text-[13px] text-slip">
-                                {authErrorReason(sessions.error)}
+                                {sessions.error.message}
                             </Text>
                         </Card>
                     ) : (
