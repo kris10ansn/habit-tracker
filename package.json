@@ -29,7 +29,8 @@
         "backend:migrate": "pnpm --filter @habit-tracker/backend run migrate",
         "backend:db:up": "pnpm --filter @habit-tracker/backend run db:up",
         "backend:db:down": "pnpm --filter @habit-tracker/backend run db:down",
-        "backend:db:clear": "pnpm --filter @habit-tracker/backend run db:clear"
+        "backend:db:clear": "pnpm --filter @habit-tracker/backend run db:clear",
+        "screenshots:fixtures:test": "node --test tools/readme-screenshots/test/*.test.mjs"
     },
     "devDependencies": {
         "prettier": "^3.8.3"
