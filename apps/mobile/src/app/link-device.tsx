@@ -2,6 +2,13 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Text, View } from "react-native";
 
+import {
+    isCompletePairingCode,
+    normalizePairingCode,
+    PAIRING_CODE_LENGTH,
+} from "@/auth/pairingCode";
+import { PairingScanner } from "@/components/account/PairingScanner";
+import { usePairingScanner } from "@/components/account/usePairingScanner";
 import { AppScreen } from "@/components/ui/AppScreen";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -9,21 +16,26 @@ import { Loading } from "@/components/ui/Loading";
 import { TextInputField, TextInputLabel } from "@/components/ui/TextField";
 import { usePairingApprove, usePairingLookup } from "@/state/queries";
 
-const CODE_LENGTH = 6;
-
 // Pushed from the linked-devices screen. Not a tab — see _layout.tsx (`href: null`). The tablet
-// (or another client doing the TV-style pairing flow, per AUTH_PLAN.md) displays a 6-character
-// code; typing it here looks up who's asking (GET /api/pairing/{code}) before Approve is offered,
-// so the owner never approves a device they can't identify.
+// (or another client doing the TV-style pairing flow) displays a 6-character code; scanning its
+// pairing QR or typing that code looks up who's asking (GET /api/pairing/{code}) before Approve is
+// offered, so the owner never approves a device they can't identify.
 export default function LinkDeviceScreen() {
     const router = useRouter();
     const [code, setCode] = useState("");
     const [approvedDeviceName, setApprovedDeviceName] = useState<string | null>(
         null,
     );
+    const {
+        cameraPermissionMessage,
+        closeScanner,
+        openScanner,
+        requestingCamera,
+        scannerOpen,
+    } = usePairingScanner();
 
-    const normalized = code.trim().toUpperCase();
-    const ready = normalized.length === CODE_LENGTH;
+    const normalized = normalizePairingCode(code);
+    const ready = isCompletePairingCode(normalized);
 
     const lookup = usePairingLookup(code);
     const approve = usePairingApprove();
@@ -40,23 +52,51 @@ export default function LinkDeviceScreen() {
         });
     };
 
+    const onCodeScanned = (scannedCode: string) => {
+        onChangeCode(scannedCode);
+        closeScanner();
+    };
+
     return (
         <AppScreen
             eyebrow="Account"
             title="Link a device"
-            subtitle="Enter the 6-character code shown on the other device"
+            subtitle="Scan the QR code or enter the 6-character code"
             onBack={() => router.back()}
         >
             <Card className="flex-col gap-3.5">
+                {scannerOpen ? (
+                    <PairingScanner
+                        onCodeScanned={onCodeScanned}
+                        onCancel={closeScanner}
+                    />
+                ) : (
+                    <Button
+                        label={
+                            requestingCamera
+                                ? "Opening camera…"
+                                : "Scan QR code"
+                        }
+                        onPress={openScanner}
+                        disabled={requestingCamera}
+                    />
+                )}
+
+                {cameraPermissionMessage ? (
+                    <Text className="text-[13px] text-slip">
+                        {cameraPermissionMessage}
+                    </Text>
+                ) : null}
+
                 <View>
-                    <TextInputLabel>Pairing code</TextInputLabel>
+                    <TextInputLabel>Or enter the pairing code</TextInputLabel>
                     <TextInputField
                         value={code}
                         onChangeText={onChangeCode}
                         placeholder="ABCDEF"
                         autoCapitalize="characters"
                         autoCorrect={false}
-                        maxLength={CODE_LENGTH}
+                        maxLength={PAIRING_CODE_LENGTH}
                         className="text-center text-[20px] tracking-[4px]"
                     />
                     <Text className="ml-1 mt-2 text-xs leading-5 text-ink-2">
