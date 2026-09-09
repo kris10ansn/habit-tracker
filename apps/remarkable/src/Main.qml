@@ -440,7 +440,7 @@ Rectangle {
             visible: syncStore.status === "error" && syncStore.errorMessage !== ""
             acknowledgeOnly: true
             confirmText: "Dismiss"
-            message: "Sync failed: " + syncStore.errorMessage + ". Check the sync server address in Settings."
+            message: "Sync failed: " + syncStore.errorMessage
             onConfirmed: syncStore.clearError()
             onCancelled: syncStore.clearError()
         }

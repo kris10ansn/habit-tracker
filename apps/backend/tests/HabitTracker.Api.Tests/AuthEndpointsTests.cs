@@ -45,6 +45,7 @@ public class AuthEndpointsTests
         {
             var response = await client.SendAsync(new HttpRequestMessage(method, path));
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+            await AssertProblemDetailsAsync(response, "Authentication is required.");
         }
     }
 
@@ -59,6 +60,7 @@ public class AuthEndpointsTests
         {
             var response = await client.SendAsync(new HttpRequestMessage(method, path));
             Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+            await AssertProblemDetailsAsync(response, "Authentication is required.");
         }
     }
 
@@ -115,9 +117,7 @@ public class AuthEndpointsTests
     {
         // AuthController answers these three through ControllerBase.Problem() rather than
         // Conflict()/BadRequest() with a hand-built ProblemDetails. The status code is the
-        // contract mobile's authErrorReason() switches on (409 -> "already registered",
-        // 400 -> "invite invalid"), so pin the code AND that the body is still problem+json —
-        // a helper that silently normalised either would break the client with nothing failing here.
+        // contract clients display, so pin the status AND title and keep the body problem+json.
         using var factory = new AuthTestWebApplicationFactory();
         using var client = factory.CreateClient();
 
@@ -230,10 +230,59 @@ public class AuthEndpointsTests
 
         var deniedForMember = await memberClient.PostAsync("/api/invites", null);
         Assert.Equal(HttpStatusCode.Forbidden, deniedForMember.StatusCode);
+        await AssertProblemDetailsAsync(
+            deniedForMember,
+            "You do not have permission to perform this action."
+        );
 
         using var anonymousClient = factory.CreateClient();
         var deniedAnonymous = await anonymousClient.PostAsync("/api/invites", null);
         Assert.Equal(HttpStatusCode.Unauthorized, deniedAnonymous.StatusCode);
+        await AssertProblemDetailsAsync(deniedAnonymous, "Authentication is required.");
+    }
+
+    [Fact]
+    public async Task PairingRejections_ReturnServerOwnedProblemTitles()
+    {
+        using var factory = new AuthTestWebApplicationFactory();
+        using var client = factory.CreateClient();
+        var token = await SignUpAndGetTokenAsync(
+            client,
+            "owner@example.com",
+            "correct-horse-battery",
+            "Phone"
+        );
+        Authorize(client, token);
+
+        var unknownLookup = await client.GetAsync("/api/pairing/NOSUCH");
+        Assert.Equal(HttpStatusCode.NotFound, unknownLookup.StatusCode);
+        await AssertProblemDetailsAsync(
+            unknownLookup,
+            "That pairing code is unknown or has expired."
+        );
+
+        using var tabletClient = factory.CreateClient();
+        var codeResponse = await tabletClient.PostAsJsonAsync(
+            "/api/pairing/code",
+            new PairingCodeRequest("reMarkable")
+        );
+        var code = (await codeResponse.Content.ReadFromJsonAsync<PairingCodeResponse>())!.Code;
+
+        var firstApproval = await client.PostAsJsonAsync(
+            "/api/pairing/approve",
+            new PairingCodeStatusRequest(code)
+        );
+        Assert.Equal(HttpStatusCode.NoContent, firstApproval.StatusCode);
+
+        var duplicateApproval = await client.PostAsJsonAsync(
+            "/api/pairing/approve",
+            new PairingCodeStatusRequest(code)
+        );
+        Assert.Equal(HttpStatusCode.Conflict, duplicateApproval.StatusCode);
+        await AssertProblemDetailsAsync(
+            duplicateApproval,
+            "That device has already been approved."
+        );
     }
 
     [Fact]
@@ -263,6 +312,13 @@ public class AuthEndpointsTests
         {
             var response = await client.PostAsJsonAsync("/api/auth/login", login);
             statusCodes.Add(response.StatusCode);
+            if (response.StatusCode == HttpStatusCode.TooManyRequests)
+            {
+                await AssertProblemDetailsAsync(
+                    response,
+                    "Too many attempts. Please wait a moment and try again."
+                );
+            }
         }
 
         // RateLimitPolicies.Authentication: 10 permits per 5-minute window.

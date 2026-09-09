@@ -1,5 +1,6 @@
 import QtQuick 2.15
 import "js/HabitsModel.js" as HabitsModel
+import "js/HttpError.js" as HttpError
 import "js/Sync.js" as Sync
 import "js/ServerUrl.js" as ServerUrl
 
@@ -160,11 +161,11 @@ JsonStore {
         // exactly as it was, and a fresh pairing (Settings → Connect) is all that's needed to
         // resume syncing. Kept out of the loud "error" status so it never pops the misconfig modal.
         if (xhr.status === 401) {
-            syncStore._fail("unauthorized", "Not connected");
+            syncStore._fail("unauthorized", HttpError.message(xhr.status, xhr.responseText));
             return;
         }
         if (xhr.status !== 200) {
-            syncStore._fail("error", "Server returned " + xhr.status);
+            syncStore._fail("error", HttpError.message(xhr.status, xhr.responseText));
             return;
         }
 

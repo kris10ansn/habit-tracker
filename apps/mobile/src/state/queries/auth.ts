@@ -241,36 +241,27 @@ export function usePairingApprove() {
     });
 }
 
-/** What an account-flow error reads as next to a form or action button. Mirrors `syncErrorReason`
- * in sync.ts — the same "the card renders it, it decides nothing" split. */
+/** Transport failures are local; server rejections already carry their own user-safe message. */
 export function authErrorReason(error: unknown): string {
     if (error instanceof NetworkError) {
         return "Couldn't reach the server — check the URL and your connection.";
     }
 
     if (error instanceof ApiError) {
-        if (error.status === 401) return "Incorrect email or password.";
-        if (error.status === 409) return "That email is already registered.";
-        if (error.status === 400)
-            return "That invite code isn't valid, or one is required.";
-        return `Server returned ${error.status}.`;
+        return error.message;
     }
 
     return error instanceof Error ? error.message : "Something went wrong.";
 }
 
-/** Distinct messages for the two documented pairing failures (404 unknown/expired, 409 already
- * approved) — the Link a Device screen needs to tell them apart, not just say "failed". */
+/** Pairing rejection semantics come from the backend; only connectivity is decided here. */
 export function pairingErrorReason(error: unknown): string {
     if (error instanceof NetworkError) {
         return "Couldn't reach the server — check the URL and your connection.";
     }
 
     if (error instanceof ApiError) {
-        if (error.status === 404) return "That code is unknown or has expired.";
-        if (error.status === 409)
-            return "That device has already been approved.";
-        return `Server returned ${error.status}.`;
+        return error.message;
     }
 
     return error instanceof Error ? error.message : "Something went wrong.";

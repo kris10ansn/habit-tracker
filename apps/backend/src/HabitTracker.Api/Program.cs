@@ -21,6 +21,18 @@ builder
         options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter())
     );
 
+builder.Services.AddProblemDetails(options =>
+{
+    options.CustomizeProblemDetails = context =>
+    {
+        if (context.Exception is not null)
+        {
+            context.ProblemDetails.Title =
+                "The server could not complete the request. Please try again.";
+        }
+    };
+});
+
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi(options =>
 {
@@ -163,7 +175,7 @@ builder.Services.AddRateLimiter(options =>
     // for why these can't be partitioned by user id instead).
     AddPerCallerFixedWindow(RateLimitPolicies.PairingApproval, 30, TimeSpan.FromMinutes(5));
 
-    options.OnRejected = (context, cancellationToken) =>
+    options.OnRejected = async (context, cancellationToken) =>
     {
         context.HttpContext.RequestServices.GetRequiredService<ILogger<Program>>()
             .LogWarning(
@@ -172,7 +184,12 @@ builder.Services.AddRateLimiter(options =>
                 context.HttpContext.Request.Path
             );
 
-        return ValueTask.CompletedTask;
+        await Results
+            .Problem(
+                title: "Too many attempts. Please wait a moment and try again.",
+                statusCode: StatusCodes.Status429TooManyRequests
+            )
+            .ExecuteAsync(context.HttpContext);
     };
 });
 
@@ -199,6 +216,10 @@ if (trustProxyHeaders)
 {
     app.UseForwardedHeaders();
 }
+
+// Unexpected failures still cross the HTTP seam as a safe, user-readable ProblemDetails response.
+// The detailed exception remains in server logs; clients never need to invent a message for a 500.
+app.UseExceptionHandler();
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

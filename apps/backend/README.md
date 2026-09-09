@@ -128,3 +128,9 @@ deleted in that same request, so a second poll on the same code reports it expir
 
 Every endpoint above except the four marked anonymous requires `Authorization: Bearer <token>`; a
 missing or unknown token gets `401`. See [`CLAUDE.md`](./CLAUDE.md) for the auth layer's shape.
+
+Every server-side rejection uses `application/problem+json`. Its `title` is safe to show to a user
+and is the canonical explanation clients should display; clients only invent messages for failures
+on their side of the HTTP seam, such as an unreachable server, a timeout, or an unreadable response.
+Unexpected exceptions keep their details in server logs and return the same safe shape with a
+generic title.

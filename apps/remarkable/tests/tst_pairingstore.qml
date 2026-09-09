@@ -159,10 +159,10 @@ TestCase {
         makeStore();
         store.status = "requesting";
 
-        store._onCodeResponse(done(429, ""));
+        store._onCodeResponse(done(429, { title: "Too many attempts. Please wait a moment and try again." }));
 
         compare(store.status, "error");
-        compare(store.errorMessage, "Too many attempts — wait a moment and try again.");
+        compare(store.errorMessage, "Too many attempts. Please wait a moment and try again.");
     }
 
     // --- _onPollResponse -------------------------------------------------------------------------
@@ -227,10 +227,10 @@ TestCase {
         store.status = "waiting";
         store.code = "ABC234";
 
-        store._onPollResponse(done(429, ""));
+        store._onPollResponse(done(429, { title: "Too many attempts. Please wait a moment and try again." }));
 
         compare(store.status, "error");
-        compare(store.errorMessage, "Too many attempts — wait a moment and try again.");
+        compare(store.errorMessage, "Too many attempts. Please wait a moment and try again.");
         compare(store.settingsStore.token, "");
     }
 

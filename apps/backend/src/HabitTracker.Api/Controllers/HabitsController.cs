@@ -30,7 +30,7 @@ public class HabitsController(HabitService _habits, ILogger<HabitsController> _l
         if (habit is null)
         {
             _logger.LogInformation("Habit {HabitId} not found", id);
-            return NotFound();
+            return HabitNotFound();
         }
 
         return Ok(habit);
@@ -59,7 +59,7 @@ public class HabitsController(HabitService _habits, ILogger<HabitsController> _l
         if (habit is null)
         {
             _logger.LogInformation("Habit {HabitId} not found for update", id);
-            return NotFound();
+            return HabitNotFound();
         }
 
         _logger.LogInformation("Updated habit {HabitId}", id);
@@ -73,7 +73,7 @@ public class HabitsController(HabitService _habits, ILogger<HabitsController> _l
         if (!deleted)
         {
             _logger.LogInformation("Habit {HabitId} not found for delete", id);
-            return NotFound();
+            return HabitNotFound();
         }
 
         _logger.LogInformation("Deleted habit {HabitId}", id);
@@ -90,10 +90,16 @@ public class HabitsController(HabitService _habits, ILogger<HabitsController> _l
         if (entries is null)
         {
             _logger.LogInformation("Habit {HabitId} not found for entries", id);
-            return NotFound();
+            return HabitNotFound();
         }
 
         _logger.LogInformation("Returned {EntryCount} entries for habit {HabitId}", entries.Count, id);
         return Ok(entries);
     }
+
+    private ObjectResult HabitNotFound() =>
+        Problem(
+            title: "That habit no longer exists.",
+            statusCode: StatusCodes.Status404NotFound
+        );
 }
