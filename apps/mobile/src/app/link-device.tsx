@@ -8,12 +8,14 @@ import { Card } from "@/components/ui/Card";
 import { Loading } from "@/components/ui/Loading";
 import { TextInputField, TextInputLabel } from "@/components/ui/TextField";
 import {
+    normalizePairingCode,
+    PAIRING_CODE_LENGTH,
+} from "@/domain/pairingCode";
+import {
     pairingErrorReason,
     usePairingApprove,
     usePairingLookup,
 } from "@/state/queries";
-
-const CODE_LENGTH = 6;
 
 // Pushed from the linked-devices screen. Not a tab — see _layout.tsx (`href: null`). The tablet
 // (or another client doing the TV-style pairing flow, per AUTH_PLAN.md) displays a 6-character
@@ -26,8 +28,8 @@ export default function LinkDeviceScreen() {
         null,
     );
 
-    const normalized = code.trim().toUpperCase();
-    const ready = normalized.length === CODE_LENGTH;
+    const normalized = normalizePairingCode(code);
+    const ready = normalized.length === PAIRING_CODE_LENGTH;
 
     const lookup = usePairingLookup(code);
     const approve = usePairingApprove();
@@ -60,7 +62,7 @@ export default function LinkDeviceScreen() {
                         placeholder="ABCDEF"
                         autoCapitalize="characters"
                         autoCorrect={false}
-                        maxLength={CODE_LENGTH}
+                        maxLength={PAIRING_CODE_LENGTH}
                         className="text-center text-[20px] tracking-[4px]"
                     />
                     <Text className="ml-1 mt-2 text-xs leading-5 text-ink-2">

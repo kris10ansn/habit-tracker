@@ -21,6 +21,10 @@ import {
     getAuthSession,
     setAuthSession,
 } from "@/auth/session";
+import {
+    normalizePairingCode,
+    PAIRING_CODE_LENGTH,
+} from "@/domain/pairingCode";
 
 import { useSettings } from "@/state/queries/settings";
 import { authSessionKey, linkedSessionsKey, pairingCodeKey } from "./keys";
@@ -212,12 +216,12 @@ export function useRevokeSession() {
  */
 export function usePairingLookup(code: string) {
     const baseURL = useBaseUrl();
-    const normalized = code.trim().toUpperCase();
+    const normalized = normalizePairingCode(code);
 
     return useQuery({
         queryKey: pairingCodeKey(normalized),
         queryFn: () => getApiPairingCode(normalized, { baseURL }),
-        enabled: normalized.length === 6 && Boolean(baseURL),
+        enabled: normalized.length === PAIRING_CODE_LENGTH && Boolean(baseURL),
         retry: false,
     });
 }
@@ -231,7 +235,7 @@ export function usePairingApprove() {
             if (!baseURL) throw new Error(NO_SERVER_URL_MESSAGE);
 
             return postApiPairingApprove(
-                { code: code.trim().toUpperCase() },
+                { code: normalizePairingCode(code) },
                 { baseURL },
             );
         },
