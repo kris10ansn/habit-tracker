@@ -9,6 +9,15 @@ Keep it lean: this is the cross-cutting layer only. Anything specific to one app
 app's `CLAUDE.md`, not here. Prefer tightening existing sections over appending; remove obsolete
 guidance.
 
+## Pull request attribution
+
+When an AI agent writes and commits changes included in a pull request, add a `Co-authored-by`
+trailer with that agent's platform-linked identity to every commit it authored. Use the exact model
+name in the co-author display name when that preserves the platform account link; otherwise keep
+the recognized identity in the commit and name the exact model in an `## Attribution` section of
+the PR description. Omit the model only when the harness does not expose it. Attribute only agents
+that actually wrote and committed the changes.
+
 ## What this is
 
 A **habit tracker** built as a pnpm monorepo: two clients over one shared habit domain, plus the
