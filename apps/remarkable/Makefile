@@ -14,9 +14,11 @@ QML_FILES := $(shell find src -name '*.qml')
 SW_DIR := tools/suspend-writer
 SW_REMOTE_DIR := $(REMOTE_DIR)/suspend-writer
 SW_JS_MODULES := $(addprefix src/js/,SuspendDraw.js DateUtils.js Entries.js Polarity.js HabitsModel.js)
+SCREENSHOT_DIR := tools/readme-screenshots
 
 .PHONY: build inject-pragma deploy remove clean lint test suspend-writer-test backup find-hotspot-ip \
-	suspend-writer-host suspend-writer-device suspend-writer-deploy suspend-writer-clean
+	suspend-writer-host suspend-writer-device suspend-writer-deploy suspend-writer-clean \
+	readme-screenshot-host readme-screenshot-clean
 
 build: inject-pragma
 	cp application.qrc $(BUILD_DIR)/
@@ -107,3 +109,11 @@ suspend-writer-deploy: suspend-writer-device
 
 suspend-writer-clean:
 	rm -rf $(SW_DIR)/build
+
+# Host-only Qt Quick shell for README captures. It loads the live Main.qml and points its public
+# screenshot inputs at temporary fixture files; it is not included in resources.rcc.
+readme-screenshot-host:
+	$(SCREENSHOT_DIR)/build-host.sh
+
+readme-screenshot-clean:
+	rm -rf $(SCREENSHOT_DIR)/build

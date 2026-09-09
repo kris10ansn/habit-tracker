@@ -209,6 +209,7 @@ export function remarkableProjection(fixture, { paired = true } = {}) {
             tombstones: [],
         },
         month: {
+            month: monthKey,
             entries: entries.map((entry) => ({
                 habitId: entry.habitId,
                 date: entry.date,

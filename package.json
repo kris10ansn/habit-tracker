@@ -30,7 +30,8 @@
         "backend:db:up": "pnpm --filter @habit-tracker/backend run db:up",
         "backend:db:down": "pnpm --filter @habit-tracker/backend run db:down",
         "backend:db:clear": "pnpm --filter @habit-tracker/backend run db:clear",
-        "screenshots:fixtures:test": "node --test tools/readme-screenshots/test/*.test.mjs"
+        "screenshots:fixtures:test": "node --test tools/readme-screenshots/test/*.test.mjs",
+        "screenshots:remarkable": "node tools/readme-screenshots/capture-remarkable.mjs"
     },
     "devDependencies": {
         "prettier": "^3.8.3"
