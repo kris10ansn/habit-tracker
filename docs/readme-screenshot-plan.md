@@ -1,5 +1,11 @@
 # README screenshot tooling plan
 
+> **Implementation status:** The shared fixture, reMarkable offscreen host, real reMarkable image
+> set, isolated Android screenshot build, and serial-scoped Android runners are implemented. The
+> Android release APK builds successfully; final emulator installation, route capture, and visual
+> validation remain pending. Until then, the README labels its mobile/linking concept as an
+> AI-generated placeholder.
+
 ## Goal
 
 Create a small, repeatable screenshot workflow that an agent can run to refresh the README's real

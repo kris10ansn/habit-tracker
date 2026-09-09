@@ -1,13 +1,21 @@
-# Habit Tracker for reMarkable + Mobile
+# Habit tracker for reMarkable and mobile
 
-> An offline-first tracker that puts today's habits on your reMarkable sleep screen and optionally syncs them with your phone.
+> An offline-first tracker that puts today's habits on your reMarkable sleep screen, with an optional mobile companion and self-hosted sync.
 
-> [!WARNING]
-> **AI-generated placeholder:** The image below is a visual concept, not a screenshot of the actual application. It will be replaced by captures from the real reMarkable and Android interfaces. See the [screenshot-generation plan](docs/readme-screenshot-plan.md).
+<table>
+  <tr>
+    <td width="50%"><img src="docs/assets/screenshots/remarkable-grid.png" alt="The real reMarkable app showing a September habit grid"></td>
+    <td width="50%"><img src="docs/assets/screenshots/remarkable-suspend.png" alt="The real generated reMarkable suspend screen showing public habits"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Live reMarkable grid</sub></td>
+    <td align="center"><sub>Generated sleep screen</sub></td>
+  </tr>
+</table>
 
-<p align="center">
-  <img src="docs/images/readme-hero-concept.png" alt="AI-generated placeholder showing the habit tracker concept on an e-ink tablet and Android phone" width="100%">
-</p>
+These are captures from the real reMarkable interface and suspend renderer, populated with
+fictional sample data. The mobile and linking concept shown later is explicitly marked as an
+AI-generated placeholder until the native Android capture workflow is validated end to end.
 
 This repository contains three parts of one habit-tracking system:
 
@@ -29,12 +37,35 @@ Both clients remain useful on their own. Sync is something you opt into by suppl
 
 The reMarkable requests a short pairing code. The signed-in mobile app identifies the requesting device before approval, then lets the account owner review or revoke every linked session.
 
+<p align="center">
+  <img src="docs/assets/screenshots/remarkable-pairing.png" alt="The real reMarkable pairing screen showing fictional code H7K9Q2" width="100%">
+</p>
+
 > [!WARNING]
-> **AI-generated placeholder:** This illustrates the intended sequence but does not show the application's actual pairing screens. The real capture set will include the pairing code, approval state, and linked-device list.
+> **AI-generated placeholder:** The sequence below is a visual concept, not a screenshot of the
+> application. It illustrates mobile approval and the linked-device list while native Android
+> captures remain pending.
 
 <p align="center">
   <img src="docs/images/device-linking-concept.png" alt="AI-generated placeholder illustrating a pairing code on reMarkable, approval on mobile, and the linked-device list" width="100%">
 </p>
+
+## The reMarkable workflow
+
+The same QML scene used on the tablet is rendered offscreen for these images; the sleep-screen
+capture separately exercises the production suspend renderer. Editing and settings stay simple
+enough for an e-ink display.
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/assets/screenshots/remarkable-edit.png" alt="The real reMarkable app in habit editing mode"></td>
+    <td width="50%"><img src="docs/assets/screenshots/remarkable-settings.png" alt="The real reMarkable settings page"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Edit, reorder, and change habits</sub></td>
+    <td align="center"><sub>Control privacy, suspend rendering, and sync</sub></td>
+  </tr>
+</table>
 
 ## How it fits together
 
@@ -150,7 +181,7 @@ Installation, SSH configuration, backups, migrations, and device-specific caveat
 ## Engineering highlights
 
 - The reMarkable UI is a pure-QML scene loaded into `xochitl`; it does not own the Qt process or rely on a normal desktop window system.
-- A separate headless Qt tool reuses the app's production drawing logic to render suspend images without launching the QML UI.
+- A headless Qt host renders the real QML pages, while the separate suspend writer reuses the production drawing logic for sleep-screen images.
 - reMarkable partitions entries into one JSON file per month, while mobile stores the backend-shaped domain in SQLite through Drizzle.
 - The backend emits a committed OpenAPI document, and the mobile API client and response validators are generated from it.
 - Sync treats deletion as dated data. Tombstones and client-stamped edit times let offline changes reconcile without silently resurrecting removed records.
@@ -184,6 +215,18 @@ The reMarkable suspend renderer has an additional host smoke test:
 cd apps/remarkable
 make suspend-writer-test
 ```
+
+README images use a deterministic fictional fixture. The reMarkable set can be regenerated without
+a tablet; the Android workflow builds an isolated app and requires an explicitly selected emulator:
+
+```sh
+pnpm screenshots:remarkable
+pnpm screenshots:android:build
+pnpm screenshots:android:install -- --serial emulator-5554
+pnpm screenshots:android -- --serial emulator-5554
+```
+
+[Screenshot workflow and safety contract →](tools/readme-screenshots/README.md)
 
 ## Contributing
 
