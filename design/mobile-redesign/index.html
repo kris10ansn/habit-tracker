@@ -1,0 +1,824 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta
+            name="description"
+            content="Twenty-five complete redesign directions for the Habit mobile app, including every current page and a revised sync flow."
+        />
+        <title>Habit — mobile redesign study</title>
+        <link rel="stylesheet" href="styles.css" />
+        <link rel="stylesheet" href="wildcards.css" />
+        <link rel="stylesheet" href="additional-concepts.css" />
+        <link rel="stylesheet" href="additional-layouts.css" />
+        <link rel="stylesheet" href="additional-wild.css" />
+        <link rel="stylesheet" href="experimental.css" />
+        <link rel="stylesheet" href="laboratory.css?v=25" />
+        <link rel="stylesheet" href="laboratory-wild.css?v=25" />
+        <link rel="stylesheet" href="laboratory-tuning.css?v=25" />
+        <link rel="stylesheet" href="presentation.css" />
+    </head>
+    <body>
+        <svg class="symbol-library" aria-hidden="true">
+            <symbol id="i-check" viewBox="0 0 24 24">
+                <path d="m5 12.5 4.2 4.2L19 7" />
+            </symbol>
+            <symbol id="i-close" viewBox="0 0 24 24">
+                <path d="m7 7 10 10M17 7 7 17" />
+            </symbol>
+            <symbol id="i-minus" viewBox="0 0 24 24">
+                <path d="M6 12h12" />
+            </symbol>
+            <symbol id="i-arrow-left" viewBox="0 0 24 24">
+                <path d="m15 18-6-6 6-6" />
+            </symbol>
+            <symbol id="i-arrow-right" viewBox="0 0 24 24">
+                <path d="m9 18 6-6-6-6" />
+            </symbol>
+            <symbol id="i-chevron-down" viewBox="0 0 24 24">
+                <path d="m7 9.5 5 5 5-5" />
+            </symbol>
+            <symbol id="i-home" viewBox="0 0 24 24">
+                <path
+                    d="m4 11 8-7 8 7v8a1 1 0 0 1-1 1h-5v-6h-4v6H5a1 1 0 0 1-1-1Z"
+                />
+            </symbol>
+            <symbol id="i-calendar" viewBox="0 0 24 24">
+                <rect x="3.5" y="5" width="17" height="15" rx="2" />
+                <path d="M8 3v4M16 3v4M3.5 9h17" />
+            </symbol>
+            <symbol id="i-chart" viewBox="0 0 24 24">
+                <path d="M5 19V9m7 10V5m7 14v-7" />
+            </symbol>
+            <symbol id="i-settings" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="3" />
+                <path
+                    d="M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1-2.8 2.8-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.6v.2h-4V21a1.7 1.7 0 0 0-1-1.6 1.7 1.7 0 0 0-1.9.3l-.1.1L4.2 17l.1-.1a1.7 1.7 0 0 0 .3-1.9A1.7 1.7 0 0 0 3 14H2.8v-4H3a1.7 1.7 0 0 0 1.6-1 1.7 1.7 0 0 0-.3-1.9L4.2 7 7 4.2l.1.1a1.7 1.7 0 0 0 1.9.3A1.7 1.7 0 0 0 10 3v-.2h4V3a1.7 1.7 0 0 0 1 1.6 1.7 1.7 0 0 0 1.9-.3l.1-.1L19.8 7l-.1.1a1.7 1.7 0 0 0-.3 1.9 1.7 1.7 0 0 0 1.6 1h.2v4H21a1.7 1.7 0 0 0-1.6 1Z"
+                />
+            </symbol>
+            <symbol id="i-user" viewBox="0 0 24 24">
+                <circle cx="12" cy="8" r="4" />
+                <path d="M4.5 21a7.5 7.5 0 0 1 15 0" />
+            </symbol>
+            <symbol id="i-edit" viewBox="0 0 24 24">
+                <path d="m4 20 4.2-1 10-10a2.1 2.1 0 0 0-3-3l-10 10Z" />
+                <path d="m13.8 7.4 3 3" />
+            </symbol>
+            <symbol id="i-plus" viewBox="0 0 24 24">
+                <path d="M12 5v14M5 12h14" />
+            </symbol>
+            <symbol id="i-cloud" viewBox="0 0 24 24">
+                <path
+                    d="M7 19h10a4 4 0 0 0 .6-7.9A6 6 0 0 0 6.2 9.4 4.8 4.8 0 0 0 7 19Z"
+                />
+            </symbol>
+            <symbol id="i-cloud-check" viewBox="0 0 24 24">
+                <path
+                    d="M7 18.5h10a4 4 0 0 0 .6-7.9A6 6 0 0 0 6.2 8.9 4.8 4.8 0 0 0 7 18.5Z"
+                />
+                <path d="m9 13 2 2 4-4" />
+            </symbol>
+            <symbol id="i-refresh" viewBox="0 0 24 24">
+                <path d="M20 7v5h-5M4 17v-5h5" />
+                <path
+                    d="M6.1 8.2A7 7 0 0 1 18.5 7L20 12M4 12l1.5 5a7 7 0 0 0 12.4-1.2"
+                />
+            </symbol>
+            <symbol id="i-devices" viewBox="0 0 24 24">
+                <rect x="3" y="5" width="12" height="9" rx="1.5" />
+                <path d="M6 18h6M9 14v4" />
+                <rect x="17" y="8" width="4" height="10" rx="1" />
+            </symbol>
+            <symbol id="i-phone" viewBox="0 0 24 24">
+                <rect x="7" y="2.5" width="10" height="19" rx="2" />
+                <path d="M10 5h4M11 18.5h2" />
+            </symbol>
+            <symbol id="i-tablet" viewBox="0 0 24 24">
+                <rect x="4" y="2.5" width="16" height="19" rx="2" />
+                <path d="M10 18.5h4" />
+            </symbol>
+            <symbol id="i-link" viewBox="0 0 24 24">
+                <path
+                    d="M10 13a4 4 0 0 0 5.7.1l2.8-2.8a4 4 0 0 0-5.7-5.7L11.2 6"
+                />
+                <path
+                    d="M14 11a4 4 0 0 0-5.7-.1l-2.8 2.8a4 4 0 0 0 5.7 5.7l1.6-1.4"
+                />
+            </symbol>
+            <symbol id="i-scan" viewBox="0 0 24 24">
+                <path
+                    d="M8 3H4a1 1 0 0 0-1 1v4M16 3h4a1 1 0 0 1 1 1v4M8 21H4a1 1 0 0 1-1-1v-4M16 21h4a1 1 0 0 0 1-1v-4"
+                />
+                <path d="M7 12h10" />
+            </symbol>
+            <symbol id="i-lock" viewBox="0 0 24 24">
+                <rect x="5" y="10" width="14" height="11" rx="2" />
+                <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+            </symbol>
+            <symbol id="i-more" viewBox="0 0 24 24">
+                <circle
+                    cx="5"
+                    cy="12"
+                    r="1"
+                    fill="currentColor"
+                    stroke="none"
+                />
+                <circle
+                    cx="12"
+                    cy="12"
+                    r="1"
+                    fill="currentColor"
+                    stroke="none"
+                />
+                <circle
+                    cx="19"
+                    cy="12"
+                    r="1"
+                    fill="currentColor"
+                    stroke="none"
+                />
+            </symbol>
+            <symbol id="i-grip" viewBox="0 0 24 24">
+                <circle cx="9" cy="7" r="1" fill="currentColor" stroke="none" />
+                <circle
+                    cx="15"
+                    cy="7"
+                    r="1"
+                    fill="currentColor"
+                    stroke="none"
+                />
+                <circle
+                    cx="9"
+                    cy="12"
+                    r="1"
+                    fill="currentColor"
+                    stroke="none"
+                />
+                <circle
+                    cx="15"
+                    cy="12"
+                    r="1"
+                    fill="currentColor"
+                    stroke="none"
+                />
+                <circle
+                    cx="9"
+                    cy="17"
+                    r="1"
+                    fill="currentColor"
+                    stroke="none"
+                />
+                <circle
+                    cx="15"
+                    cy="17"
+                    r="1"
+                    fill="currentColor"
+                    stroke="none"
+                />
+            </symbol>
+            <symbol id="i-trash" viewBox="0 0 24 24">
+                <path d="M5 7h14M9 7V4h6v3M7 7l1 14h8l1-14M10 11v6M14 11v6" />
+            </symbol>
+            <symbol id="i-spark" viewBox="0 0 24 24">
+                <path
+                    d="m12 2 1.5 6.5L20 10l-6.5 1.5L12 18l-1.5-6.5L4 10l6.5-1.5Z"
+                />
+                <path
+                    d="m19 16 .6 2.4L22 19l-2.4.6L19 22l-.6-2.4L16 19l2.4-.6Z"
+                />
+            </symbol>
+            <symbol id="i-shield" viewBox="0 0 24 24">
+                <path
+                    d="M12 3 4.5 6v5.5c0 4.5 3 7.7 7.5 9.5 4.5-1.8 7.5-5 7.5-9.5V6Z"
+                />
+                <path d="m8.5 12 2.2 2.2 4.8-5" />
+            </symbol>
+        </svg>
+
+        <header class="site-header">
+            <a class="brand" href="#top" aria-label="Habit redesign home">
+                <span class="brand-mark">H</span>
+                <span>Habit <em>design study</em></span>
+            </a>
+            <nav class="site-nav" aria-label="Page sections">
+                <a href="#directions">Directions</a>
+                <a href="#sync-flow">Sync flow</a>
+                <a href="#recommendation">Recommendation</a>
+            </nav>
+        </header>
+
+        <main id="top">
+            <section class="hero shell">
+                <div class="hero-copy">
+                    <span class="overline"
+                        >Mobile redesign exploration · 03 Sep 2026</span
+                    >
+                    <h1>Less administration.<br /><i>More momentum.</i></h1>
+                    <p>
+                        Twenty-five complete directions for making Habit calmer
+                        to use, easier to scan, and more trustworthy when it
+                        syncs. Every current page is represented in every
+                        direction.
+                    </p>
+                    <div class="hero-actions">
+                        <a class="primary-action" href="#direction-quiet"
+                            >See the recommended direction</a
+                        >
+                        <a class="text-action" href="#sync-flow"
+                            >Jump to sync flow <span>↓</span></a
+                        >
+                    </div>
+                </div>
+                <div
+                    class="hero-visual"
+                    aria-label="Three abstract mobile screens"
+                >
+                    <div class="hero-phone hero-phone-one">
+                        <span></span><span></span><b></b><span></span
+                        ><span></span>
+                    </div>
+                    <div class="hero-phone hero-phone-two">
+                        <span></span><b></b><span></span><span></span
+                        ><span></span>
+                    </div>
+                    <div class="hero-phone hero-phone-three">
+                        <b></b><span></span><span></span><span></span
+                        ><span></span>
+                    </div>
+                    <div class="orbit-note orbit-a">quiet</div>
+                    <div class="orbit-note orbit-b">clear</div>
+                    <div class="orbit-note orbit-c">local-first</div>
+                </div>
+            </section>
+
+            <section class="audit shell" aria-labelledby="audit-title">
+                <div class="section-heading compact">
+                    <span class="overline">What needs to change</span>
+                    <h2 id="audit-title">
+                        The issue is hierarchy, not decoration.
+                    </h2>
+                </div>
+                <div class="audit-grid">
+                    <article>
+                        <span class="audit-number">01</span>
+                        <h3>The month became a spreadsheet</h3>
+                        <p>
+                            Thirty-one day rows multiplied by every habit,
+                            abbreviated labels, and two-axis scanning make
+                            patterns hard to see.
+                        </p>
+                        <strong>Redesign principle</strong>
+                        <p>
+                            Show one useful question at a time: overall rhythm,
+                            one habit, or one week.
+                        </p>
+                    </article>
+                    <article>
+                        <span class="audit-number">02</span>
+                        <h3>Maintenance is always switched on</h3>
+                        <p>
+                            Rename fields, polarity toggles, drag handles,
+                            delete, and archive compete in every habit row—even
+                            when the user only wants to look.
+                        </p>
+                        <strong>Redesign principle</strong>
+                        <p>
+                            Default to a clean roster. Reveal destructive and
+                            reordering controls after Edit.
+                        </p>
+                    </article>
+                    <article>
+                        <span class="audit-number">03</span>
+                        <h3>Sync exposes implementation</h3>
+                        <p>
+                            Server configuration, account state, device pairing,
+                            and everyday status appear as one undifferentiated
+                            settings page.
+                        </p>
+                        <strong>Redesign principle</strong>
+                        <p>
+                            Make sync automatic and quiet; move custom server
+                            setup under Advanced.
+                        </p>
+                    </article>
+                </div>
+            </section>
+
+            <section id="directions" class="directions-intro shell">
+                <div class="section-heading">
+                    <span class="overline"
+                        >Practical systems · Expressive options · Wild
+                        cards</span
+                    >
+                    <h2>Same product. Twenty-five very different answers.</h2>
+                    <p>
+                        Use the page filter to compare the same part of the app
+                        across all concepts, or leave “All pages” selected to
+                        review each system end to end.
+                    </p>
+                </div>
+                <div
+                    class="filter-bar"
+                    role="group"
+                    aria-label="Filter mockups by page"
+                >
+                    <button
+                        class="filter-chip is-active"
+                        type="button"
+                        data-filter="all"
+                    >
+                        All pages
+                    </button>
+                    <button
+                        class="filter-chip"
+                        type="button"
+                        data-filter="today"
+                    >
+                        Today
+                    </button>
+                    <button
+                        class="filter-chip"
+                        type="button"
+                        data-filter="month"
+                    >
+                        Month
+                    </button>
+                    <button
+                        class="filter-chip"
+                        type="button"
+                        data-filter="habits"
+                    >
+                        Habits
+                    </button>
+                    <button
+                        class="filter-chip"
+                        type="button"
+                        data-filter="sync"
+                    >
+                        Sync
+                    </button>
+                    <button
+                        class="filter-chip"
+                        type="button"
+                        data-filter="devices"
+                    >
+                        Devices
+                    </button>
+                    <button
+                        class="filter-chip"
+                        type="button"
+                        data-filter="link"
+                    >
+                        Link device
+                    </button>
+                </div>
+                <nav
+                    class="concept-jumps"
+                    aria-label="Jump to a redesign direction"
+                >
+                    <a href="#direction-quiet"
+                        ><b>01</b
+                        ><span>Quiet Focus<small>Moderate</small></span></a
+                    >
+                    <a href="#direction-signal"
+                        ><b>02</b
+                        ><span>Habit Lens<small>Moderate</small></span></a
+                    >
+                    <a href="#direction-journal"
+                        ><b>03</b
+                        ><span>Pocket Journal<small>Expressive</small></span></a
+                    >
+                    <a href="#direction-orbit"
+                        ><b>04</b><span>Orbit<small>Wild</small></span></a
+                    >
+                    <a href="#direction-garden"
+                        ><b>05</b
+                        ><span>Living Garden<small>Wild</small></span></a
+                    >
+                    <a href="#direction-native"
+                        ><b>06</b
+                        ><span>Native Calm<small>Practical</small></span></a
+                    >
+                    <a href="#direction-focus"
+                        ><b>07</b
+                        ><span>One Thing<small>Focused</small></span></a
+                    >
+                    <a href="#direction-bento"
+                        ><b>08</b
+                        ><span>Bento Board<small>Practical</small></span></a
+                    >
+                    <a href="#direction-multiples"
+                        ><b>09</b
+                        ><span>Tiny Multiples<small>Analytical</small></span></a
+                    >
+                    <a href="#direction-glass"
+                        ><b>10</b
+                        ><span>Glass Stack<small>Expressive</small></span></a
+                    >
+                    <a href="#direction-brutal"
+                        ><b>11</b
+                        ><span>Raw Ledger<small>Expressive</small></span></a
+                    >
+                    <a href="#direction-access"
+                        ><b>12</b
+                        ><span>Clarity Max<small>Accessible</small></span></a
+                    >
+                    <a href="#direction-pixel"
+                        ><b>13</b><span>Pixel Pal<small>Wild</small></span></a
+                    >
+                    <a href="#direction-transit"
+                        ><b>14</b
+                        ><span>Habit Transit<small>Wild</small></span></a
+                    >
+                    <a href="#direction-zine"
+                        ><b>15</b
+                        ><span>Cut &amp; Keep<small>Wild</small></span></a
+                    >
+                    <a href="#direction-mixtape"
+                        ><b>16</b
+                        ><span>Mixtape<small>Laboratory</small></span></a
+                    >
+                    <a href="#direction-weather"
+                        ><b>17</b
+                        ><span>Weather Maker<small>Laboratory</small></span></a
+                    >
+                    <a href="#direction-house"
+                        ><b>18</b
+                        ><span>Habit House<small>Laboratory</small></span></a
+                    >
+                    <a href="#direction-mission"
+                        ><b>19</b
+                        ><span
+                            >Mission Control<small>Laboratory</small></span
+                        ></a
+                    >
+                    <a href="#direction-ritual"
+                        ><b>20</b
+                        ><span>Ritual Deck<small>Laboratory</small></span></a
+                    >
+                    <a href="#direction-aquarium"
+                        ><b>21</b
+                        ><span>Deep Sea<small>Laboratory</small></span></a
+                    >
+                    <a href="#direction-comic"
+                        ><b>22</b
+                        ><span>Comic Quest<small>Laboratory</small></span></a
+                    >
+                    <a href="#direction-clockwork"
+                        ><b>23</b
+                        ><span>Clockwork<small>Laboratory</small></span></a
+                    >
+                    <a href="#direction-terrain"
+                        ><b>24</b
+                        ><span>Topographic<small>Laboratory</small></span></a
+                    >
+                    <a href="#direction-cellular"
+                        ><b>25</b
+                        ><span>Cellular Bloom<small>Laboratory</small></span></a
+                    >
+                </nav>
+            </section>
+
+            <div id="concepts"></div>
+
+            <section
+                class="idea-shelf shell"
+                aria-labelledby="idea-shelf-title"
+            >
+                <div class="section-heading">
+                    <span class="overline">Borrowable fragments</span>
+                    <h2 id="idea-shelf-title">
+                        Twelve more ideas worth stealing.
+                    </h2>
+                    <p>
+                        These can be mixed into any direction without adopting
+                        its full visual system.
+                    </p>
+                </div>
+                <div class="idea-grid">
+                    <article>
+                        <span>Month</span><b>Two-level calendar</b>
+                        <p>
+                            Start with daily completion density; tap a habit to
+                            recolor the same calendar around that habit.
+                        </p>
+                    </article>
+                    <article>
+                        <span>Month</span><b>Week accordion</b>
+                        <p>
+                            Five compact week summaries; expand only the week
+                            the user is investigating.
+                        </p>
+                    </article>
+                    <article>
+                        <span>Month</span><b>Habit small multiples</b>
+                        <p>
+                            One tiny 31-dot strip per habit—labels stay readable
+                            while patterns line up vertically.
+                        </p>
+                    </article>
+                    <article>
+                        <span>Today</span><b>One-thumb queue</b>
+                        <p>
+                            Bring the next unfinished habit into the thumb zone;
+                            completed habits recede upward.
+                        </p>
+                    </article>
+                    <article>
+                        <span>Today</span><b>Long-press yesterday</b>
+                        <p>
+                            Offer a forgiving shortcut to backfill yesterday
+                            without turning Today into a date picker.
+                        </p>
+                    </article>
+                    <article>
+                        <span>Today</span><b>Completion undo</b>
+                        <p>
+                            Mark instantly, then show a small undo toast. Fast
+                            interaction, no confirmation ritual.
+                        </p>
+                    </article>
+                    <article>
+                        <span>Habits</span><b>View / Edit contract</b>
+                        <p>
+                            Keep normal rows clean. Enter a named edit mode
+                            before showing handles or destructive actions.
+                        </p>
+                    </article>
+                    <article>
+                        <span>Habits</span><b>Swipe to archive</b>
+                        <p>
+                            Keep delete inside habit details; make the
+                            reversible action easier than the irreversible one.
+                        </p>
+                    </article>
+                    <article>
+                        <span>Sync</span><b>Cloud status pill</b>
+                        <p>
+                            A tiny header pill handles reassurance. The full
+                            sync screen appears only when tapped.
+                        </p>
+                    </article>
+                    <article>
+                        <span>Sync</span><b>Incoming change receipt</b>
+                        <p>
+                            After sync, say “3 entries received from reMarkable”
+                            instead of reporting an implementation state.
+                        </p>
+                    </article>
+                    <article>
+                        <span>Pairing</span><b>QR plus short code</b>
+                        <p>
+                            Camera for speed, six characters for reliability,
+                            device-name verification for trust.
+                        </p>
+                    </article>
+                    <article>
+                        <span>Navigation</span><b>Three-tab ceiling</b>
+                        <p>
+                            Today, Review, Settings. Habit management and
+                            devices become destinations, not permanent tabs.
+                        </p>
+                    </article>
+                </div>
+            </section>
+
+            <section id="sync-flow" class="sync-flow shell">
+                <div class="section-heading inverse">
+                    <span class="overline">Recommended sync experience</span>
+                    <h2>Ask people to connect devices—not configure sync.</h2>
+                    <p>
+                        The backend remains the authority and the app remains
+                        local-first. The interface simply reveals those facts in
+                        a safer order.
+                    </p>
+                </div>
+
+                <div class="sync-principles">
+                    <div>
+                        <span>Default</span>
+                        <strong>Automatic after sign-in</strong>
+                        <p>
+                            Sync after edits, on app foreground, and when
+                            connectivity returns.
+                        </p>
+                    </div>
+                    <div>
+                        <span>Fallback</span>
+                        <strong>Manual “Sync now” remains</strong>
+                        <p>
+                            Useful for reassurance and recovery, but no longer
+                            the primary workflow.
+                        </p>
+                    </div>
+                    <div>
+                        <span>Advanced</span>
+                        <strong>Custom server is optional</strong>
+                        <p>
+                            Validate the endpoint before saving it; keep
+                            self-hosting fully supported.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="flow-map" aria-label="Five-step improved sync flow">
+                    <article class="flow-card">
+                        <span class="flow-step">01</span>
+                        <div class="flow-icon">
+                            <svg><use href="#i-cloud" /></svg>
+                        </div>
+                        <h3>Start local</h3>
+                        <p>
+                            “Only on this phone” is an explicit, safe state—not
+                            an error.
+                        </p>
+                        <div class="micro-ui">
+                            <b>Set up sync</b><span>About your data</span>
+                        </div>
+                    </article>
+                    <article class="flow-card">
+                        <span class="flow-step">02</span>
+                        <div class="flow-icon">
+                            <svg><use href="#i-user" /></svg>
+                        </div>
+                        <h3>Choose an account</h3>
+                        <p>
+                            Sign in or create an account. Hosted service is the
+                            quiet default.
+                        </p>
+                        <div class="micro-ui">
+                            <b>Continue</b><span>Advanced · Custom server</span>
+                        </div>
+                    </article>
+                    <article class="flow-card">
+                        <span class="flow-step">03</span>
+                        <div class="flow-icon">
+                            <svg><use href="#i-scan" /></svg>
+                        </div>
+                        <h3>Add a device</h3>
+                        <p>
+                            Scan the device QR code, with the existing
+                            six-character code as fallback.
+                        </p>
+                        <div class="micro-ui">
+                            <b>Scan QR code</b><span>Enter code instead</span>
+                        </div>
+                    </article>
+                    <article class="flow-card">
+                        <span class="flow-step">04</span>
+                        <div class="flow-icon">
+                            <svg><use href="#i-shield" /></svg>
+                        </div>
+                        <h3>Verify the request</h3>
+                        <p>
+                            Show device name, short code, expiry, and exactly
+                            what approval does.
+                        </p>
+                        <div class="device-confirm">
+                            <i></i><strong>reMarkable 2</strong
+                            ><span>Code T4M 9QK</span>
+                        </div>
+                    </article>
+                    <article class="flow-card">
+                        <span class="flow-step">05</span>
+                        <div class="flow-icon">
+                            <svg><use href="#i-refresh" /></svg>
+                        </div>
+                        <h3>Reconcile once</h3>
+                        <p>
+                            Show meaningful progress while the server returns
+                            the authoritative result.
+                        </p>
+                        <div class="progress-lines">
+                            <span class="done"></span><span class="done"></span
+                            ><span></span>
+                        </div>
+                    </article>
+                </div>
+
+                <div class="state-language">
+                    <div class="state-language-copy">
+                        <span class="overline">Status language</span>
+                        <h3>One line, one meaning, one action.</h3>
+                        <p>
+                            Put the small cloud indicator in Today and Settings.
+                            Only open the full sync page when the user taps it
+                            or when action is required.
+                        </p>
+                    </div>
+                    <div
+                        class="state-table"
+                        role="table"
+                        aria-label="Sync state wording"
+                    >
+                        <div role="row">
+                            <i class="dot green"></i><b>Up to date</b
+                            ><span>Last synced just now</span><em>No action</em>
+                        </div>
+                        <div role="row">
+                            <i class="dot amber"></i><b>Waiting</b
+                            ><span>Changes saved on this phone</span
+                            ><em>Sync now</em>
+                        </div>
+                        <div role="row">
+                            <i class="spinner"></i><b>Syncing</b
+                            ><span>Receiving 3 changes</span><em>Progress</em>
+                        </div>
+                        <div role="row">
+                            <i class="dot red"></i><b>Needs attention</b
+                            ><span>Sign in again to continue</span
+                            ><em>Sign in</em>
+                        </div>
+                        <div role="row">
+                            <i class="dot gray"></i><b>Only on this phone</b
+                            ><span>Sync has not been set up</span
+                            ><em>Set up</em>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="recommendation" class="recommendation shell">
+                <div class="recommendation-card">
+                    <div>
+                        <span class="overline">Suggested path forward</span>
+                        <h2>
+                            Build Quiet Focus, steal the best parts of Tiny
+                            Multiples.
+                        </h2>
+                    </div>
+                    <p>
+                        Quiet Focus best fixes the information architecture:
+                        three primary tabs, progressive habit editing, and sync
+                        that stays out of the way. Its aggregate calendar is the
+                        friendliest default month overview, while Tiny Multiples
+                        is the strongest dense alternative. Let a user tap a
+                        habit to enter Habit Lens, and apply Clarity Max’s
+                        explicit labels and target sizes throughout.
+                    </p>
+                    <div class="recommendation-pills">
+                        <span>1 · Quiet Focus shell</span>
+                        <span>2 · Habit Lens detail</span>
+                        <span>3 · Tiny Multiples overview</span>
+                        <span>4 · Clarity Max accessibility</span>
+                    </div>
+                </div>
+
+                <div class="decision-grid">
+                    <div class="decision-header">
+                        <span>Direction</span><span>Scanability</span
+                        ><span>Daily speed</span><span>Analysis</span
+                        ><span>Brand character</span>
+                    </div>
+                    <div>
+                        <strong><i class="rank rank-a">A</i> Quiet Focus</strong
+                        ><span>Excellent</span><span>Excellent</span
+                        ><span>Good</span><span>Warm &amp; calm</span>
+                    </div>
+                    <div>
+                        <strong><i class="rank rank-b">B</i> Habit Lens</strong
+                        ><span>Good</span><span>Good</span><span>Excellent</span
+                        ><span>Bold &amp; modern</span>
+                    </div>
+                    <div>
+                        <strong
+                            ><i class="rank rank-c">C</i> Pocket Journal</strong
+                        ><span>Good</span><span>Excellent</span><span>Fair</span
+                        ><span>Most distinctive</span>
+                    </div>
+                    <div>
+                        <strong><i class="rank rank-d">D</i> Native Calm</strong
+                        ><span>Excellent</span><span>Good</span><span>Good</span
+                        ><span>Familiar</span>
+                    </div>
+                    <div>
+                        <strong
+                            ><i class="rank rank-e">E</i> Tiny Multiples</strong
+                        ><span>Excellent</span><span>Good</span
+                        ><span>Excellent</span><span>Technical</span>
+                    </div>
+                    <div>
+                        <strong><i class="rank rank-f">F</i> Clarity Max</strong
+                        ><span>Excellent</span><span>Good</span><span>Good</span
+                        ><span>Utilitarian</span>
+                    </div>
+                    <div>
+                        <strong
+                            ><i class="rank rank-g">G</i> Habit Transit</strong
+                        ><span>Good</span><span>Good</span><span>Good</span
+                        ><span>Most coherent wild card</span>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer class="site-footer shell">
+            <span>Habit · Mobile redesign study</span>
+            <span>Static HTML/CSS prototype · No production code changed</span>
+        </footer>
+
+        <script src="laboratory.js?v=25"></script>
+        <script src="app.js?v=25"></script>
+    </body>
+</html>

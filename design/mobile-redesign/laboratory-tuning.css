@@ -1,0 +1,62 @@
+/* Final composition pass: reserve bottom-nav space only where a bottom nav exists. */
+:is(
+        .concept-mixtape,
+        .concept-weather,
+        .concept-house,
+        .concept-mission,
+        .concept-ritual,
+        .concept-aquarium,
+        .concept-comic,
+        .concept-clockwork,
+        .concept-terrain,
+        .concept-cellular
+    )
+    :is(
+        .phone-card[data-screen="habits"],
+        .phone-card[data-screen="devices"],
+        .phone-card[data-screen="link"]
+    )
+    .app-content {
+    padding-bottom: 12px;
+}
+
+.wx-radar {
+    height: 215px;
+}
+.hh-house {
+    height: 352px;
+}
+.hh-floorplan {
+    height: 328px;
+}
+.hh-sync-house {
+    padding-top: 38px;
+}
+.rd-card {
+    height: 385px;
+}
+.rd-seal {
+    height: 211px;
+}
+.aq-filter {
+    height: 274px;
+}
+.cq-panel.hero {
+    display: block;
+    min-height: 0;
+}
+.cq-cover {
+    height: 326px;
+}
+.cw-phase {
+    height: 258px;
+}
+.tp-map {
+    height: 438px;
+}
+.tp-radio {
+    height: 257px;
+}
+.cb-replication {
+    height: 268px;
+}
