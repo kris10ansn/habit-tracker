@@ -11,7 +11,7 @@ import {
     weekdayLabel,
 } from "@/domain/dates";
 import { entryIndex, outcomeAt } from "@/domain/entries";
-import { isSuccess } from "@/domain/marks";
+import { isSlip, isSuccess } from "@/domain/marks";
 import {
     useHabits,
     useMonthEntries,
@@ -43,9 +43,8 @@ export default function TodayScreen() {
     const logged = habits.filter((habit) =>
         isSuccess(habit.polarity, outcomeOf(habit.id)),
     ).length;
-    const slips = habits.filter(
-        (habit) =>
-            habit.polarity === "Negative" && outcomeOf(habit.id) === "Failure",
+    const slips = habits.filter((habit) =>
+        isSlip(habit.polarity, outcomeOf(habit.id)),
     ).length;
 
     const sync = useSync();

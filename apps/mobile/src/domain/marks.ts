@@ -12,6 +12,12 @@ export interface MarkView {
     muted: boolean;
 }
 
+// A slip is the one explicitly recorded failure state for an avoidance habit.
+export const isSlip = (
+    polarity: Polarity,
+    outcome: Outcome | undefined,
+): boolean => polarity === "Negative" && outcome === "Failure";
+
 // `outcome` is the stored value for a (habit, day), or undefined when Unmarked (no alive entry).
 // Positive: success = done, failure = missed. Negative: failure = slipped; anything else is an
 // (implicit) clean day.
@@ -20,7 +26,7 @@ export const markView = (
     outcome: Outcome | undefined,
     isFuture = false,
 ): MarkView => {
-    if (polarity === "Negative" && outcome === "Failure") {
+    if (isSlip(polarity, outcome)) {
         return { kind: "slip", label: "Slipped", muted: false };
     }
 
