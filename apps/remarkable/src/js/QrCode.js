@@ -2,11 +2,11 @@
 
 // Keep the pairing symbol at a predictable size for the e-ink layout. The vendored encoder owns
 // QR construction, error correction, masking, and matrix generation; this module only validates
-// the deliberately small pairing envelope and adapts its matrix API for QML.
-const QR_VERSION = 2;
+// the deliberately small pairing code and adapts its matrix API for QML.
+const QR_VERSION = 1;
 const ERROR_CORRECTION_LEVEL = "M";
 const MODE = "Alphanumeric";
-const MAXIMUM_ALPHANUMERIC_CHARACTERS = 38;
+const MAXIMUM_ALPHANUMERIC_CHARACTERS = 20;
 const ALPHANUMERIC_CHARACTERS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ $%*+-./:";
 
 function encodeAlphanumeric(text) {

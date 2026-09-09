@@ -3,7 +3,7 @@ import { cssInterop } from "nativewind";
 import { useRef, useState } from "react";
 import { Text, View } from "react-native";
 
-import { pairingCodeFromQrPayload } from "@/auth/pairingQr";
+import { pairingCodeFromQrPayload } from "@/auth/pairingCode";
 import { Button, ButtonText } from "@/components/ui/Button";
 
 cssInterop(CameraView, { className: "style" });
@@ -25,7 +25,9 @@ export function PairingScanner({ onCodeScanned, onCancel }: Props) {
 
         const code = pairingCodeFromQrPayload(data);
         if (!code) {
-            setScanError("That isn’t a Habit Tracker pairing QR code.");
+            setScanError(
+                "That QR code doesn’t contain a valid 6-character pairing code.",
+            );
             return;
         }
 

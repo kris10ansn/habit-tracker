@@ -5,8 +5,6 @@
 const PENDING = "Pending";
 const APPROVED = "Approved";
 const EXPIRED = "Expired";
-const PAIRING_QR_PREFIX = "HABITTRACKER:1:";
-const PAIRING_CODE_PATTERN = /^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{6}$/;
 
 function buildCodeRequest(deviceName) {
     return { deviceName: deviceName };
@@ -14,16 +12,6 @@ function buildCodeRequest(deviceName) {
 
 function buildPollRequest(code) {
     return { code: code };
-}
-
-function buildQrPayload(code) {
-    const normalizedCode =
-        typeof code === "string" ? code.trim().toUpperCase() : "";
-    if (!PAIRING_CODE_PATTERN.test(normalizedCode)) {
-        return "";
-    }
-
-    return PAIRING_QR_PREFIX + normalizedCode;
 }
 
 // Null on anything that isn't the documented shape — refused rather than guessed at, mirroring

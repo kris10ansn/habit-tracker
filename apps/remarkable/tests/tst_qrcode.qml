@@ -11,51 +11,51 @@ TestCase {
 
         width: 296
         height: 296
-        payload: "HABITTRACKER:1:ABC234"
+        payload: "ABC234"
     }
 
-    function test_encodesTheVersionedPairingPayloadAsVersionTwo() {
-        const modules = QrCode.encodeAlphanumeric("HABITTRACKER:1:ABC234");
+    function test_encodesThePairingCodeAsVersionOne() {
+        const modules = QrCode.encodeAlphanumeric("ABC234");
 
-        compare(modules.length, 25);
-        modules.forEach(row => compare(row.length, 25));
+        compare(modules.length, 21);
+        modules.forEach(row => compare(row.length, 21));
         verify(modules.every(row => row.every(module => typeof module === "boolean")));
     }
 
     function test_drawsTheThreeFinderPatterns() {
-        const modules = QrCode.encodeAlphanumeric("HABITTRACKER:1:ABC234");
+        const modules = QrCode.encodeAlphanumeric("ABC234");
 
         _verifyFinderPattern(modules, 0, 0);
-        _verifyFinderPattern(modules, 0, 18);
-        _verifyFinderPattern(modules, 18, 0);
+        _verifyFinderPattern(modules, 0, 14);
+        _verifyFinderPattern(modules, 14, 0);
     }
 
     function test_rendererUsesCrispIntegerModulesAndAFourModuleQuietZone() {
-        compare(renderedQrCode.modules.length, 25);
-        compare(renderedQrCode.moduleSize, 8);
-        compare(renderedQrCode.symbolModules, 33);
-        compare(renderedQrCode.symbolPixelSize, 264);
+        compare(renderedQrCode.modules.length, 21);
+        compare(renderedQrCode.moduleSize, 10);
+        compare(renderedQrCode.symbolModules, 29);
+        compare(renderedQrCode.symbolPixelSize, 290);
     }
 
     function test_isDeterministicAndSensitiveToThePairingCode() {
-        const first = QrCode.encodeAlphanumeric("HABITTRACKER:1:ABC234");
-        const repeated = QrCode.encodeAlphanumeric("HABITTRACKER:1:ABC234");
-        const different = QrCode.encodeAlphanumeric("HABITTRACKER:1:XYZ789");
+        const first = QrCode.encodeAlphanumeric("ABC234");
+        const repeated = QrCode.encodeAlphanumeric("ABC234");
+        const different = QrCode.encodeAlphanumeric("XYZ789");
 
         compare(_rows(first), _rows(repeated));
         verify(_rows(first) !== _rows(different));
     }
 
-    function test_acceptsTheFullVersionTwoAlphanumericCapacity() {
-        const modules = QrCode.encodeAlphanumeric("A".repeat(38));
+    function test_acceptsTheFullVersionOneAlphanumericCapacity() {
+        const modules = QrCode.encodeAlphanumeric("A".repeat(20));
 
-        compare(modules.length, 25);
+        compare(modules.length, 21);
     }
 
     function test_rejectsUnsupportedOrOversizedText() {
         _verifyThrows(() => QrCode.encodeAlphanumeric(""));
         _verifyThrows(() => QrCode.encodeAlphanumeric("lowercase"));
-        _verifyThrows(() => QrCode.encodeAlphanumeric("A".repeat(39)));
+        _verifyThrows(() => QrCode.encodeAlphanumeric("A".repeat(21)));
     }
 
     function _verifyFinderPattern(modules, top, left) {

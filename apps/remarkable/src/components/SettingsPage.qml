@@ -1,6 +1,5 @@
 import QtQuick 2.15
 import ".." as App
-import "../js/Pairing.js" as Pairing
 
 Item {
     id: settingsPage
@@ -247,7 +246,7 @@ Item {
 
                 width: 296
                 height: width
-                payload: Pairing.buildQrPayload(settingsPage.pairingCode)
+                payload: settingsPage.pairingCode
             }
         }
 

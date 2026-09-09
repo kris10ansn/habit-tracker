@@ -1,9 +1,14 @@
-import { useCameraPermissions } from "expo-camera";
-import { useFocusEffect, useIsFocused, useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import { useRouter } from "expo-router";
+import { useState } from "react";
 import { Text, View } from "react-native";
 
+import {
+    isCompletePairingCode,
+    normalizePairingCode,
+    PAIRING_CODE_LENGTH,
+} from "@/auth/pairingCode";
 import { PairingScanner } from "@/components/account/PairingScanner";
+import { usePairingScanner } from "@/components/account/usePairingScanner";
 import { AppScreen } from "@/components/ui/AppScreen";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
@@ -11,34 +16,26 @@ import { Loading } from "@/components/ui/Loading";
 import { TextInputField, TextInputLabel } from "@/components/ui/TextField";
 import { usePairingApprove, usePairingLookup } from "@/state/queries";
 
-const CODE_LENGTH = 6;
-
 // Pushed from the linked-devices screen. Not a tab — see _layout.tsx (`href: null`). The tablet
 // (or another client doing the TV-style pairing flow) displays a 6-character code; scanning its
 // pairing QR or typing that code looks up who's asking (GET /api/pairing/{code}) before Approve is
 // offered, so the owner never approves a device they can't identify.
 export default function LinkDeviceScreen() {
     const router = useRouter();
-    const isFocused = useIsFocused();
     const [code, setCode] = useState("");
     const [approvedDeviceName, setApprovedDeviceName] = useState<string | null>(
         null,
     );
-    const [scannerOpen, setScannerOpen] = useState(false);
-    const [cameraPermissionMessage, setCameraPermissionMessage] = useState<
-        string | null
-    >(null);
-    const [requestingCamera, setRequestingCamera] = useState(false);
-    const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+    const {
+        cameraPermissionMessage,
+        closeScanner,
+        openScanner,
+        requestingCamera,
+        scannerOpen,
+    } = usePairingScanner();
 
-    useFocusEffect(
-        useCallback(() => {
-            return () => setScannerOpen(false);
-        }, []),
-    );
-
-    const normalized = code.trim().toUpperCase();
-    const ready = normalized.length === CODE_LENGTH;
+    const normalized = normalizePairingCode(code);
+    const ready = isCompletePairingCode(normalized);
 
     const lookup = usePairingLookup(code);
     const approve = usePairingApprove();
@@ -55,37 +52,9 @@ export default function LinkDeviceScreen() {
         });
     };
 
-    const openScanner = async () => {
-        setCameraPermissionMessage(null);
-        if (cameraPermission?.granted) {
-            setScannerOpen(true);
-            return;
-        }
-
-        setRequestingCamera(true);
-        try {
-            const permission = await requestCameraPermission();
-            if (permission.granted) {
-                setScannerOpen(true);
-                return;
-            }
-
-            setCameraPermissionMessage(
-                "Camera access wasn’t granted. Enter the code manually, or enable camera access in system settings.",
-            );
-        } catch {
-            setCameraPermissionMessage(
-                "Camera access couldn’t be requested. Enter the code manually instead.",
-            );
-        } finally {
-            setRequestingCamera(false);
-        }
-    };
-
     const onCodeScanned = (scannedCode: string) => {
         onChangeCode(scannedCode);
-        setScannerOpen(false);
-        setCameraPermissionMessage(null);
+        closeScanner();
     };
 
     return (
@@ -96,10 +65,10 @@ export default function LinkDeviceScreen() {
             onBack={() => router.back()}
         >
             <Card className="flex-col gap-3.5">
-                {scannerOpen && isFocused ? (
+                {scannerOpen ? (
                     <PairingScanner
                         onCodeScanned={onCodeScanned}
-                        onCancel={() => setScannerOpen(false)}
+                        onCancel={closeScanner}
                     />
                 ) : (
                     <Button
@@ -127,7 +96,7 @@ export default function LinkDeviceScreen() {
                         placeholder="ABCDEF"
                         autoCapitalize="characters"
                         autoCorrect={false}
-                        maxLength={CODE_LENGTH}
+                        maxLength={PAIRING_CODE_LENGTH}
                         className="text-center text-[20px] tracking-[4px]"
                     />
                     <Text className="ml-1 mt-2 text-xs leading-5 text-ink-2">

@@ -15,16 +15,6 @@ TestCase {
         compare(Pairing.buildPollRequest("ABC234").code, "ABC234");
     }
 
-    function test_buildQrPayloadWrapsANormalizedExistingCode() {
-        compare(Pairing.buildQrPayload(" abc234 "), "HABITTRACKER:1:ABC234");
-    }
-
-    function test_buildQrPayloadRejectsAnythingOutsideTheBackendCodeAlphabet() {
-        [undefined, null, "", "ABC23", "ABC2345", "ABC230", "ABC23O"].forEach(code => {
-            compare(Pairing.buildQrPayload(code), "", `${code} should be rejected`);
-        });
-    }
-
     // --- parseCodeResponse ----------------------------------------------------------------------
 
     function test_parseCodeResponseAcceptsTheDocumentedShape() {
