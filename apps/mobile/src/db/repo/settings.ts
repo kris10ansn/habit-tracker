@@ -1,11 +1,21 @@
 import { Database } from "@/db/client";
 import * as schema from "@/db/schema";
+import { normalizeServerUrl } from "@/domain/serverUrl";
+
+type Settings = typeof schema.settings.$inferSelect;
+
+const normalizeSettings = (row: Settings): Settings => {
+    const syncServerUrl = normalizeServerUrl(row.syncServerUrl);
+    return syncServerUrl === row.syncServerUrl
+        ? row
+        : { ...row, syncServerUrl };
+};
 
 export async function getSettings(db: Database) {
     const row = await db.query.settings.findFirst();
 
     if (row) {
-        return row;
+        return normalizeSettings(row);
     }
 
     const [createdRow] = await db
@@ -13,7 +23,7 @@ export async function getSettings(db: Database) {
         .values({})
         .returning();
 
-    return createdRow;
+    return normalizeSettings(createdRow);
 }
 
 export type SettingsPatch = Partial<
@@ -21,17 +31,25 @@ export type SettingsPatch = Partial<
 >;
 
 export async function updateSettings(db: Database, patch: SettingsPatch) {
+    const normalizedPatch =
+        patch.syncServerUrl === undefined
+            ? patch
+            : {
+                  ...patch,
+                  syncServerUrl: normalizeServerUrl(patch.syncServerUrl),
+              };
+
     const [row] = await db
         .insert(schema.settings)
         .values({
             id: 0,
-            ...patch,
+            ...normalizedPatch,
         })
         .onConflictDoUpdate({
             target: schema.settings.id,
-            set: { ...patch, updatedAt: Date.now() },
+            set: { ...normalizedPatch, updatedAt: Date.now() },
         })
         .returning();
 
-    return row;
+    return normalizeSettings(row);
 }

@@ -12,7 +12,7 @@ export function AccountSection() {
     const settings = useSettings();
     const session = useAuthSession();
 
-    const baseURL = settings.data?.syncServerUrl.trim() ?? "";
+    const baseURL = settings.data?.syncServerUrl ?? "";
 
     if (!baseURL) {
         return (

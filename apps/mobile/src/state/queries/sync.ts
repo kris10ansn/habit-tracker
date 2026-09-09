@@ -47,7 +47,7 @@ export function useSync() {
 
     return useMutation({
         mutationFn: async (variables: { currentMonthKey?: string }) => {
-            const baseURL = settings.data?.syncServerUrl.trim() ?? "";
+            const baseURL = settings.data?.syncServerUrl ?? "";
 
             if (!baseURL) {
                 throw new Error(

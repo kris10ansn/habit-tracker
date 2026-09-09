@@ -1,6 +1,7 @@
 import { useDatabase } from "@/db/client";
 import { getSettings, SettingsPatch, updateSettings } from "@/db/repo/settings";
 import type { settings } from "@/db/schema";
+import { normalizeServerUrl } from "@/domain/serverUrl";
 import { settingsKey } from "@/state/queries/keys";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
@@ -25,9 +26,18 @@ export function useUpdateSettings() {
         onMutate: async (patch: SettingsPatch) => {
             await qc.cancelQueries({ queryKey: settingsKey });
             const prev = qc.getQueryData<Settings>(settingsKey);
+            const normalizedPatch =
+                patch.syncServerUrl === undefined
+                    ? patch
+                    : {
+                          ...patch,
+                          syncServerUrl: normalizeServerUrl(
+                              patch.syncServerUrl,
+                          ),
+                      };
 
             qc.setQueryData<Settings>(settingsKey, (old) =>
-                old ? { ...old, ...patch } : old,
+                old ? { ...old, ...normalizedPatch } : old,
             );
 
             return { prev };

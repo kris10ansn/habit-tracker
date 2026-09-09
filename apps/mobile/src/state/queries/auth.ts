@@ -33,7 +33,7 @@ const NO_SERVER_URL_MESSAGE =
 // same as useSync does, so it can never go stale against an in-flight edit on the Sync tab.
 function useBaseUrl(): string {
     const settings = useSettings();
-    return settings.data?.syncServerUrl.trim() ?? "";
+    return settings.data?.syncServerUrl ?? "";
 }
 
 /**
