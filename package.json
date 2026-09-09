@@ -32,6 +32,8 @@
         "backend:db:clear": "pnpm --filter @habit-tracker/backend run db:clear",
         "screenshots:fixtures:test": "node --test tools/readme-screenshots/test/*.test.mjs && node tools/readme-screenshots/generate-mobile-test-fixture.mjs --check",
         "screenshots:remarkable": "node tools/readme-screenshots/capture-remarkable.mjs",
+        "screenshots:frame": "node tools/readme-screenshots/frame-screenshots.mjs",
+        "screenshots:linking": "node tools/readme-screenshots/compose-linking-scene.mjs",
         "mobile:test:fixture": "node tools/readme-screenshots/generate-mobile-test-fixture.mjs",
         "mobile:test:go": "pnpm --filter @habit-tracker/mobile run test:go",
         "mobile:test:build": "pnpm --filter @habit-tracker/mobile run test:build",

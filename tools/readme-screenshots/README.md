@@ -4,6 +4,46 @@ These tools regenerate the real application images committed under
 `docs/assets/screenshots/`. Both clients consume the fictional, backend-shaped story in
 `fixture.json`, dated 2026-09-09. No live backend, account, reMarkable, or user database is used.
 
+## Device frames
+
+Raw captures remain under `docs/assets/screenshots/` so they can be inspected without presentation
+effects. Their README-ready copies live under `docs/assets/screenshots/framed/`.
+
+The frame source is the existing AI-generated
+`docs/assets/device-frames/device-family-source.png`. The compositor crops the unchanged tablet or
+phone shell from that image, blanks its old screen pixels, fits a current capture into the
+calibrated screen window without cropping, masks the phone's round corners, and restores its camera
+cutout. Device texture, lighting, and shadow therefore remain stable across screenshot updates; AI
+is not involved after the frame source has been committed.
+
+Both capture helpers create the matching framed output automatically. Existing or manually copied
+captures can be framed separately:
+
+```sh
+pnpm screenshots:frame
+pnpm screenshots:frame -- --client remarkable --scenario settings
+pnpm screenshots:frame -- --client android --scenario devices
+```
+
+The three-device linking scene is generated separately. It replaces every source screen currently
+available and leaves the original concept pixels in any missing slot. That means the committed
+example can use the real tablet capture today, then pick up either Android screen independently as
+soon as its raw capture is added:
+
+```sh
+pnpm screenshots:linking
+```
+
+To frame an arbitrary compatible PNG, provide its client and explicit paths:
+
+```sh
+pnpm screenshots:frame -- --client remarkable --input ./screen.png --output ./framed.png
+```
+
+The compositor rejects the wrong orientation and large aspect-ratio mismatches. Smaller differences
+are centered against the frame's off-white screen color rather than stretching or cropping the app
+UI. ImageMagick provides the only image-processing dependency.
+
 ## reMarkable captures
 
 Install host Qt 5.15 development packages and ImageMagick, then run:
@@ -15,7 +55,8 @@ pnpm screenshots:remarkable -- --scenario pairing
 
 The normal pages come from the live `apps/remarkable/src/Main.qml` scene through an offscreen Qt
 Quick host. The suspend image still comes from the production suspend renderer; the tool only
-rotates its framebuffer-oriented result for readable README presentation.
+rotates its framebuffer-oriented result for readable README presentation. Each raw capture and its
+framed presentation copy are written together.
 
 ## Mobile test target and manual captures
 
@@ -77,14 +118,16 @@ pnpm mobile:test:capture -- --serial emulator-5554 --name devices
 ```
 
 Both helpers require an `emulator-*` serial and verify Android's QEMU property. They reject
-physical, network, offline, and ambiguous targets.
+physical, network, offline, and ambiguous targets. A successful capture also writes its framed
+presentation copy.
 
 ## Changing the fixture or scenarios
 
 1. Edit `fixture.json` in backend vocabulary and add any scenario metadata to `scenarios.mjs`.
 2. Run `pnpm mobile:test:fixture` to refresh the generated mobile test data.
 3. Add reMarkable presentation state or a mobile output name to the scenario registry.
-4. Run `pnpm screenshots:fixtures:test`, the platform checks, and review new captures manually.
+4. Run `pnpm screenshots:frame` and `pnpm screenshots:linking` after adding manual captures.
+5. Run `pnpm screenshots:fixtures:test`, the platform checks, and review new captures manually.
 
 Fixture validation rejects duplicate identities and positions, unknown polarity/outcome spellings,
 future entries, ambiguous pairing codes, and inconsistent session state. Generated and staged data

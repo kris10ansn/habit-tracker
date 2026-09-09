@@ -5,7 +5,8 @@
 The shared fixture, reMarkable offscreen host, suspend-renderer integration, and real reMarkable
 image set are implemented. Mobile now uses an additive test target and a manual capture workflow.
 The Expo Go test project must still be opened and visually reviewed by the user before its images
-replace the clearly labeled AI-generated mobile concept.
+replace the clearly labeled AI-generated mobile concept. README presentation copies are fitted into
+stable device frames derived from that concept; raw captures remain available separately.
 
 ## Goal
 
@@ -81,7 +82,9 @@ pnpm screenshots:remarkable -- --scenario pairing
 ```
 
 Captures stage to a temporary directory and replace committed outputs only after the requested set
-succeeds.
+succeeds. The capture command also regenerates each README-ready device-framed copy. Existing raw
+captures can be reprocessed with `pnpm screenshots:frame`; `pnpm screenshots:linking` refreshes the
+three-device scene and preserves concept pixels for mobile slots that do not have real captures yet.
 
 ## Mobile test target
 

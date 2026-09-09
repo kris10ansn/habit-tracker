@@ -13,6 +13,12 @@ import {
 } from "../lib/fixture.mjs";
 import { scenarios, selectScenarios } from "../scenarios.mjs";
 import { parseAdbDevices, validateEmulatorTarget } from "../lib/adb.mjs";
+import {
+    deviceFrames,
+    linkingScene,
+    pngDimensions,
+    validateScreenshotDimensions,
+} from "../lib/device-frames.mjs";
 
 const fixturePath = new URL("../fixture.json", import.meta.url);
 const require = createRequire(import.meta.url);
@@ -82,6 +88,57 @@ test("scenario selection is explicit", () => {
         () => selectScenarios("android", "grid"),
         /Unknown android scenario/,
     );
+});
+
+test("device-frame geometry stays inside its source crop", () => {
+    const layouts = [
+        ...Object.values(deviceFrames).map((frame) => ({
+            crop: frame.crop,
+            slots: [frame],
+        })),
+        { crop: linkingScene.crop, slots: Object.values(linkingScene.slots) },
+    ];
+
+    for (const layout of layouts) {
+        for (const slot of layout.slots) {
+            assert.ok(slot.screen.x >= 0);
+            assert.ok(slot.screen.y >= 0);
+            assert.ok(slot.screen.x + slot.screen.width <= layout.crop.width);
+            assert.ok(slot.screen.y + slot.screen.height <= layout.crop.height);
+        }
+    }
+});
+
+test("device frames accept expected screenshot orientations", () => {
+    assert.doesNotThrow(() =>
+        validateScreenshotDimensions("remarkable", {
+            width: 1872,
+            height: 1404,
+        }),
+    );
+    assert.doesNotThrow(() =>
+        validateScreenshotDimensions("android", {
+            width: 1080,
+            height: 2400,
+        }),
+    );
+    assert.throws(
+        () =>
+            validateScreenshotDimensions("android", {
+                width: 2400,
+                height: 1080,
+            }),
+        /must be portrait/,
+    );
+});
+
+test("PNG dimensions come from the image header", () => {
+    const header = Buffer.alloc(24);
+    Buffer.from("89504e470d0a1a0a", "hex").copy(header);
+    header.writeUInt32BE(930, 16);
+    header.writeUInt32BE(690, 20);
+    assert.deepEqual(pngDimensions(header), { width: 930, height: 690 });
+    assert.throws(() => pngDimensions(Buffer.from("not a png")), /not a PNG/);
 });
 
 test("adb parser distinguishes target states", () => {

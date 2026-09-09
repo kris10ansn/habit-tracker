@@ -6,6 +6,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { parseAdbDevices, validateEmulatorTarget } from "./lib/adb.mjs";
+import { frameScreenshot } from "./lib/device-frames.mjs";
 import { selectScenarios } from "./scenarios.mjs";
 
 const directory = path.dirname(fileURLToPath(import.meta.url));
@@ -111,3 +112,15 @@ const output = path.join(options.outDir, scenario.output);
 await writeFile(`${output}.new`, png);
 await rename(`${output}.new`, output);
 process.stdout.write(`wrote ${path.relative(repositoryRoot, output)}\n`);
+
+const framedOutput = path.join(options.outDir, "framed", scenario.output);
+await frameScreenshot({
+    client: "android",
+    inputPath: output,
+    outputPath: framedOutput,
+    frameSourcePath: path.join(
+        repositoryRoot,
+        "docs/assets/device-frames/device-family-source.png",
+    ),
+});
+process.stdout.write(`wrote ${path.relative(repositoryRoot, framedOutput)}\n`);
