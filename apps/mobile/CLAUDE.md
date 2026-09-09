@@ -5,17 +5,22 @@
 The `apps/mobile/` client of the habit-tracker monorepo: Expo (SDK 56) + expo-router + TypeScript,
 styled with NativeWind (Tailwind for React Native).
 
-## Hard rule: native-only execution
+## Hard rule: native-only, user-run heavy execution
 
 Never run `expo start --web` (or any command that serves the app to a browser) — the web target
 was deliberately removed from `package.json` and `app.json`; do not add it back or bypass it with
 `pnpm exec expo start --web`. This app is native-only: verify ordinary changes with
 `pnpm typecheck` / `pnpm lint` and leave interactive device checks to the user.
 
-An agent may launch a local Android emulator only when the user explicitly asks it to run or
-capture the mobile UI, including through the documented README-screenshot workflow. Resolve the
-`adb` target first and proceed only when it is an emulator; physical devices and cloud builds stay
-user-run unless the user explicitly requests them.
+Native builds and prebuilds, Gradle, EAS builds, emulator launches, app installation, and other
+resource-heavy tasks are user-run by default. Run one only when the user explicitly asks for that
+specific operation; a general implementation, verification, or screenshot request is not
+authorization. Lightweight typechecking, linting, and unit tests remain normal agent checks.
+
+When the user explicitly requests emulator work, resolve the `adb` target first and proceed only
+when it is an emulator; physical devices and cloud builds stay user-run unless separately requested.
+For deterministic test data or README captures, follow the isolated test-mode workflow in
+[`tools/readme-screenshots/README.md`](../../tools/readme-screenshots/README.md).
 
 ## Hard rule: the backend is mobile's only reference
 

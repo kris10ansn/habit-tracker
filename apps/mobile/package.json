@@ -70,7 +70,9 @@
     "typecheck": "tsc --noEmit",
     "lint": "expo lint",
     "db:generate": "drizzle-kit generate",
-    "api:generate": "kubb generate"
+    "api:generate": "kubb generate",
+    "test:go": "APP_TEST_MODE=1 expo start --go",
+    "test:build": "APP_TEST_MODE=1 expo prebuild --platform android --no-install && cd android && ANDROID_HOME=${ANDROID_HOME:-$HOME/Android/Sdk} APP_TEST_MODE=1 ./gradlew app:assembleRelease -PreactNativeArchitectures=x86_64"
   },
   "private": true
 }

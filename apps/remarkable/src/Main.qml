@@ -10,6 +10,20 @@ Rectangle {
     anchors.fill: parent
     color: App.Theme.bg
 
+    // Host-only screenshot inputs. Their defaults are the production paths and behavior; the
+    // off-device capture tool overrides them before Main is constructed.
+    property date today: new Date()
+    property string dataDir: "/home/root/xovi/exthome/appload/habit-tracker/data"
+    property string settingsFilePath: "/home/root/xovi/exthome/appload/habit-tracker/settings.json"
+    property string syncFilePath: dataDir + "/sync.json"
+    property string initialView: "grid"
+    property bool initialEditing: false
+    property bool screenshotMode: false
+    property string screenshotPairingStatus: ""
+    property string screenshotPairingCode: ""
+
+    readonly property bool screenshotReady: habitsStore.isLoaded && settingsStore.isLoaded
+        && syncStore.isLoaded && (landscape.currentView === "settings" || landscape.gridReady)
     readonly property string suspendStatusText: SuspendStatus.text(suspendCanvas.phase, suspendCanvas.remainingSeconds)
 
     signal close
@@ -58,7 +72,7 @@ Rectangle {
     // could miss pending tombstones. Guarded to run once per launch.
     property bool _syncedOnLoad: false
     function _maybeSyncOnLoad() {
-        if (root._syncedOnLoad || !habitsStore.isLoaded || !syncStore.isLoaded)
+        if (root.screenshotMode || root._syncedOnLoad || !habitsStore.isLoaded || !syncStore.isLoaded)
             return;
 
         root._syncedOnLoad = true;
@@ -86,15 +100,18 @@ Rectangle {
 
     App.HabitsStore {
         id: habitsStore
+        dataDir: root.dataDir
+        today: root.today
     }
 
     App.SettingsStore {
         id: settingsStore
+        filePath: root.settingsFilePath
     }
 
     App.SyncStore {
         id: syncStore
-        filePath: habitsStore.dataDir + "/sync.json"
+        filePath: root.syncFilePath
         habitsStore: habitsStore
         settingsStore: settingsStore
         monthKey: habitsStore.monthKey
@@ -105,7 +122,7 @@ Rectangle {
     App.PairingStore {
         id: pairingStore
         settingsStore: settingsStore
-        active: landscape.currentView === "settings"
+        active: !root.screenshotMode && landscape.currentView === "settings"
     }
 
     App.SuspendCanvas {
@@ -149,13 +166,13 @@ Rectangle {
         height: parent.width
         rotation: 90
 
-        property date today: new Date()
+        property date today: root.today
         property int currentDay: today.getDate()
         property int currentYear: today.getFullYear()
         property int currentMonth: today.getMonth()
-        property bool editing: false
+        property bool editing: root.initialEditing
         property int pendingDeleteIndex: -1
-        property string currentView: "grid"
+        property string currentView: root.initialView
 
         // The month on screen. Starts on the real current month; the header arrows
         // move it. The grid, the day count, and (via habitsStore) the loaded entries
@@ -174,7 +191,7 @@ Rectangle {
         // The precondition every suspend render shares: the feature is on, the real current month
         // is on screen, and the grid is showing what is actually on disk — an unreadable file
         // renders as an empty month, which must never reach the suspend image.
-        readonly property bool canRenderSuspend: settingsStore.suspendImageEnabled && isCurrentMonth && !habitsStore.hasUnreadableData
+        readonly property bool canRenderSuspend: !root.screenshotMode && settingsStore.suspendImageEnabled && isCurrentMonth && !habitsStore.hasUnreadableData
 
         // Tear the grid down and repoint the header this frame for instant feedback,
         // then defer the blocking month read past the paint (mirrors the deferred
@@ -412,8 +429,8 @@ Rectangle {
             serverUrl: settingsStore.serverUrl
             syncStatusText: syncStore.statusText
             pairingConnected: settingsStore.token !== ""
-            pairingStatus: pairingStore.status
-            pairingCode: pairingStore.code
+            pairingStatus: root.screenshotMode ? root.screenshotPairingStatus : pairingStore.status
+            pairingCode: root.screenshotMode ? root.screenshotPairingCode : pairingStore.code
             pairingErrorMessage: pairingStore.errorMessage
             onApplyRequested: root.applySuspendSetting(value)
             onShowPrivateHabitsApplied: settingsStore.setShowPrivateHabits(value)
