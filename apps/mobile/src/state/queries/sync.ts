@@ -88,36 +88,15 @@ export function useSync() {
     });
 }
 
-/** What the Sync tab shows for a failure. The card renders it; it decides nothing. */
+/** Transport failures are local; server rejections already carry their own user-safe message. */
 export function syncErrorReason(error: unknown): string {
     if (error instanceof NetworkError) {
         return "Couldn't reach the server — check the URL and your connection.";
     }
 
     if (error instanceof ApiError) {
-        if (error.status === 401) {
-            return "Signed out — sign in again on the Sync tab.";
-        }
-
-        // The backend refuses a whole sync whose edit-times run too far ahead of its own clock,
-        // because edit-time is the merge key and a bad one would out-rank every later edit.
-        if (error.status === 400 && isClockSkew(error.body)) {
-            return "This device's clock is too far ahead of the server. Fix the date and try again.";
-        }
-
-        return `Server returned ${error.status}.`;
+        return error.message;
     }
 
     return error instanceof Error ? error.message : "Something went wrong.";
-}
-
-// ASP.NET replies with ProblemDetails; the skew refusal is the only 400 the sync endpoint returns.
-function isClockSkew(body: unknown): boolean {
-    return (
-        typeof body === "object" &&
-        body !== null &&
-        "title" in body &&
-        typeof body.title === "string" &&
-        body.title.toLowerCase().includes("clock")
-    );
 }

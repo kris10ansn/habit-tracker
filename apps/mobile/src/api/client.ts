@@ -62,9 +62,10 @@ export type Client = <TResponseData, _TError = unknown, TRequestData = unknown>(
 ) => Promise<ResponseConfig<TResponseData>>;
 
 /**
- * A non-2xx response. `body` is whatever the backend sent — for a rejected sync that is the
- * ASP.NET `ProblemDetails` shape, e.g. the 400 the backend returns when the client clock runs
- * further ahead than its skew tolerance allows.
+ * A non-2xx response. The backend owns user-safe explanations through ASP.NET `ProblemDetails`,
+ * so `message` is its `title` when present and a status fallback otherwise. Callers therefore do
+ * not need to reconstruct server failures from status codes. `body` stays available for logging
+ * and diagnostics.
  */
 export class ApiError extends Error {
     readonly status: number;
@@ -72,12 +73,26 @@ export class ApiError extends Error {
     readonly body: unknown;
 
     constructor(status: number, statusText: string, body: unknown) {
-        super(`Backend responded ${status} ${statusText}`.trim());
+        super(problemTitle(body) ?? `Server returned ${status}.`);
         this.name = "ApiError";
         this.status = status;
         this.statusText = statusText;
         this.body = body;
     }
+}
+
+function problemTitle(body: unknown): string | null {
+    if (
+        typeof body !== "object" ||
+        body === null ||
+        !("title" in body) ||
+        typeof body.title !== "string"
+    ) {
+        return null;
+    }
+
+    const title = body.title.trim();
+    return title || null;
 }
 
 /** The request never left the device (offline, DNS failure, unreachable host, timeout). */

@@ -75,6 +75,10 @@ public class SyncControllerTests
         var badRequest = Assert.IsType<BadRequestObjectResult>(result.Result);
         var problem = Assert.IsType<ProblemDetails>(badRequest.Value);
         Assert.Equal(400, problem.Status);
+        Assert.Equal(
+            "This device's clock is too far ahead of the server. Fix the date and try again.",
+            problem.Title
+        );
         Assert.Empty(db.Habits);
     }
 

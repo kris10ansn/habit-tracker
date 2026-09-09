@@ -1,4 +1,5 @@
 import QtQuick 2.15
+import "js/HttpError.js" as HttpError
 import "js/Pairing.js" as Pairing
 import "js/ServerUrl.js" as ServerUrl
 
@@ -211,11 +212,6 @@ QtObject {
 
     function _fail(xhr) {
         pairingStore._pollTimer.stop();
-        if (xhr.status === 429) {
-            pairingStore.status = "error";
-            pairingStore.errorMessage = "Too many attempts — wait a moment and try again.";
-            return;
-        }
         if (xhr.status === 0) {
             pairingStore.status = "error";
             pairingStore.errorMessage = "Couldn’t reach the server";
@@ -223,7 +219,7 @@ QtObject {
         }
 
         pairingStore.status = "error";
-        pairingStore.errorMessage = "Server returned " + xhr.status;
+        pairingStore.errorMessage = HttpError.message(xhr.status, xhr.responseText);
     }
 
     function _post(url, path, body, onDone) {

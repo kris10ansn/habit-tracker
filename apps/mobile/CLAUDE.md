@@ -110,7 +110,9 @@ since it crosses month partitions.
   operation, e.g. `sync()`, each validating its response with the Zod schema before returning).
   `client.ts` is the **only** hand-written file here — the fetch transport, which takes `baseURL`
   per call (no module-level state to go stale against the editable Server URL setting) and throws
-  `ApiError` (non-2xx, `body` carries the backend's `ProblemDetails`) or `NetworkError`.
+  `ApiError` (non-2xx; its message comes from the backend's `ProblemDetails.title`, with a status
+  fallback, while `body` retains the response for diagnostics) or `NetworkError`. Server rejection
+  copy belongs to the backend; mobile owns only client-side failures and presentation around it.
 - `src/theme/colors.ts` — raw palette for non-className APIs. `src/lib/` — `cn.ts` (classname joiner
   for conditional classes) and `useUpdateEffect.ts` (effect that skips the first run, used to
   re-seed local form state from a query without clobbering typing).
