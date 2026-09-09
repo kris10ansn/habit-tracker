@@ -1,3 +1,5 @@
+import { currentTime } from "@/screenshots/config";
+
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;
@@ -7,7 +9,7 @@ const DAY = 24 * HOUR;
 // that to mean "hasn't happened yet".
 export function relativeTime(
     instant: number | null,
-    now: number = Date.now(),
+    now: number = currentTime(),
 ): string {
     if (instant === null) return "never";
 

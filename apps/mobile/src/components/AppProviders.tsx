@@ -10,11 +10,18 @@ import {
     QueryClientProvider,
 } from "@tanstack/react-query";
 import { useMigrations } from "drizzle-orm/expo-sqlite/migrator";
-import { SQLiteProvider, type SQLiteDatabase } from "expo-sqlite";
-import { type ReactNode } from "react";
+import {
+    SQLiteProvider,
+    useSQLiteContext,
+    type SQLiteDatabase,
+} from "expo-sqlite";
+import { useEffect, useState, type ReactNode } from "react";
 import { ActivityIndicator, Text, View } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { KeyboardProvider } from "react-native-keyboard-controller";
+
+import { screenshotDatabaseName, screenshotMode } from "@/screenshots/config";
+import { seedScreenshotDatabase } from "@/screenshots/database";
 
 // A function declaration, not an arrow: it is referenced by the caches below, which are built
 // before `queryClient` exists. Hoisting makes that legal, and it only ever reads `queryClient` at
@@ -53,14 +60,37 @@ const BootScreen = ({ children }: { children?: string }) => (
 
 // Applies Drizzle migrations before any screen queries the database.
 function DatabaseGate({ children }: { children: ReactNode }) {
+    const sqlite = useSQLiteContext();
     const db = useDatabase();
     const { success, error } = useMigrations(db, migrations);
+    const [fixtureReady, setFixtureReady] = useState(!screenshotMode);
+
+    useEffect(() => {
+        if (!success || !screenshotMode) return;
+
+        let active = true;
+        seedScreenshotDatabase(sqlite)
+            .then(() => {
+                if (!active) return;
+                console.info("README_SCREENSHOT_MODE_READY");
+                setFixtureReady(true);
+            })
+            .catch((seedError: unknown) => {
+                if (!active) return;
+                setFixtureReady(false);
+                console.error("README screenshot fixture failed", seedError);
+            });
+
+        return () => {
+            active = false;
+        };
+    }, [sqlite, success]);
 
     if (error) {
         return <BootScreen>{`Database error: ${error.message}`}</BootScreen>;
     }
 
-    if (!success) {
+    if (!success || !fixtureReady) {
         return <BootScreen />;
     }
 
@@ -72,7 +102,10 @@ export function AppProviders({ children }: { children: ReactNode }) {
     return (
         <GestureHandlerRootView>
             <KeyboardProvider>
-                <SQLiteProvider databaseName="habits.db" onInit={enableWal}>
+                <SQLiteProvider
+                    databaseName={screenshotDatabaseName}
+                    onInit={enableWal}
+                >
                     <QueryClientProvider client={queryClient}>
                         <DatabaseGate>{children}</DatabaseGate>
                     </QueryClientProvider>

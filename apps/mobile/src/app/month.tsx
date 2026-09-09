@@ -7,6 +7,7 @@ import { AppScreen } from "@/components/ui/AppScreen";
 import { Loading } from "@/components/ui/Loading";
 import { SlideTransition } from "@/components/ui/SlideTransition";
 import { addMonth, monthView, todayKey } from "@/domain/dates";
+import { currentDate } from "@/screenshots/config";
 import {
     useHabits,
     useMonthEntries,
@@ -18,9 +19,9 @@ import {
 // Month: the whole grid at review scale — days down, habits across. Navigable to any month;
 // past and the current month are editable, future days are view-only.
 export default function MonthScreen() {
-    const today = todayKey();
+    const today = todayKey(currentDate());
     const [cursor, setCursor] = useState(() => {
-        const now = new Date();
+        const now = currentDate();
         return { year: now.getFullYear(), month: now.getMonth() };
     });
     // Sign of the last navigation: +1 next, -1 prev — drives which side the grid slides in from.

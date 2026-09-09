@@ -30,8 +30,13 @@
         "backend:db:up": "pnpm --filter @habit-tracker/backend run db:up",
         "backend:db:down": "pnpm --filter @habit-tracker/backend run db:down",
         "backend:db:clear": "pnpm --filter @habit-tracker/backend run db:clear",
-        "screenshots:fixtures:test": "node --test tools/readme-screenshots/test/*.test.mjs",
-        "screenshots:remarkable": "node tools/readme-screenshots/capture-remarkable.mjs"
+        "screenshots:fixtures:test": "node --test tools/readme-screenshots/test/*.test.mjs && node tools/readme-screenshots/generate-mobile-fixture.mjs --check",
+        "screenshots:remarkable": "node tools/readme-screenshots/capture-remarkable.mjs",
+        "screenshots:android:fixture": "node tools/readme-screenshots/generate-mobile-fixture.mjs",
+        "screenshots:android:build": "pnpm --filter @habit-tracker/mobile run screenshots:build",
+        "screenshots:android:install": "node tools/readme-screenshots/install-android.mjs",
+        "screenshots:android": "node tools/readme-screenshots/capture-android.mjs",
+        "screenshots": "node tools/readme-screenshots/capture-all.mjs"
     },
     "devDependencies": {
         "prettier": "^3.8.3"

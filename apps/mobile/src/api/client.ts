@@ -19,6 +19,7 @@
 // resulting signed-out state through `useAuthSession()` (see `src/state/queries/auth.ts`).
 
 import { clearAuthSession, getAuthSession } from "@/auth/session";
+import { assertNetworkAllowed } from "@/screenshots/config";
 
 /** Per-request options. The generated operations fill in `method`/`url`/`data`; callers add `baseURL`. */
 export type RequestConfig<TData = unknown> = {
@@ -158,6 +159,7 @@ const client: Client = async <
 >(
     config: RequestConfig<TRequestData>,
 ): Promise<ResponseConfig<TResponseData>> => {
+    assertNetworkAllowed();
     const url = buildUrl(config);
 
     const isAnonymous = ANONYMOUS_PATHS.has(config.url ?? "");

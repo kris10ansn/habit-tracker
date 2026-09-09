@@ -15,7 +15,9 @@ was deliberately removed from `package.json` and `app.json`; do not add it back 
 An agent may launch a local Android emulator only when the user explicitly asks it to run or
 capture the mobile UI, including through the documented README-screenshot workflow. Resolve the
 `adb` target first and proceed only when it is an emulator; physical devices and cloud builds stay
-user-run unless the user explicitly requests them.
+user-run unless the user explicitly requests them. The capture runner never starts an emulator;
+follow [`tools/readme-screenshots/README.md`](../../tools/readme-screenshots/README.md) for its
+validated target and isolated screenshot-build contract.
 
 ## Hard rule: the backend is mobile's only reference
 
