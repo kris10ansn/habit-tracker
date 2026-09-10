@@ -119,7 +119,7 @@ test("device frames accept expected screenshot orientations", () => {
     assert.doesNotThrow(() =>
         validateScreenshotDimensions("android", {
             width: 1080,
-            height: 2400,
+            height: 2424,
         }),
     );
     assert.throws(
@@ -130,6 +130,28 @@ test("device frames accept expected screenshot orientations", () => {
             }),
         /must be portrait/,
     );
+});
+
+test("device-frame windows exactly match native capture proportions", () => {
+    const captureDimensions = {
+        remarkable: { width: 1872, height: 1404 },
+        android: { width: 1080, height: 2424 },
+    };
+    const slots = [
+        ...Object.entries(deviceFrames).map(([client, frame]) => ({
+            client,
+            screen: frame.screen,
+        })),
+        ...Object.values(linkingScene.slots),
+    ];
+
+    for (const slot of slots) {
+        const capture = captureDimensions[slot.client];
+        assert.equal(
+            slot.screen.width * capture.height,
+            slot.screen.height * capture.width,
+        );
+    }
 });
 
 test("PNG dimensions come from the image header", () => {

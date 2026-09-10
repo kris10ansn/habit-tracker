@@ -9,12 +9,14 @@ These tools regenerate the real application images committed under
 Raw captures remain under `docs/assets/screenshots/` so they can be inspected without presentation
 effects. Their README-ready copies live under `docs/assets/screenshots/framed/`.
 
-The frame source is the existing AI-generated
-`docs/assets/device-frames/device-family-source.png`. The compositor crops the unchanged tablet or
-phone shell from that image, blanks its old screen pixels, fits a current capture into the
-calibrated screen window without cropping, masks the phone's round corners, and restores its camera
-cutout. Device texture, lighting, and shadow therefore remain stable across screenshot updates; AI
-is not involved after the frame source has been committed.
+The frame source is the retained AI-generated
+`docs/assets/device-frames/device-family-source.png`, combining the selected original-inspired
+reMarkable frame and minimal graphite phone frame. Its calibrated windows exactly match the native
+captures: 4:3 for reMarkable and 45:101 for 1080x2424 Android screenshots. The compositor crops the
+tablet or phone shell, blanks its screen pixels, fits the current capture without cropping,
+stretching, or gutters, and masks the phone's round corners. Device texture, lighting, and shadow
+therefore remain stable across screenshot updates; AI is not involved after the frame source has
+been committed.
 
 Both capture helpers create the matching framed output automatically. Existing or manually copied
 captures can be framed separately:
@@ -40,7 +42,8 @@ To frame an arbitrary compatible PNG, provide its client and explicit paths:
 pnpm screenshots:frame -- --client remarkable --input ./screen.png --output ./framed.png
 ```
 
-The compositor rejects the wrong orientation and large aspect-ratio mismatches. Smaller differences
+The compositor rejects the wrong orientation and large aspect-ratio mismatches. Native reMarkable
+and Android captures fill their windows exactly. Smaller differences from other compatible inputs
 are centered against the frame's off-white screen color rather than stretching or cropping the app
 UI. ImageMagick provides the only image-processing dependency.
 
