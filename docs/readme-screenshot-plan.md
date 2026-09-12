@@ -4,8 +4,9 @@
 
 The shared fixture, reMarkable offscreen host, suspend-renderer integration, and real reMarkable
 image set are implemented. Mobile now uses an additive test target and a manual capture workflow.
-The Expo Go test project must still be opened and visually reviewed by the user before its images
-replace the clearly labeled AI-generated mobile concept.
+Its manually reviewed Android images replace the AI-generated screen concepts. README presentation
+copies are fitted into stable device frames derived from the original concept; raw captures remain
+available separately.
 
 ## Goal
 
@@ -81,7 +82,9 @@ pnpm screenshots:remarkable -- --scenario pairing
 ```
 
 Captures stage to a temporary directory and replace committed outputs only after the requested set
-succeeds.
+succeeds. The capture command also regenerates each README-ready device-framed copy. Existing raw
+captures can be reprocessed with `pnpm screenshots:frame`; `pnpm screenshots:linking` refreshes the
+three-device scene and preserves concept pixels for mobile slots that do not have real captures yet.
 
 ## Mobile test target
 
@@ -188,8 +191,8 @@ explicit request for that specific operation.
 - Assert test time freezes both `new Date()` and `Date.now()` without changing explicit dates.
 - Confirm feature directories contain no test- or screenshot-specific imports or conditionals.
 - Inspect every committed image at GitHub-rendered size and full resolution.
-- Replace the AI mobile concept only after all six native screens have been manually reviewed.
+- Confirm all six native Android captures remain legible after device-frame composition.
 
-The workflow is complete when the test project can be opened in Expo Go, shows deterministic fixture
-data on every target screen without a backend, and lets a person capture the current screen without
-exposing normal app state or automating their desktop.
+The workflow is complete: the test project shows deterministic fixture data on every target screen
+without a backend, and a person can capture the current screen without exposing normal app state or
+automating their desktop.

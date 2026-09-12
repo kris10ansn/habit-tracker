@@ -4,8 +4,8 @@
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/assets/screenshots/remarkable-grid.png" alt="The real reMarkable app showing a September habit grid"></td>
-    <td width="50%"><img src="docs/assets/screenshots/remarkable-suspend.png" alt="The real generated reMarkable suspend screen showing public habits"></td>
+    <td width="50%"><img src="docs/assets/screenshots/framed/remarkable-grid.png" alt="The real reMarkable app showing a September habit grid inside a device frame"></td>
+    <td width="50%"><img src="docs/assets/screenshots/framed/remarkable-suspend.png" alt="The real generated reMarkable suspend screen showing public habits inside a device frame"></td>
   </tr>
   <tr>
     <td align="center"><sub>Live reMarkable grid</sub></td>
@@ -13,9 +13,9 @@
   </tr>
 </table>
 
-These are captures from the real reMarkable interface and suspend renderer, populated with
-fictional sample data. The mobile and linking concept shown later is explicitly marked as an
-AI-generated placeholder until the native Android capture workflow is validated end to end.
+The screen pixels are captures from the real reMarkable and Android interfaces, populated with
+fictional sample data. A deterministic compositor fits them into the device artwork retained from
+the linking concept.
 
 This repository contains three parts of one habit-tracking system:
 
@@ -38,16 +38,15 @@ Both clients remain useful on their own. Sync is something you opt into by suppl
 The reMarkable requests a short pairing code. The signed-in mobile app identifies the requesting device before approval, then lets the account owner review or revoke every linked session.
 
 <p align="center">
-  <img src="docs/assets/screenshots/remarkable-pairing.png" alt="The real reMarkable pairing screen showing fictional code H7K9Q2" width="100%">
+  <img src="docs/assets/screenshots/framed/remarkable-pairing.png" alt="The real reMarkable pairing screen showing fictional code H7K9Q2 inside a device frame" width="100%">
 </p>
 
-> [!WARNING]
-> **AI-generated placeholder:** The sequence below is a visual concept, not a screenshot of the
-> application. It illustrates mobile approval and the linked-device list while native Android
-> captures remain pending.
+> [!NOTE]
+> The device shells below are retained AI-generated artwork. All three screen interiors are real,
+> deterministic captures from the reMarkable and Android clients.
 
 <p align="center">
-  <img src="docs/images/device-linking-concept.png" alt="AI-generated placeholder illustrating a pairing code on reMarkable, approval on mobile, and the linked-device list" width="100%">
+  <img src="docs/assets/screenshots/framed/device-linking.png" alt="Real reMarkable pairing, Android approval, and Android linked-device screens fitted into device frames" width="100%">
 </p>
 
 ## The reMarkable workflow
@@ -58,12 +57,37 @@ enough for an e-ink display.
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/assets/screenshots/remarkable-edit.png" alt="The real reMarkable app in habit editing mode"></td>
-    <td width="50%"><img src="docs/assets/screenshots/remarkable-settings.png" alt="The real reMarkable settings page"></td>
+    <td width="50%"><img src="docs/assets/screenshots/framed/remarkable-edit.png" alt="The real reMarkable app in habit editing mode inside a device frame"></td>
+    <td width="50%"><img src="docs/assets/screenshots/framed/remarkable-settings.png" alt="The real reMarkable settings page inside a device frame"></td>
   </tr>
   <tr>
     <td align="center"><sub>Edit, reorder, and change habits</sub></td>
     <td align="center"><sub>Control privacy, suspend rendering, and sync</sub></td>
+  </tr>
+</table>
+
+## The mobile workflow
+
+The native Android captures use the same fictional fixture as the tablet and backend. They show
+daily logging, month review, habit management, and the explicit sync state without contacting a
+live account.
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/assets/screenshots/framed/android-today.png" alt="The real Android Today screen inside a device frame"></td>
+    <td width="50%"><img src="docs/assets/screenshots/framed/android-month.png" alt="The real Android Month screen inside a device frame"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Log today and follow streaks</sub></td>
+    <td align="center"><sub>Review the month</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="docs/assets/screenshots/framed/android-habits.png" alt="The real Android Habits screen inside a device frame"></td>
+    <td width="50%"><img src="docs/assets/screenshots/framed/android-sync.png" alt="The real Android Sync screen inside a device frame"></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Manage habits and polarity</sub></td>
+    <td align="center"><sub>Control account and sync state</sub></td>
   </tr>
 </table>
 
@@ -221,6 +245,8 @@ a tablet. Mobile uses an isolated Expo Go test project that you navigate and cap
 
 ```sh
 pnpm screenshots:remarkable
+pnpm screenshots:frame
+pnpm screenshots:linking
 pnpm mobile:test:fixture
 pnpm mobile:test:go
 ```
