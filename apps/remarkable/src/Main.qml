@@ -4,6 +4,7 @@ import "components" as App
 import "js/DateUtils.js" as DateUtils
 import "js/Scroll.js" as Scroll
 import "js/SuspendStatus.js" as SuspendStatus
+import "js/BuildProfile.js" as BuildProfile
 
 Rectangle {
     id: root
@@ -13,8 +14,8 @@ Rectangle {
     // Host-only screenshot inputs. Their defaults are the production paths and behavior; the
     // off-device capture tool overrides them before Main is constructed.
     property date today: new Date()
-    property string dataDir: "/home/root/xovi/exthome/appload/habit-tracker/data"
-    property string settingsFilePath: "/home/root/xovi/exthome/appload/habit-tracker/settings.json"
+    property string dataDir: BuildProfile.dataDirectory
+    property string settingsFilePath: BuildProfile.settingsPath
     property string syncFilePath: dataDir + "/sync.json"
     property string initialView: "grid"
     property bool initialEditing: false
@@ -80,6 +81,11 @@ Rectangle {
     }
 
     function applySuspendSetting(enabled) {
+        if (BuildProfile.isTest) {
+            settingsStore.setSuspendImageEnabled(enabled);
+            return;
+        }
+
         if (!enabled) {
             settingsStore.setSuspendImageEnabled(false);
             suspendCanvas.invalidateSignature();
@@ -404,6 +410,7 @@ Rectangle {
                 loading: landscape.loading
                 suspendStatusText: root.suspendStatusText
                 syncStatusText: syncStore.statusText
+                buildLabel: BuildProfile.isTest ? "TEST · separate local data" : ""
                 onEditToggled: landscape.editing = !landscape.editing
                 onSettingsRequested: landscape.currentView = "settings"
                 onQuitRequested: quit()

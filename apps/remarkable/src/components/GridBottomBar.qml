@@ -11,6 +11,7 @@ Item {
     property bool loading: false
     property string suspendStatusText: ""
     property string syncStatusText: ""
+    property string buildLabel: ""
 
     signal editToggled
     signal settingsRequested
@@ -55,6 +56,10 @@ Item {
         anchors.left: editButton.right
         anchors.leftMargin: App.Theme.buttonGap
         anchors.verticalCenter: editButton.verticalCenter
+
+        StatusText {
+            text: bottomBar.buildLabel
+        }
 
         StatusText {
             text: bottomBar.suspendStatusText

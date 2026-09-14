@@ -5,10 +5,13 @@
     "description": "Thin wrapper: this app is built with make, not node. Scripts shell out to the Makefile.",
     "scripts": {
         "build": "make build",
+        "build:test": "make build-test",
         "test": "make test",
         "lint": "make lint",
         "clean": "make clean",
         "deploy": "make deploy",
+        "deploy:test": "make deploy-test",
+        "backup:test": "make backup-test",
         "remove": "make remove",
         "backup": "make backup",
         "find-hotspot-ip": "make find-hotspot-ip"
