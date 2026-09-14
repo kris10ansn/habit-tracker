@@ -223,3 +223,19 @@ presentation copy.
 Fixture validation rejects duplicate identities and positions, unknown polarity/outcome spellings,
 future entries, ambiguous pairing codes, and inconsistent session state. Generated and staged data
 must stay inside the isolated test locations described above.
+
+## Commit reminder
+
+The existing pre-commit hook prints a nonblocking reminder when staged changes touch mobile
+screens, components, themes, state/domain/database code, test-mode setup, assets, Expo/build
+configuration, or screenshot fixtures. It also watches dependency manifests, the shared lockfile,
+and workspace/package-manager configuration; those shared files can warn for non-mobile changes.
+Deletions and both sides of renames are included. Unstaged edits do not trigger it.
+
+The reminder lists the relevant paths and points to the capture definitions and
+`npm run mobile:test:readme`. It neither proves the workflow is stale nor requires screenshot-code
+changes in the same commit. It still appears when workflow changes are included, since their
+presence does not establish correctness. It starts no emulator, capture, framing, or tests, and
+leaves the existing OpenAPI/generated-client blocking check intact.
+
+`pnpm install` enables the repository hooks through the existing root `prepare` script.
