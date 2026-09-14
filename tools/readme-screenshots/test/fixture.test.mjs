@@ -195,6 +195,7 @@ test("emulator validation rejects physical, offline, and non-QEMU targets", () =
 });
 
 test("test app identity leaves ordinary Expo config unchanged", async () => {
+    const fixture = await loadFixture(fixturePath);
     const appConfig = require("../../../apps/mobile/app.config.js");
     const appJson = JSON.parse(
         await readFile(
@@ -207,6 +208,10 @@ test("test app identity leaves ordinary Expo config unchanged", async () => {
     try {
         delete process.env.APP_TEST_MODE;
         assert.deepEqual(appConfig({ config: appJson }), appJson);
+        assert.equal(
+            appConfig({ config: appJson }).extra.testPairingCode,
+            undefined,
+        );
 
         process.env.APP_TEST_MODE = "1";
         const testConfig = appConfig({ config: appJson });
@@ -220,6 +225,10 @@ test("test app identity leaves ordinary Expo config unchanged", async () => {
         );
         assert.equal("eas" in testConfig.extra, false);
         assert.deepEqual(testConfig.extra.router, {});
+        assert.equal(testConfig.extra.testPairingCode, fixture.pairing.code);
+
+        process.env.APP_TEST_MODE = "0";
+        assert.deepEqual(appConfig({ config: appJson }), appJson);
     } finally {
         if (previous === undefined) delete process.env.APP_TEST_MODE;
         else process.env.APP_TEST_MODE = previous;

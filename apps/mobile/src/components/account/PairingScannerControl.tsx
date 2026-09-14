@@ -1,6 +1,6 @@
 import { Text, View } from "react-native";
 
-import { Button, ButtonText } from "@/components/ui/Button";
+import { Button } from "@/components/ui/Button";
 import { PairingScanner } from "./PairingScanner";
 import { usePairingScanner } from "./usePairingScanner";
 
@@ -32,13 +32,6 @@ export function PairingScannerControl({ onCodeScanned }: Props) {
                     onCodeScanned={handleCodeScanned}
                 />
             </View>
-
-            <Button
-                onPress={scanner.closeScanner}
-                className="border border-line bg-surface-2"
-            >
-                <ButtonText className="text-ink">Cancel scanner</ButtonText>
-            </Button>
         </View>
     );
 }

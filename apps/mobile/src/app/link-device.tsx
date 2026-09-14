@@ -1,3 +1,4 @@
+import Constants from "expo-constants";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Text, View } from "react-native";
@@ -11,7 +12,9 @@ import { TextInputField, TextInputLabel } from "@/components/ui/TextField";
 
 export default function LinkDeviceScreen() {
     const router = useRouter();
-    const [pairingCode, setPairingCode] = useState("");
+    const [pairingCode, setPairingCode] = useState<string>(
+        Constants.expoConfig?.extra?.testPairingCode ?? "",
+    );
     const normalizedPairingCode = normalizePairingCode(pairingCode);
 
     return (

@@ -72,10 +72,14 @@ network. Expo Router remains the package entry point in both modes.
 
 The camera adapter grants test permission without an OS prompt and shows the retained AI-generated
 desk scene in `apps/mobile/src/testMode/assets/pairing-camera.jpg`. Its crop matches preview C;
-the real scanner still draws the viewfinder and handles cancellation. The image stays still and
-does not emit scan events, so screenshot timing is repeatable. It is an illustration, not a test
-of QR decoding; type the fixture code to exercise lookup and approval. Normal mode uses the real
-camera module and does not bundle the sample image.
+the real scanner still draws the viewfinder. The image stays still and
+does not emit scan events, so screenshot timing is repeatable. The code field starts with the
+fixture code `H7K9Q2`, supplied through Expo's `extra.testPairingCode` configuration, allowing the
+existing lookup to show the requesting device and Approve button
+alongside the camera image. This captures the manual-entry state; a real successful QR scan closes
+the camera. The field remains editable and approval uses the normal UI with a local test response.
+Normal mode starts with an empty code, uses the real camera module, and does not bundle the sample
+image. The image is an illustration, not a test of QR decoding.
 
 Agents leave native builds, emulator launches, installation, and other resource-heavy steps to the
 user unless the user explicitly requests that specific operation.
@@ -94,8 +98,9 @@ not select or launch an emulator. Test mode uses the separate `habit-tracker-tes
 identity and omits the production EAS project ID, so its Expo Go SQLite and SecureStore data do not
 share the ordinary project's storage scope.
 
-Navigate Today, Month, Habits, Sync, Link device, and Devices normally. Type the fixture pairing code
-`H7K9Q2` for lookup/approval captures, or leave it blank to capture the scanner. Android Studio's screenshot button is the simplest capture
+Navigate Today, Month, Habits, Sync, Link device, and Devices normally. Link device opens with the
+camera image, prefilled code, and approval controls. Clear the code for a scanner-only capture.
+The camera remains visible during manual entry. Android Studio's screenshot button is the simplest capture
 mechanism. Stop the Expo development server when finished.
 
 ### Optional standalone APK
