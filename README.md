@@ -17,6 +17,13 @@ service to keep your habits up to date across devices.
     <td align="center"><sub><b>reMarkable</b> · Habits at a glance on e-ink</sub></td>
     <td align="center"><sub><b>Sleep screen</b> · Public habits visible while it sleeps</sub></td>
   </tr>
+  <tr>
+    <td colspan="3" align="center">
+      <a href="docs/assets/screenshots/framed/device-linking.png"><img src="docs/assets/screenshots/framed/device-linking.png" alt="Pairing sequence: reMarkable displays code H7K9Q2, Android identifies the tablet for approval, and Linked devices lists the phone and tablet" width="100%"></a>
+      <br>
+      <sub><b>Link your devices</b> · Request a code on reMarkable, approve on mobile, and review linked devices</sub>
+    </td>
+  </tr>
 </table>
 
 Screenshots show the real Android and reMarkable interfaces with fictional sample data in
