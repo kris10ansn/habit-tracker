@@ -2,18 +2,20 @@ import { spawn } from "node:child_process";
 import { openSync, closeSync } from "node:fs";
 
 const activeProcesses = new Set();
+let shuttingDown = false;
 
 export async function stopAllProcesses() {
+    shuttingDown = true;
     await Promise.all([...activeProcesses].map((process_) => process_.stop()));
 }
 
-// Keep stdin open: some interactive CLIs treat EOF as a request to stop.
 // A separate process group lets deadlines stop the command's descendants too.
 export function startProcess(
     executable,
     args,
     { log, stdoutFile, cwd, env } = {},
 ) {
+    if (shuttingDown) throw new Error("Screenshot processes are shutting down");
     const descriptor = stdoutFile
         ? openSync(stdoutFile, "w")
         : log
@@ -24,7 +26,7 @@ export function startProcess(
         env: { ...process.env, ...env },
         detached: true,
         stdio: [
-            "pipe",
+            "ignore",
             descriptor ?? "pipe",
             stdoutFile ? "pipe" : (descriptor ?? "pipe"),
         ],
@@ -70,11 +72,9 @@ export function startProcess(
         clearTimeout(graceTimer);
         // Also clean up descendants if the group leader exited first.
         signalGroup("SIGKILL");
-        child.stdin?.destroy();
         activeProcesses.delete(handle);
     }
     const handle = {
-        child,
         done,
         stop: () => (stopping ??= stopOnce()),
         get finished() {

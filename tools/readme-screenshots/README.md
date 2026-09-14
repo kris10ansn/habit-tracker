@@ -63,18 +63,56 @@ framed presentation copy are written together.
 
 ## Mobile test target and captures
 
-For automated Expo Go captures on an already running local Android emulator:
+### Automated Expo Go captures
+
+With workspace dependencies installed, Node.js 22+, `adb` on PATH, and one local Android
+emulator already running with SDK 57-compatible Expo Go installed:
 
 ```sh
 npm run mobile:test:screenshots
+npm run mobile:test:screenshots -- --scenario today
+npm run mobile:test:screenshots -- --serial emulator-5554 --port 8083
 ```
 
-This starts a separate test Metro server, navigates with Android deep links, checks the native UI,
-and saves screenshots and logs
-under `.screenshots/<timestamp>/`, with bounded waits and process cleanup. No native build is
-required. See [the capture guide](maestro/README.md) for prerequisites, options, output locations,
-warning suppression, and the optional Maestro driver. The manual and standalone APK workflows
-below remain available.
+The command captures Today, Habits, Month, Sync, Linked devices, and Link a device with the
+fixture below. It starts an isolated screenshot Metro server on unused port 8082 (override with
+`--port`), reloads the test project, waits for fixture data and icon fonts, and navigates with
+Android deep links. ADB/UIAutomator checks each screen's expected content twice before capturing.
+No native build, installation, or manual navigation is needed. Existing development servers stay
+running; Expo Go itself is restarted to reset the fixture. Run one capture at a time and avoid
+editing the app or interacting with the emulator during a run.
+
+The runner selects the sole online emulator or the explicit `--serial`, and rejects physical
+devices. It uses the local Android Emulator host alias `10.0.2.2`; remote emulators and iOS are
+not supported. Maestro was tested in this environment, but repeatedly lost its driver connection.
+The working command needs neither Maestro nor Java. Its experimental implementation remains in
+Git history rather than adding a second driver to maintain.
+
+Every run prints its ignored `.screenshots/<timestamp>/` output directory:
+
+- `screenshots/android-*.png`: validated portrait captures; use only runs marked `passed`.
+- `report.json`: result, stage timings, emulator serial, and recovery counts.
+- `logs/metro.log`, `logs/android.log`, `logs/launch.log`: console output, filtered Android
+  diagnostics, and project-launch output.
+- `native/*.xml` and `native/events.log`: readiness evidence and retry diagnostics.
+- `failure.png`: a best-effort screenshot when capture fails.
+
+The command does not replace or frame committed README images. Android's status-bar clock remains
+real time, so the output is not a pixel-identical visual regression baseline.
+
+Progress prints every 15 seconds. Metro startup and fixture readiness each have a 60-second
+budget, screen readiness 30 seconds, capture 180 seconds, and the run a five-minute watchdog.
+Each ADB command has a ten-second timeout. Interrupted UI reads retry within the readiness budget;
+commands rejected with `device offline` retry at most twice. Failure or Ctrl+C stops owned process
+groups, forcibly if necessary, while leaving the emulator and preexisting Metro servers running.
+
+`APP_SCREENSHOT_MODE=1` hides nonfatal React Native LogBox overlays only for this test server;
+console messages are still logged. Fatal app errors are not suppressed. Known Expo Go developer
+onboarding/menu screens are dismissed, and a cold launch that returns to Android Home is reopened
+once. Missing fixture content fails readiness; other dialogs are not automatically dismissed.
+Screen routes and expected copy live in `lib/native-capture.mjs`; output filenames use the existing `scenarios.mjs` registry.
+
+### Test isolation
 
 With `APP_TEST_MODE=1`, Metro replaces the root layout's `AppProviders` import and `expo-camera`
 with test adapters. Before the provider adapter loads the production

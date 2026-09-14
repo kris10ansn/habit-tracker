@@ -54,14 +54,6 @@ test("reports a failed command with its diagnostic", async () => {
     );
 });
 
-test("keeps stdin open for unattended interactive commands", async () => {
-    const output = await runCommand(process.execPath, [
-        "-e",
-        "process.stdin.resume(); process.stdin.on('end', () => process.exit(8)); setTimeout(() => { console.log('finished'); process.exit(0); }, 100)",
-    ]);
-    assert.equal(output, "finished\n");
-});
-
 test("terminates an unresponsive command that ignores SIGTERM", async () => {
     const started = Date.now();
     await assert.rejects(
@@ -110,4 +102,25 @@ test("timeout stops descendants even when they ignore SIGTERM", async () => {
     } finally {
         await rm(directory, { recursive: true, force: true });
     }
+});
+
+test("shutdown rejects late retries while existing processes are stopping", async () => {
+    const moduleUrl = new URL("../lib/process.mjs", import.meta.url).href;
+    const script = `
+        import assert from 'node:assert/strict';
+        import { startProcess, stopAllProcesses } from ${JSON.stringify(moduleUrl)};
+        startProcess(process.execPath, ['-e', 'setInterval(() => {}, 100)']);
+        const stopping = stopAllProcesses();
+        assert.throws(() => startProcess(process.execPath, ['-e', 'process.exit(9)']), /shutting down/);
+        await stopping;
+        console.log('blocked');
+    `;
+    assert.equal(
+        await runCommand(process.execPath, [
+            "--input-type=module",
+            "-e",
+            script,
+        ]),
+        "blocked\n",
+    );
 });

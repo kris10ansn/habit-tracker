@@ -1,40 +1,35 @@
 #!/usr/bin/env node
 
-import {
-    copyFile,
-    mkdir,
-    readFile,
-    readdir,
-    writeFile,
-} from "node:fs/promises";
+import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import net from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { parseArgs } from "node:util";
+
+import { selectScenarios } from "./scenarios.mjs";
+import { pngDimensions } from "./lib/device-frames.mjs";
 
 import { parseAdbDevices, validateEmulatorTarget } from "./lib/adb.mjs";
 import { captureNative } from "./lib/native-capture.mjs";
-import { isMaestroConnectionFailure } from "./lib/maestro.mjs";
 import { runCommand, startProcess, stopAllProcesses } from "./lib/process.mjs";
 
 const directory = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(directory, "../..");
-const options = { port: 8082, scenario: "all", driver: "adb" };
-for (let index = 2; index < process.argv.length; index++) {
-    const argument = process.argv[index];
-    if (argument === "--") continue;
-    if (argument === "--serial") options.serial = process.argv[++index];
-    else if (argument === "--port")
-        options.port = Number(process.argv[++index]);
-    else if (argument === "--driver") options.driver = process.argv[++index];
-    else if (argument === "--scenario")
-        options.scenario = process.argv[++index];
-    else if (argument === "--help") {
-        console.log(
-            "Usage: npm run mobile:test:screenshots -- [--serial emulator-5554] [--port 8082] [--scenario today|all] [--driver adb|maestro]",
-        );
-        process.exit(0);
-    } else throw new Error(`Unknown argument: ${argument}`);
+const { values: options } = parseArgs({
+    options: {
+        serial: { type: "string" },
+        port: { type: "string", default: "8082" },
+        scenario: { type: "string", default: "all" },
+        help: { type: "boolean" },
+    },
+});
+if (options.help) {
+    console.log(
+        "Usage: npm run mobile:test:screenshots -- [--serial emulator-5554] [--port 8082] [--scenario today|all]",
+    );
+    process.exit(0);
 }
+options.port = Number(options.port);
 if (
     !Number.isInteger(options.port) ||
     options.port < 1024 ||
@@ -43,9 +38,6 @@ if (
     throw new Error("Invalid --port");
 if (!["today", "all"].includes(options.scenario))
     throw new Error("--scenario must be today or all");
-
-if (!["maestro", "adb"].includes(options.driver))
-    throw new Error("--driver must be maestro or adb");
 
 const output = path.join(
     root,
@@ -62,7 +54,7 @@ let aborting = false;
 const report = {
     status: "running",
     output,
-    driver: options.driver,
+    driver: "adb",
     stages: [],
 };
 function announce(next) {
@@ -202,88 +194,6 @@ async function openProject() {
         { log: path.join(logs, "launch.log") },
     );
 }
-async function findScreenshots(folder) {
-    const found = [];
-    for (const entry of await readdir(folder, { withFileTypes: true })) {
-        const full = path.join(folder, entry.name);
-        if (entry.isDirectory()) found.push(...(await findScreenshots(full)));
-        else if (/^android-.*\.png$/.test(entry.name)) found.push(full);
-    }
-    return found;
-}
-
-async function captureMaestro() {
-    announce("Capturing screens with Maestro (180-second limit)");
-    const maestroDeadline = Date.now() + 180000;
-    report.attempts = [];
-    let successfulArtifacts;
-    for (let attempt = 1; attempt <= 3; attempt++) {
-        const artifacts = path.join(output, "maestro", `attempt-${attempt}`);
-        const maestroLog = path.join(logs, `maestro-${attempt}.log`);
-        try {
-            await runCommand(
-                "maestro",
-                [
-                    "--verbose",
-                    "--device",
-                    options.serial,
-                    "test",
-                    "-e",
-                    `EXPO_URL=exp://10.0.2.2:${options.port}`,
-                    `--test-output-dir=${artifacts}`,
-                    `--debug-output=${artifacts}`,
-                    path.join(
-                        directory,
-                        "maestro",
-                        options.scenario === "today"
-                            ? "today.yaml"
-                            : "capture.yaml",
-                    ),
-                ],
-                {
-                    cwd: root,
-                    env: { CI: "true", MAESTRO_CLI_NO_ANALYTICS: "true" },
-                    log: maestroLog,
-                    timeoutMs: Math.max(1, maestroDeadline - Date.now()),
-                },
-            );
-            report.attempts.push({ attempt, status: "passed" });
-            successfulArtifacts = artifacts;
-            break;
-        } catch (error) {
-            if (aborting) throw error;
-            const diagnostic = await readFile(maestroLog, "utf8").catch(
-                () => "",
-            );
-            const transportFailure = isMaestroConnectionFailure(diagnostic);
-            const reason = diagnostic
-                .replace(/\x1b\[[0-9;]*m/g, "")
-                .split("\n")
-                .find((line) =>
-                    /DeviceServerDiedException|device offline|Android driver unreachable/.test(
-                        line,
-                    ),
-                );
-            report.attempts.push({
-                attempt,
-                status: "failed",
-                error: reason ?? error.message,
-            });
-            if (
-                !transportFailure ||
-                attempt === 3 ||
-                Date.now() + 15000 >= maestroDeadline
-            )
-                throw error;
-            announce(
-                `Maestro connection failed; reconnecting emulator for attempt ${attempt + 1}/3`,
-            );
-            await adb(["reconnect"]);
-            await adb(["wait-for-device"]);
-        }
-    }
-    return findScreenshots(successfulArtifacts);
-}
 
 try {
     announce("Checking emulator and tools");
@@ -322,10 +232,6 @@ try {
             "Install SDK 57-compatible Expo Go on this emulator first.",
         );
     report.serial = options.serial;
-    if (options.driver === "maestro")
-        report.maestroVersion = (
-            await runCommand("maestro", ["--version"])
-        ).trim();
     await runCommand(process.execPath, [
         path.join(directory, "generate-mobile-test-fixture.mjs"),
         "--check",
@@ -368,35 +274,27 @@ try {
 
     report.uiReadRetries = 0;
     report.adbCommandRetries = 0;
-    const captures =
-        options.driver === "adb"
-            ? await captureNative({
-                  adb,
-                  url: `exp://10.0.2.2:${options.port}`,
-                  output,
-                  scenario: options.scenario,
-                  announce,
-                  onReadRetry: () => report.uiReadRetries++,
-                  onCommandRetry: () => report.adbCommandRetries++,
-              })
-            : await captureMaestro();
-    const expected =
-        options.scenario === "today"
-            ? ["today"]
-            : ["today", "month", "habits", "sync", "devices", "pairing"];
+    const captures = await captureNative({
+        adb,
+        url: `exp://10.0.2.2:${options.port}`,
+        output,
+        scenario: options.scenario,
+        announce,
+        onReadRetry: () => report.uiReadRetries++,
+        onCommandRetry: () => report.adbCommandRetries++,
+    });
+    const expected = selectScenarios(
+        "android",
+        options.scenario === "all" ? undefined : options.scenario,
+    ).map(([, scenario]) => scenario.output);
     await mkdir(path.join(output, "screenshots"));
-    for (const name of expected) {
+    for (const filename of expected) {
         const source = captures.find(
-            (file) => path.basename(file) === `android-${name}.png`,
+            (file) => path.basename(file) === filename,
         );
-        if (!source)
-            throw new Error(`Capture did not produce android-${name}.png`);
-        const bytes = await readFile(source);
-        if (
-            bytes.length < 24 ||
-            bytes.subarray(0, 8).toString("hex") !== "89504e470d0a1a0a" ||
-            bytes.readUInt32BE(20) <= bytes.readUInt32BE(16)
-        )
+        if (!source) throw new Error(`Capture did not produce ${filename}`);
+        const { width, height } = pngDimensions(await readFile(source), source);
+        if (width <= 0 || height <= width)
             throw new Error(`Invalid portrait PNG: ${source}`);
         await copyFile(
             source,
@@ -404,9 +302,7 @@ try {
         );
     }
     report.status = "passed";
-    report.screenshots = expected.map(
-        (name) => `screenshots/android-${name}.png`,
-    );
+    report.screenshots = expected.map((filename) => `screenshots/${filename}`);
     announce(`Saved ${expected.length} screenshots`);
 } catch (error) {
     report.status = "failed";
