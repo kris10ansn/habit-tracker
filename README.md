@@ -49,7 +49,7 @@ flowchart LR
 
 | Component         | Stack                                           | Documentation                                 |
 | ----------------- | ----------------------------------------------- | --------------------------------------------- |
-| Mobile client     | Expo, React Native, TypeScript, SQLite, Drizzle | [Mobile guide](apps/mobile/README.md)         |
+| Mobile client     | Expo SDK 57, React Native, TypeScript, SQLite, Drizzle | [Mobile guide](apps/mobile/README.md)         |
 | reMarkable client | QML, Qt 5.15, JavaScript, XOVI, rm-appload      | [reMarkable guide](apps/remarkable/README.md) |
 | Sync service      | ASP.NET Core 10, EF Core, PostgreSQL            | [Backend guide](apps/backend/README.md)       |
 

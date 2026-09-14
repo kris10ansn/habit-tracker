@@ -415,7 +415,7 @@ TestCase {
         compare(store.status, "requesting");
 
         // The first (abandoned) request finally answers, after a second one is already in flight.
-        xhrs[0].respond(200, { code: "OLD000", expiresAt: Date.now() + 300000, pollIntervalSeconds: 3 });
+        xhrs[0].respond(200, { code: "OLD234", expiresAt: Date.now() + 300000, pollIntervalSeconds: 3 });
 
         compare(store.code, "", "a stray reply from the abandoned request must not overwrite the fresh one's state");
         compare(store.status, "requesting", "the fresh request must still be the one considered in flight");

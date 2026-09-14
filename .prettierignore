@@ -8,6 +8,10 @@ pnpm-lock.yaml
 # Scratch data written by `make test` in apps/remarkable.
 apps/remarkable/tests/tmp/
 
+# Third-party files are committed byte-for-byte from their tagged upstream distribution.
+apps/remarkable/src/js/vendor/qrcode-generator.js
+apps/remarkable/src/js/vendor/qrcode-generator.LICENSE
+
 # Emitted verbatim by `dotnet build` (see HabitTracker.Api.csproj). Formatting it here would fight
 # the next build, which rewrites the file.
 apps/backend/openapi.json

@@ -25,6 +25,7 @@
         <file>src/components/StatusText.qml</file>
         <file>src/components/SegmentedToggle.qml</file>
         <file>src/components/SettingsPage.qml</file>
+        <file>src/components/QrCode.qml</file>
         <file>src/components/GridBottomBar.qml</file>
         <file>src/js/DateUtils.js</file>
         <file>src/js/Entries.js</file>
@@ -40,6 +41,9 @@
         <file>src/js/Sync.js</file>
         <file>src/js/ServerUrl.js</file>
         <file>src/js/Pairing.js</file>
+        <file>src/js/QrCode.js</file>
+        <file>src/js/vendor/qrcode-generator.js</file>
+        <file>src/js/vendor/qrcode-generator.LICENSE</file>
         <file>src/js/Scroll.js</file>
     </qresource>
 </RCC>

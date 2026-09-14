@@ -2,7 +2,7 @@
 
 @AGENTS.md
 
-The `apps/mobile/` client of the habit-tracker monorepo: Expo (SDK 56) + expo-router + TypeScript,
+The `apps/mobile/` client of the habit-tracker monorepo: Expo (SDK 57) + expo-router + TypeScript,
 styled with NativeWind (Tailwind for React Native).
 
 ## Hard rule: native-only, user-run heavy execution
@@ -146,7 +146,7 @@ since it crosses month partitions.
   don't accept `className` until registered with `cssInterop(Component, { className: 'style' })` —
   registered in `src/components/ui/AppScreen.tsx` and `src/components/ui/Icon.tsx`. Core RN components (`View`, `Text`, `ScrollView`, `TextInput`,
   …) work out of the box; `ScrollView` also takes `contentContainerClassName`.
-- `babel-preset-expo` auto-configures the reanimated 4 babel plugin on SDK 56, so **never** add
+- `babel-preset-expo` auto-configures the reanimated 4 babel plugin on SDK 57, so **never** add
   `react-native-reanimated/plugin` (or `react-native-worklets/plugin`) to `babel.config.js` — it
   duplicates the plugin and errors.
 - **File names match the export's casing.** A file whose main export is capitalized (a React

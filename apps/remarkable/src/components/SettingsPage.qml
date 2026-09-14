@@ -204,22 +204,50 @@ Item {
             }
         }
 
-        // The code itself: shown large, since it's read off this e-ink screen and typed into the
-        // phone. The unambiguous-alphabet choice (no 0/O/1/I) is the server's; this just displays
-        // it plainly.
-        Text {
-            visible: settingsPage.pairingStatus === "waiting"
-            text: settingsPage.pairingCode
-            font.pixelSize: App.Theme.scrollFont
-            font.bold: true
-            color: App.Theme.fg
-        }
+        Row {
+            id: pairingDetails
 
-        Text {
             visible: settingsPage.pairingStatus === "waiting"
-            text: "Enter this code on your phone to connect this reMarkable."
-            font.pixelSize: App.Theme.labelFont
-            color: App.Theme.fg
+            width: parent.width
+            spacing: App.Theme.margin
+
+            Column {
+                anchors.verticalCenter: parent.verticalCenter
+                width: Math.min(760, pairingDetails.width - pairingQrCode.width - pairingDetails.spacing)
+                spacing: App.Theme.labelGap
+
+                Text {
+                    width: parent.width
+                    text: "Scan with Habit Tracker to look up this reMarkable."
+                    font.pixelSize: App.Theme.labelFont
+                    color: App.Theme.fg
+                    wrapMode: Text.WordWrap
+                }
+
+                Text {
+                    text: settingsPage.pairingCode
+                    font.pixelSize: App.Theme.scrollFont
+                    font.bold: true
+                    color: App.Theme.fg
+                }
+
+                Text {
+                    width: parent.width
+                    text: "Or enter this code manually on your phone."
+                    font.pixelSize: App.Theme.dayLabelFont
+                    color: App.Theme.fg
+                    opacity: App.Theme.fadedOpacity
+                    wrapMode: Text.WordWrap
+                }
+            }
+
+            QrCode {
+                id: pairingQrCode
+
+                width: 296
+                height: width
+                payload: settingsPage.pairingCode
+            }
         }
 
         Row {

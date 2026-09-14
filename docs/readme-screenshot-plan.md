@@ -136,7 +136,7 @@ pnpm mobile:test:go
 ```
 
 `mobile:test:go` starts Metro in Expo Go mode but does not start or select an emulator. The user opens
-the project in an SDK 56-compatible Expo Go client and handles all device interaction.
+the project in an SDK 57-compatible Expo Go client and handles all device interaction.
 
 ## Manual Android capture
 
