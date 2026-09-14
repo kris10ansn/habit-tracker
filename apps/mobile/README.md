@@ -48,8 +48,9 @@ Or run scripts directly from this directory with `pnpm start` / `pnpm android` /
 There is deliberately no web target. The dev server prints options to open the app in a development build, a simulator, or
 [Expo Go](https://expo.dev/go).
 
-QR pairing uses the device camera and therefore needs a physical Android or iOS device; manual code
-entry remains available when camera access is unavailable or denied.
+QR pairing opens the scanner automatically and requests camera access when needed. If access is
+denied, the scanner shows an action to allow it or open system settings. Manual code entry remains
+available below it. Scanning needs a physical Android or iOS device.
 
 Checks:
 
