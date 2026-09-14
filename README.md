@@ -95,17 +95,6 @@ see [Privacy and data ownership](#privacy-and-data-ownership) for how that affec
   </tr>
 </table>
 
-### Supported platforms
-
-| Platform     | Status                                       |
-| ------------ | -------------------------------------------- |
-| Android      | Supported native client                      |
-| reMarkable 1 | Supported through XOVI + rm-appload          |
-| iOS          | Build target present; not currently verified |
-| Web          | Not supported                                |
-
-The project is currently distributed as source and internal builds; there is no app-store release.
-
 ### Review and correct past entries
 
 Mobile's **Month** view places days in rows and habits in columns to fit a portrait screen.
@@ -117,6 +106,17 @@ On reMarkable, use the arrows beside the month title to browse history and **Tod
   <br>
   <sub>Each row is one day, making it easy to compare habits across the month.</sub>
 </p>
+
+### Supported platforms
+
+| Platform     | Status                                       |
+| ------------ | -------------------------------------------- |
+| Android      | Supported native client                      |
+| reMarkable 1 | Supported through XOVI + rm-appload          |
+| iOS          | Build target present; not currently verified |
+| Web          | Not supported                                |
+
+The project is currently distributed as source and internal builds; there is no app-store release.
 
 ## Getting started
 
