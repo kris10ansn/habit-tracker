@@ -61,7 +61,20 @@ Quick host. The suspend image still comes from the production suspend renderer; 
 rotates its framebuffer-oriented result for readable README presentation. Each raw capture and its
 framed presentation copy are written together.
 
-## Mobile test target and manual captures
+## Mobile test target and captures
+
+For automated Expo Go captures on an already running local Android emulator:
+
+```sh
+npm run mobile:test:screenshots
+```
+
+This starts a separate test Metro server, navigates with Android deep links, checks the native UI,
+and saves screenshots and logs
+under `.screenshots/<timestamp>/`, with bounded waits and process cleanup. No native build is
+required. See [the capture guide](maestro/README.md) for prerequisites, options, output locations,
+warning suppression, and the optional Maestro driver. The manual and standalone APK workflows
+below remain available.
 
 With `APP_TEST_MODE=1`, Metro replaces the root layout's `AppProviders` import and `expo-camera`
 with test adapters. Before the provider adapter loads the production
