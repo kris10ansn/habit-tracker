@@ -38,7 +38,7 @@ pnpm mobile:test:fixture
 pnpm mobile:test:go
 ```
 
-Open the displayed project in an SDK 56-compatible Expo Go installation yourself. The command does
+Open the displayed project in an SDK 57-compatible Expo Go installation yourself. The command does
 not select or launch an emulator. Test mode uses the separate `habit-tracker-test` Expo project
 identity and omits the production EAS project ID, so its Expo Go SQLite and SecureStore data do not
 share the ordinary project's storage scope.

@@ -6,7 +6,7 @@
 > the [root `CONTEXT.md`](../../CONTEXT.md), the sync terms in the
 > [backend glossary](../backend/CONTEXT.md).
 
-The mobile client of the habit tracker: an [Expo](https://expo.dev) (SDK 56) app built with
+The mobile client of the habit tracker: an [Expo](https://expo.dev) (SDK 57) app built with
 expo-router and TypeScript, styled with [NativeWind](https://www.nativewind.dev) (Tailwind for
 React Native).
 
@@ -33,6 +33,8 @@ itself. From **Sync → Linked devices → Link a device**, scan a pairing QR co
 camera or enter its six-character code manually, review the requesting device, and approve it.
 
 ## Run it
+
+Use Node.js 22.13 or newer. After an SDK upgrade, rebuild any installed native development or preview app before testing.
 
 Install workspace deps once from the monorepo root (`pnpm install`), then from the root:
 
