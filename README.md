@@ -47,11 +47,11 @@ flowchart LR
     API --> DB[(PostgreSQL)]
 ```
 
-| Component         | Stack                                           | Documentation                                 |
-| ----------------- | ----------------------------------------------- | --------------------------------------------- |
+| Component         | Stack                                                  | Documentation                                 |
+| ----------------- | ------------------------------------------------------ | --------------------------------------------- |
 | Mobile client     | Expo SDK 57, React Native, TypeScript, SQLite, Drizzle | [Mobile guide](apps/mobile/README.md)         |
-| reMarkable client | QML, Qt 5.15, JavaScript, XOVI, rm-appload      | [reMarkable guide](apps/remarkable/README.md) |
-| Sync service      | ASP.NET Core 10, EF Core, PostgreSQL            | [Backend guide](apps/backend/README.md)       |
+| reMarkable client | QML, Qt 5.15, JavaScript, XOVI, rm-appload             | [reMarkable guide](apps/remarkable/README.md) |
+| Sync service      | ASP.NET Core 10, EF Core, PostgreSQL                   | [Backend guide](apps/backend/README.md)       |
 
 The backend defines the shared contract through a committed [OpenAPI document](apps/backend/openapi.json).
 It merges timestamped changes and deletion records using last-write-wins reconciliation; each
@@ -144,9 +144,18 @@ pnpm backend:migrate
 pnpm backend:start
 ```
 
-The development API listens on `http://localhost:5137`. Configure each client's server address
-using a hostname or IP reachable from that device, then sign up or log in on mobile. To link a
-tablet, request a code in its Settings and approve it from the phone's Linked devices page.
+The development API listens on port `5137`, including your computer's network interfaces.
+On mobile, enter its reachable base address in **Sync → Server URL** and tap **Save**.
+Use `http://10.0.2.2:5137` for a local Android emulator, or your computer's LAN address
+(for example, `http://192.168.1.50:5137`) for a phone or tablet on the same network.
+`localhost` on a device refers to that device, not the computer running the API.
+
+Sign up or log in on mobile, then tap **Sync now**. The first account on a new server becomes
+its administrator; later signups require an administrator-issued invite. To link a tablet,
+save the same server's address in its Settings, request a code with **Connect**, and approve it
+from **Sync → Linked devices → Link a device** on the phone. Keep tablet Settings open until
+pairing completes. See the [backend setup guide](apps/backend/README.md#accounts-and-first-sync)
+for account creation and the [mobile guide](apps/mobile/README.md#troubleshooting) for connection problems.
 
 [Backend configuration and API documentation →](apps/backend/README.md)
 
@@ -257,7 +266,9 @@ For mobile fixture setup, manual capture, and framing instructions, see the
 - Both clients keep habit data locally and continue working offline.
 - Sync is opt-in; the backend is self-hosted and keeps each account's records separate.
 - Private habits are excluded from the reMarkable sleep screen. Its main-grid reveal setting stays local to that tablet.
+- The private flag controls visibility; private habits still participate in sync and remain visible on mobile.
 - Session tokens can be revoked from the linked-device list without deleting local habit data.
+- Sync propagates deletions, so it is not a backup. Keep tablet data backups and database backups before upgrades or resets; mobile currently has no in-app export or restore flow.
 
 ## Contributing
 
