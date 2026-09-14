@@ -21,6 +21,48 @@ staged_files() {
     git diff --cached --name-only --diff-filter=ACMR
 }
 
+# This is a reminder, not proof that screenshots are stale. Include deletions and
+# both sides of renames so removing a screen or moving it out of these paths warns too.
+screenshot_changes=$(
+    git diff --cached --name-only --no-renames --diff-filter=ACMD |
+    while IFS= read -r filename; do
+        case "$filename" in
+            apps/mobile/src/app/*|apps/mobile/src/components/*|apps/mobile/src/theme/*|\
+            apps/mobile/src/testMode/*|apps/mobile/src/db/*|apps/mobile/src/state/*|\
+            apps/mobile/src/domain/*|apps/mobile/assets/*|\
+            apps/mobile/app.config.*|apps/mobile/app.json|apps/mobile/package.json|\
+            apps/mobile/metro.config.*|apps/mobile/babel.config.*|\
+            apps/mobile/tailwind.config.*|apps/mobile/global.css|\
+            tools/readme-screenshots/fixture.json|\
+            tools/readme-screenshots/generate-mobile-test-fixture.mjs|\
+            package.json|pnpm-lock.yaml|pnpm-workspace.yaml|.npmrc)
+                printf '%s\n' "$filename"
+                ;;
+        esac
+    done
+)
+
+if [ -n "$screenshot_changes" ]; then
+    cat >&2 <<'MESSAGE'
+
+  Screenshot workflow reminder (does not block this commit).
+  These staged changes may affect the mobile captures:
+MESSAGE
+    printf '%s\n' "$screenshot_changes" | sed 's/^/      /' >&2
+    cat >&2 <<'MESSAGE'
+
+  Review the routes and expected text in:
+      tools/readme-screenshots/lib/native-capture.mjs
+  Also check test fixtures and readiness setup if their behavior changed.
+  Update the workflow as needed, then capture and frame manually when ready:
+      npm run mobile:test:readme
+
+  Guide: tools/readme-screenshots/README.md
+  No emulator, capture, or tests were started by this reminder.
+
+MESSAGE
+fi
+
 if ! staged_files | grep -q '^apps/backend/openapi\.json$'; then
     exit 0
 fi

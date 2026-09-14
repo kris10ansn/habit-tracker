@@ -5,6 +5,7 @@
 Track daily habits, review your history, and manage your routines from your phone or e-ink tablet.
 Each client works independently with local storage. Connect either or both to a self-hosted sync
 service to keep your habits up to date across devices.
+[Link your phone and tablet](#link-your-devices) with a pairing code approved from mobile.
 
 ## Table of contents
 
@@ -180,6 +181,8 @@ the saved server address, signed-in account, and pending-change status together:
   <sub>Check the sync status and account here after saving your server address.</sub>
 </p>
 
+### Link your devices
+
 To link a tablet, save the same server's address in its Settings, request a code with **Connect**,
 and approve it from **Sync → Linked devices → Link a device** on the phone. Review the requesting
 device before approving, and keep tablet Settings open until pairing completes. **Linked devices**
@@ -240,16 +243,25 @@ make -C apps/remarkable suspend-writer-test
 ### Updating screenshots
 
 The reMarkable captures render the production QML scene and sleep-screen drawing logic offscreen.
-Android captures come from an isolated native test project. Both use the same fictional fixture.
+Android captures use an isolated Expo Go test project on a local emulator. Both use the same
+fictional fixture. With an emulator already running and compatible Expo Go installed, regenerate
+Android captures, device frames, and the linking illustration together:
+
+```sh
+pnpm mobile:test:readme
+```
+
+To update the tablet images, then refresh the linking illustration with the latest captures:
 
 ```sh
 pnpm screenshots:remarkable
-pnpm screenshots:frame
 pnpm screenshots:linking
 ```
 
-For mobile fixture setup, manual capture, and framing instructions, see the
-[screenshot workflow](tools/readme-screenshots/README.md).
+For automated Expo Go capture prerequisites, fixture setup, manual capture, and separate framing
+commands, see the [screenshot workflow](tools/readme-screenshots/README.md).
+Review that workflow and the README images after changes to mobile screens, fixtures, or native
+configuration.
 
 ## Privacy and data ownership
 

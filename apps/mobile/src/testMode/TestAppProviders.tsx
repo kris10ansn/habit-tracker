@@ -1,15 +1,27 @@
 import "./installGlobals";
 
+import { MaterialCommunityIcons, MaterialIcons } from "@expo/vector-icons";
+import Constants from "expo-constants";
+import { loadAsync } from "expo-font";
 import { useSQLiteContext, type SQLiteDatabase } from "expo-sqlite";
 import { useEffect, useState, type ReactNode } from "react";
+import { LogBox } from "react-native";
 
 import { AppProviders as ProductionAppProviders } from "../components/AppProviders";
 import { prepareTestData } from "./prepareTestData";
 
+// Hide nonfatal notification overlays during captures; keep console output and fatal errors.
+if (Constants.expoConfig?.extra?.screenshotMode) {
+    LogBox.ignoreAllLogs(true);
+}
+
 let preparation: Promise<void> | undefined;
 
 function prepareOnce(database: SQLiteDatabase): Promise<void> {
-    preparation ??= prepareTestData(database);
+    preparation ??= Promise.all([
+        prepareTestData(database),
+        loadAsync({ ...MaterialIcons.font, ...MaterialCommunityIcons.font }),
+    ]).then(() => undefined);
     return preparation;
 }
 

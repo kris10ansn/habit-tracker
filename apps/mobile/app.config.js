@@ -14,7 +14,11 @@ module.exports = ({ config }) => {
         name: "Habit Tracker Test",
         slug: "habit-tracker-test",
         scheme: "habittracker-test",
-        extra: { ...testExtra, testPairingCode: pairing.code },
+        extra: {
+            ...testExtra,
+            testPairingCode: pairing.code,
+            screenshotMode: process.env.APP_SCREENSHOT_MODE === "1",
+        },
         ios: {
             ...config.ios,
             bundleIdentifier: "no.silli.habittracker.test",
