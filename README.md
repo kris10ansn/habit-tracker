@@ -65,16 +65,17 @@ Illustrations show the real interfaces with fictional sample data in
 [decorative device frames](tools/readme-screenshots/README.md#device-frames).
 Select an image for a larger view.
 
-### Review and correct past entries
+### Link your devices
 
-Mobile's **Month** view places days in rows and habits in columns to fit a portrait screen.
-Navigate to a previous month to review or correct its entries; future days are view-only.
-On reMarkable, use the arrows beside the month title to browse history and **Today** to return.
+Keep your phone and tablet connected to the same habit history through your self-hosted sync
+service. Request a pairing code on reMarkable, then scan or enter it on mobile and approve the
+requesting device. Review or revoke connected sessions from **Linked devices** on your phone.
+See [Pair a tablet](#pair-a-tablet) for setup instructions.
 
 <p align="center">
-  <a href="docs/assets/screenshots/android-month.png"><img src="docs/assets/screenshots/framed/android-month.png" alt="Android Month view with days as rows, habits as columns, and September 9 highlighted" width="300"></a>
+  <a href="docs/assets/screenshots/framed/device-linking.png"><img src="docs/assets/screenshots/framed/device-linking.png" alt="Pairing sequence: reMarkable displays code H7K9Q2, Android identifies the tablet for approval, and Linked devices lists the phone and tablet" width="100%"></a>
   <br>
-  <sub>Each row is one day, making it easy to compare habits across the month.</sub>
+  <sub>1. Request a code on reMarkable · 2. Approve on mobile · 3. Review linked devices</sub>
 </p>
 
 ### Adjust your routines
@@ -104,6 +105,18 @@ see [Privacy and data ownership](#privacy-and-data-ownership) for how that affec
 | Web          | Not supported                                |
 
 The project is currently distributed as source and internal builds; there is no app-store release.
+
+### Review and correct past entries
+
+Mobile's **Month** view places days in rows and habits in columns to fit a portrait screen.
+Navigate to a previous month to review or correct its entries; future days are view-only.
+On reMarkable, use the arrows beside the month title to browse history and **Today** to return.
+
+<p align="center">
+  <a href="docs/assets/screenshots/android-month.png"><img src="docs/assets/screenshots/framed/android-month.png" alt="Android Month view with days as rows, habits as columns, and September 9 highlighted" width="300"></a>
+  <br>
+  <sub>Each row is one day, making it easy to compare habits across the month.</sub>
+</p>
 
 ## Getting started
 
@@ -181,18 +194,12 @@ the saved server address, signed-in account, and pending-change status together:
   <sub>Check the sync status and account here after saving your server address.</sub>
 </p>
 
-### Link your devices
+### Pair a tablet
 
 To link a tablet, save the same server's address in its Settings, request a code with **Connect**,
 and approve it from **Sync → Linked devices → Link a device** on the phone. Review the requesting
 device before approving, and keep tablet Settings open until pairing completes. **Linked devices**
 then lets you review or revoke its session.
-
-<p align="center">
-  <a href="docs/assets/screenshots/framed/device-linking.png"><img src="docs/assets/screenshots/framed/device-linking.png" alt="Pairing sequence: reMarkable displays code H7K9Q2, Android identifies the tablet for approval, and Linked devices lists the phone and tablet" width="100%"></a>
-  <br>
-  <sub>1. Request a code on reMarkable · 2. Approve on mobile · 3. Review linked devices</sub>
-</p>
 
 See the [backend setup guide](apps/backend/README.md#accounts-and-first-sync) for account creation
 and the [mobile guide](apps/mobile/README.md#troubleshooting) for connection problems.
