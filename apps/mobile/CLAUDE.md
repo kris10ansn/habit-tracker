@@ -22,6 +22,13 @@ when it is an emulator; physical devices and cloud builds stay user-run unless s
 For deterministic test data or README captures, follow the isolated test-mode workflow in
 [`tools/readme-screenshots/README.md`](../../tools/readme-screenshots/README.md).
 
+When changing UI text, layout, navigation, fixture/database initialization, or Expo/dependency
+configuration, assess the impact on screenshot capture. If capture assumptions or README images
+may be stale, say so in the final response: name the affected screen or setup, remind the user
+that the workflow or images may need updating, and point to the screenshot guide above. Distinguish
+what was verified from what still needs checking. Make this assessment even when no commit is
+made or no hook reminder appears; follow the emulator-execution rules above.
+
 ## Hard rule: the backend is mobile's only reference
 
 Mobile's contract partner is **`apps/backend/`**. Never read `apps/remarkable/` to decide mobile's
