@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import net from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -15,6 +15,7 @@ import { runCommand, startProcess, stopAllProcesses } from "./lib/process.mjs";
 
 const directory = path.dirname(fileURLToPath(import.meta.url));
 const root = path.resolve(directory, "../..");
+const readmeImages = path.join(root, "docs/assets/screenshots");
 const { values: options } = parseArgs({
     options: {
         serial: { type: "string" },
@@ -197,6 +198,7 @@ async function openProject() {
 
 try {
     announce("Checking emulator and tools");
+    await runCommand("magick", ["-version"]);
     const devices = parseAdbDevices(await runCommand("adb", ["devices", "-l"]));
     const emulators = devices.filter(
         (device) =>
@@ -287,7 +289,6 @@ try {
         "android",
         options.scenario === "all" ? undefined : options.scenario,
     ).map(([, scenario]) => scenario.output);
-    await mkdir(path.join(output, "screenshots"));
     for (const filename of expected) {
         const source = captures.find(
             (file) => path.basename(file) === filename,
@@ -296,14 +297,62 @@ try {
         const { width, height } = pngDimensions(await readFile(source), source);
         if (width <= 0 || height <= width)
             throw new Error(`Invalid portrait PNG: ${source}`);
+    }
+
+    // Render into the run directory first: capture/framing failures must not replace README assets.
+    announce("Framing screenshots for the README");
+    const nativeDirectory = path.join(output, "native");
+    const framedDirectory = path.join(output, "framed");
+    await runCommand(
+        process.execPath,
+        [
+            path.join(directory, "frame-screenshots.mjs"),
+            "--client",
+            "android",
+            "--input-dir",
+            nativeDirectory,
+            "--out-dir",
+            framedDirectory,
+            ...(options.scenario === "today" ? ["--scenario", "today"] : []),
+        ],
+        { timeoutMs: 60000, log: path.join(logs, "framing.log") },
+    );
+    const images = expected.flatMap((filename) => [
+        [path.join(nativeDirectory, filename), filename],
+        [path.join(framedDirectory, filename), `framed/${filename}`],
+    ]);
+    if (options.scenario === "all") {
+        // Refresh the README's linking illustration using the existing tablet capture.
         await copyFile(
-            source,
-            path.join(output, "screenshots", path.basename(source)),
+            path.join(readmeImages, "remarkable-pairing.png"),
+            path.join(nativeDirectory, "remarkable-pairing.png"),
         );
+        const linkingImage = path.join(framedDirectory, "device-linking.png");
+        await runCommand(
+            process.execPath,
+            [
+                path.join(directory, "compose-linking-scene.mjs"),
+                "--input-dir",
+                nativeDirectory,
+                "--output",
+                linkingImage,
+            ],
+            { timeoutMs: 30000, log: path.join(logs, "framing.log") },
+        );
+        images.push([linkingImage, "framed/device-linking.png"]);
+    }
+
+    announce("Updating README images");
+    await mkdir(path.join(readmeImages, "framed"), { recursive: true });
+    for (const [source, relativePath] of images) {
+        if (aborting) throw new Error("Screenshot run interrupted");
+        await rename(source, path.join(readmeImages, relativePath));
     }
     report.status = "passed";
-    report.screenshots = expected.map((filename) => `screenshots/${filename}`);
-    announce(`Saved ${expected.length} screenshots`);
+    report.screenshots = images.map(
+        ([, relativePath]) => `docs/assets/screenshots/${relativePath}`,
+    );
+    announce(`Updated ${expected.length} README screenshots and their frames`);
 } catch (error) {
     report.status = "failed";
     report.error = error.message;

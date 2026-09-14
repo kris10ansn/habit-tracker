@@ -18,7 +18,7 @@ stretching, or gutters, and masks the phone's round corners. Device texture, lig
 therefore remain stable across screenshot updates; AI is not involved after the frame source has
 been committed.
 
-Both capture helpers create the matching framed output automatically. Existing or manually copied
+The capture commands create the matching framed output automatically. Existing or manually copied
 captures can be framed separately:
 
 ```sh
@@ -27,10 +27,10 @@ pnpm screenshots:frame -- --client remarkable --scenario settings
 pnpm screenshots:frame -- --client android --scenario devices
 ```
 
-The three-device linking scene is generated separately. It replaces every source screen currently
-available and leaves the original concept pixels in any missing slot. The committed example uses
+A full automated mobile capture also refreshes the three-device linking scene. The compositor
+replaces every source screen currently available and leaves the original concept pixels in any missing slot. The committed example uses
 real captures in all three slots; the fallback only keeps partial regeneration possible if one is
-temporarily unavailable:
+temporarily unavailable. To regenerate it separately:
 
 ```sh
 pnpm screenshots:linking
@@ -66,7 +66,8 @@ framed presentation copy are written together.
 ### Automated Expo Go captures
 
 With workspace dependencies installed, Node.js 22+, `adb` on PATH, and one local Android
-emulator already running with SDK 57-compatible Expo Go installed:
+emulator already running with SDK 57-compatible Expo Go installed, plus ImageMagick (`magick`)
+on PATH:
 
 ```sh
 npm run mobile:test:screenshots
@@ -88,22 +89,34 @@ not supported. Maestro was tested in this environment, but repeatedly lost its d
 The working command needs neither Maestro nor Java. Its experimental implementation remains in
 Git history rather than adding a second driver to maintain.
 
-Every run prints its ignored `.screenshots/<timestamp>/` output directory:
+Successful runs replace `docs/assets/screenshots/android-*.png` and their matching
+`docs/assets/screenshots/framed/android-*.png` images, using the existing device-frame compositor.
+A full run also refreshes `framed/device-linking.png` using the new mobile captures and the existing
+`remarkable-pairing.png`. `--scenario today` updates only Today and its frame.
 
-- `screenshots/android-*.png`: validated portrait captures; use only runs marked `passed`.
-- `report.json`: result, stage timings, emulator serial, and recovery counts.
+Capture and framing finish in a staging directory before any README assets are replaced, so a
+capture or rendering failure leaves the current README images intact. Each destination image is
+replaced by rename. The set is not a filesystem transaction: interruption or a filesystem error
+during the final replacements can leave a partial update; rerun the command to finish it.
+
+Every run prints its ignored `.screenshots/<timestamp>/` diagnostic directory:
+
+- `report.json`: result, stage timings, emulator serial, recovery counts, and updated image paths
+  relative to the repository root.
 - `logs/metro.log`, `logs/android.log`, `logs/launch.log`: console output, filtered Android
-  diagnostics, and project-launch output.
+  diagnostics, and project-launch output. `logs/framing.log` records the compositor output.
 - `native/*.xml` and `native/events.log`: readiness evidence and retry diagnostics.
 - `failure.png`: a best-effort screenshot when capture fails.
 
-The command does not replace or frame committed README images. Android's status-bar clock remains
-real time, so the output is not a pixel-identical visual regression baseline.
+Android's status-bar clock remains real time, so the output is not a pixel-identical visual
+regression baseline. Successful captures move into the README image directory; failed runs retain
+staged images for diagnosis.
 
 Progress prints every 15 seconds. Metro startup and fixture readiness each have a 60-second
 budget, screen readiness 30 seconds, capture 180 seconds, and the run a five-minute watchdog.
-Each ADB command has a ten-second timeout. Interrupted UI reads retry within the readiness budget;
-commands rejected with `device offline` retry at most twice. Failure or Ctrl+C stops owned process
+Each ADB command has a ten-second timeout. Framing has a 60-second budget and the linking
+composition 30 seconds, both within the overall watchdog. Interrupted UI reads retry within the
+readiness budget; commands rejected with `device offline` retry at most twice. Failure or Ctrl+C stops owned process
 groups, forcibly if necessary, while leaving the emulator and preexisting Metro servers running.
 
 `APP_SCREENSHOT_MODE=1` hides nonfatal React Native LogBox overlays only for this test server;
