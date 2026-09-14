@@ -63,12 +63,19 @@ framed presentation copy are written together.
 
 ## Mobile test target and manual captures
 
-Mobile's existing application source is unchanged. With `APP_TEST_MODE=1`, Metro replaces only the
-root layout's `AppProviders` import with a test adapter. Before that adapter loads the production
+With `APP_TEST_MODE=1`, Metro replaces the root layout's `AppProviders` import and `expo-camera`
+with test adapters. Before the provider adapter loads the production
 provider, it freezes implicit `Date` construction and `Date.now()` and replaces the global fetch
 implementation. It then wraps the real provider, seeds SQLite and SecureStore after migrations,
 answers device and pairing reads locally, and rejects unexpected requests before they reach a
 network. Expo Router remains the package entry point in both modes.
+
+The camera adapter grants test permission without an OS prompt and shows the retained AI-generated
+desk scene in `apps/mobile/src/testMode/assets/pairing-camera.jpg`. Its crop matches preview C;
+the real scanner still draws the viewfinder and handles cancellation. The image stays still and
+does not emit scan events, so screenshot timing is repeatable. It is an illustration, not a test
+of QR decoding; type the fixture code to exercise lookup and approval. Normal mode uses the real
+camera module and does not bundle the sample image.
 
 Agents leave native builds, emulator launches, installation, and other resource-heavy steps to the
 user unless the user explicitly requests that specific operation.
@@ -88,7 +95,7 @@ identity and omits the production EAS project ID, so its Expo Go SQLite and Secu
 share the ordinary project's storage scope.
 
 Navigate Today, Month, Habits, Sync, Link device, and Devices normally. Type the fixture pairing code
-`H7K9Q2` when capturing Link device. Android Studio's screenshot button is the simplest capture
+`H7K9Q2` for lookup/approval captures, or leave it blank to capture the scanner. Android Studio's screenshot button is the simplest capture
 mechanism. Stop the Expo development server when finished.
 
 ### Optional standalone APK
