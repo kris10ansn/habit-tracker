@@ -5,20 +5,21 @@ import { useCallback, useRef, useState } from "react";
 export function usePairingScanner() {
     const isFocused = useIsFocused();
     const [cameraPermission, requestCameraPermission] = useCameraPermissions();
-    const [scannerOpen, setScannerOpen] = useState(false);
-    const [cameraPermissionMessage, setCameraPermissionMessage] = useState<
+    const [isScannerOpen, setIsScannerOpen] = useState(false);
+    const [cameraPermissionError, setCameraPermissionError] = useState<
         string | null
     >(null);
-    const [requestingCamera, setRequestingCamera] = useState(false);
+    const [isRequestingCameraPermission, setIsRequestingCameraPermission] =
+        useState(false);
     // Permission prompts can resolve after navigation. Advancing this token makes those late
     // results no-ops instead of reopening the camera when the route is visited again.
-    const permissionRequestGeneration = useRef(0);
+    const latestPermissionRequestId = useRef(0);
 
     const closeScanner = useCallback(() => {
-        permissionRequestGeneration.current += 1;
-        setScannerOpen(false);
-        setRequestingCamera(false);
-        setCameraPermissionMessage(null);
+        latestPermissionRequestId.current += 1;
+        setIsScannerOpen(false);
+        setIsRequestingCameraPermission(false);
+        setCameraPermissionError(null);
     }, []);
 
     useFocusEffect(
@@ -32,48 +33,48 @@ export function usePairingScanner() {
             return;
         }
 
-        const requestGeneration = permissionRequestGeneration.current + 1;
-        permissionRequestGeneration.current = requestGeneration;
-        setCameraPermissionMessage(null);
+        const requestId = latestPermissionRequestId.current + 1;
+        latestPermissionRequestId.current = requestId;
+        setCameraPermissionError(null);
 
         if (cameraPermission?.granted) {
-            setScannerOpen(true);
+            setIsScannerOpen(true);
             return;
         }
 
-        setRequestingCamera(true);
+        setIsRequestingCameraPermission(true);
         try {
             const permission = await requestCameraPermission();
-            if (requestGeneration !== permissionRequestGeneration.current) {
+            if (requestId !== latestPermissionRequestId.current) {
                 return;
             }
 
             if (permission.granted) {
-                setScannerOpen(true);
+                setIsScannerOpen(true);
                 return;
             }
 
-            setCameraPermissionMessage(
+            setCameraPermissionError(
                 "Camera access wasn’t granted. Enter the code manually, or enable camera access in system settings.",
             );
         } catch {
-            if (requestGeneration === permissionRequestGeneration.current) {
-                setCameraPermissionMessage(
+            if (requestId === latestPermissionRequestId.current) {
+                setCameraPermissionError(
                     "Camera access couldn’t be requested. Enter the code manually instead.",
                 );
             }
         } finally {
-            if (requestGeneration === permissionRequestGeneration.current) {
-                setRequestingCamera(false);
+            if (requestId === latestPermissionRequestId.current) {
+                setIsRequestingCameraPermission(false);
             }
         }
     }, [cameraPermission?.granted, isFocused, requestCameraPermission]);
 
     return {
-        cameraPermissionMessage,
+        cameraPermissionError,
         closeScanner,
         openScanner,
-        requestingCamera,
-        scannerOpen: scannerOpen && isFocused,
+        isRequestingCameraPermission,
+        isScannerVisible: isScannerOpen && isFocused,
     };
 }
