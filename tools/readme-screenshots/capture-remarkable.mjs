@@ -14,6 +14,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { loadFixture, writeRemarkableFixture } from "./lib/fixture.mjs";
+import { frameScreenshot } from "./lib/device-frames.mjs";
 import { selectScenarios } from "./scenarios.mjs";
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
@@ -163,6 +164,19 @@ try {
         await rename(`${finalPath}.new`, finalPath);
         process.stdout.write(
             `wrote ${path.relative(repositoryRoot, finalPath)}\n`,
+        );
+        const framedPath = path.join(options.outDir, "framed", scenario.output);
+        await frameScreenshot({
+            client: "remarkable",
+            inputPath: finalPath,
+            outputPath: framedPath,
+            frameSourcePath: path.join(
+                repositoryRoot,
+                "docs/assets/device-frames/device-family-source.png",
+            ),
+        });
+        process.stdout.write(
+            `wrote ${path.relative(repositoryRoot, framedPath)}\n`,
         );
     }
 } finally {

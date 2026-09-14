@@ -109,7 +109,7 @@ JsonStore {
         const requestMonthKey = syncStore.monthKey;
         const request = Sync.buildRequest(roster, syncStore.habitsStore.habitTombstones, entryRows, requestMonthKey);
 
-        syncStore._send(syncStore._endpoint(url), request, requestMonthKey);
+        syncStore._send(ServerUrl.endpoint(url, "/api/sync"), request, requestMonthKey);
     }
 
     function _send(endpoint, request, requestMonthKey) {
@@ -133,7 +133,7 @@ JsonStore {
 
         xhr.open("POST", endpoint);
         xhr.setRequestHeader("Content-Type", "application/json");
-        const token = syncStore._token();
+        const token = syncStore.settingsStore ? syncStore.settingsStore.token : "";
         if (token) {
             xhr.setRequestHeader("Authorization", "Bearer " + token);
         }
@@ -169,7 +169,7 @@ JsonStore {
             return;
         }
 
-        const response = syncStore._parse(xhr.responseText);
+        const response = Sync.parseResponse(xhr.responseText, requestMonthKey);
         if (!response) {
             syncStore._fail("error", "Malformed server response");
             return;
@@ -265,25 +265,5 @@ JsonStore {
         }
 
         return ServerUrl.withDefaultScheme(syncStore.settingsStore.serverUrl);
-    }
-
-    function _endpoint(url) {
-        return ServerUrl.endpoint(url, "/api/sync");
-    }
-
-    function _token() {
-        if (!syncStore.settingsStore) {
-            return "";
-        }
-
-        return syncStore.settingsStore.token || "";
-    }
-
-    function _parse(text) {
-        try {
-            return JSON.parse(text);
-        } catch (e) {
-            return null;
-        }
     }
 }

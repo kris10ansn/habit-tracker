@@ -12,6 +12,34 @@ const FAILURE = "Failure";
 const outcomeToWire = (outcome) => (outcome === Entries.X ? SUCCESS : FAILURE);
 const outcomeFromWire = (outcome) => (outcome === SUCCESS ? Entries.X : Entries.O);
 
+// The response is authoritative replacement state. A missing array or requested month must be
+// refused, because treating either as empty would erase valid local data.
+function parseResponse(responseText, requestedMonthKey) {
+    let response;
+    try {
+        response = JSON.parse(responseText);
+    } catch (error) {
+        return null;
+    }
+
+    if (
+        !response ||
+        !Array.isArray(response.habits) ||
+        !Array.isArray(response.months)
+    ) {
+        return null;
+    }
+
+    const requestedMonth = response.months.filter(
+        (month) => month.month === requestedMonthKey,
+    )[0];
+    if (!requestedMonth || !Array.isArray(requestedMonth.entries)) {
+        return null;
+    }
+
+    return response;
+}
+
 // Build the sync request. roster: alive habit rows in display order (index becomes Position).
 // tombstones: soft-deleted habit rows carrying deletedAt. entryRows: the viewed month's entry rows,
 // tombstones included — a row with deletedAt becomes a deleted entry.
