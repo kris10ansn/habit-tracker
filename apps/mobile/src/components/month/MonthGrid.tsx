@@ -3,6 +3,7 @@ import { ScrollView, Text, View } from "react-native";
 
 import { HabitMark } from "@/components/HabitMark";
 import { Card } from "@/components/ui/Card";
+import { Icon } from "@/components/ui/Icon";
 import { dateKey, weekdayShort, type MonthView } from "@/domain/dates";
 import { entryIndex, outcomeAt, type EntryIndex } from "@/domain/entries";
 import { displayStreak, markView, type HabitStreak } from "@/domain/marks";
@@ -43,36 +44,44 @@ export const MonthGrid = memo(function MonthGrid({
     const index = useMemo(() => entryIndex(entries), [entries]);
 
     return (
-        <Card className="px-2 py-2">
+        <Card className="px-2 py-3">
             <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
                 contentContainerClassName="grow flex"
             >
                 <View className="flex grow">
-                    <View className="grow flex-row pb-4">
-                        <View className={DAY_COLUMN} />
+                    <View className="mb-2 grow flex-row items-center border-b border-line pb-3">
+                        <View className={cn(DAY_COLUMN, "items-center")}>
+                            <Text className="text-[9px] font-medium uppercase tracking-wide text-ink-3">
+                                Day
+                            </Text>
+                        </View>
                         {habits.map((habit) => (
                             <View
                                 key={habit.id}
                                 className={cn(
                                     HABIT_COLUMN,
-                                    "items-center px-0.5",
+                                    "flex-row items-center justify-center gap-0.5 px-0.5",
                                 )}
                             >
                                 <Text
                                     numberOfLines={1}
                                     className="text-[10px] font-semibold text-ink-2"
-                                    style={
-                                        streaks[habit.id].current === 0
-                                            ? { filter: "grayscale(100%)" }
-                                            : {}
-                                    }
                                 >
                                     {columnLabel(habit)}
-                                    {displayStreak(streaks[habit.id]) > 1 &&
-                                        "🔥"}
                                 </Text>
+                                {displayStreak(streaks[habit.id]) > 1 ? (
+                                    <Icon
+                                        name="local-fire-department"
+                                        size={11}
+                                        className={
+                                            streaks[habit.id]?.current
+                                                ? "text-warm"
+                                                : "text-ink-3"
+                                        }
+                                    />
+                                ) : null}
                             </View>
                         ))}
                     </View>
@@ -119,8 +128,8 @@ export const MonthDayRow = memo(function MonthDayRow({
     return (
         <View
             className={cn(
-                "flex-row items-center",
-                isToday && "rounded-lg bg-accent-soft",
+                "flex-row items-center border-b border-line/40",
+                isToday && "rounded-field border-transparent bg-accent-soft",
             )}
         >
             <View className={cn(DAY_COLUMN, "items-center py-1")}>

@@ -5,6 +5,7 @@ import type { SessionDto } from "@/api/gen";
 import { AppScreen } from "@/components/ui/AppScreen";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { Icon } from "@/components/ui/Icon";
 import { IconButton } from "@/components/ui/IconButton";
 import { Loading } from "@/components/ui/Loading";
 import { Pill } from "@/components/ui/Pill";
@@ -37,7 +38,7 @@ export default function DevicesScreen() {
                     <Button
                         label="Link a device"
                         onPress={() => router.push("/link-device")}
-                        className="mb-3"
+                        className="mb-5"
                     />
 
                     {sessions.fetchStatus === "idle" && sessions.isPending ? (
@@ -95,9 +96,12 @@ function DeviceRow({ session }: { session: SessionDto }) {
         );
 
     return (
-        <Card className="mb-2.5 flex-row items-center gap-3">
+        <Card className="mb-3 flex-row items-center gap-3">
+            <View className="h-12 w-12 items-center justify-center rounded-2xl bg-accent-soft">
+                <Icon name="devices" size={22} className="text-accent" />
+            </View>
             <View className="min-w-0 flex-1">
-                <View className="flex-row items-center gap-1.5">
+                <View className="flex-row flex-wrap items-center gap-1.5">
                     <Text
                         numberOfLines={1}
                         className="shrink text-[15px] font-semibold text-ink"
@@ -116,6 +120,7 @@ function DeviceRow({ session }: { session: SessionDto }) {
 
             <IconButton
                 icon="link-off"
+                accessibilityLabel={`Revoke ${session.deviceName}`}
                 onPress={confirmRevoke}
                 disabled={revoke.isPending}
             />

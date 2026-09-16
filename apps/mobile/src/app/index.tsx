@@ -3,7 +3,9 @@ import { useMemo } from "react";
 import { DaySummary } from "@/components/today/DaySummary";
 import { HabitListItem } from "@/components/today/HabitListItem";
 import { AppScreen } from "@/components/ui/AppScreen";
+import { Card } from "@/components/ui/Card";
 import { Loading } from "@/components/ui/Loading";
+import { SectionHeader } from "@/components/ui/SectionHeader";
 import {
     currentMonthView,
     monthDayLabel,
@@ -19,7 +21,7 @@ import {
     useSync,
     useToggleEntry,
 } from "@/state/queries";
-import { RefreshControl } from "react-native";
+import { RefreshControl, Text } from "react-native";
 
 // Today: the primary daily surface — log each habit at a glance. Always pinned to the real
 // current month, whatever the Month tab is viewing.
@@ -71,17 +73,29 @@ export default function TodayScreen() {
                         total={habits.length}
                         slips={slips}
                     />
-                    {habits.map((habit) => (
-                        <HabitListItem
-                            key={habit.id}
-                            habit={habit}
-                            outcome={outcomeOf(habit.id)}
-                            streak={streaksQuery.data?.[habit.id]}
-                            onToggle={() =>
-                                toggle(habit.id, today, habit.polarity)
-                            }
-                        />
-                    ))}
+                    <SectionHeader
+                        title="Your habits"
+                        detail="One day at a time"
+                    />
+                    <Card className={habits.length ? "p-0" : undefined}>
+                        {habits.length === 0 ? (
+                            <Text className="text-sm leading-6 text-ink-2">
+                                Add your first habit in Habits to get started.
+                            </Text>
+                        ) : null}
+                        {habits.map((habit, index) => (
+                            <HabitListItem
+                                key={habit.id}
+                                habit={habit}
+                                isLast={index === habits.length - 1}
+                                outcome={outcomeOf(habit.id)}
+                                streak={streaksQuery.data?.[habit.id]}
+                                onToggle={() =>
+                                    toggle(habit.id, today, habit.polarity)
+                                }
+                            />
+                        ))}
+                    </Card>
                 </>
             )}
         </AppScreen>

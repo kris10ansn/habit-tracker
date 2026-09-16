@@ -6,20 +6,24 @@
 //     `placeholderTextColor`).
 // Plain CommonJS so the Tailwind config (Node) and app code (TS) can both read it.
 // The JSDoc `@type {const}` cast is the `.js` equivalent of `as const`: TS infers
-// literal, deeply-readonly types (so `colors.accent` is `'#5b5bd6'`, not `string`).
+// literal, deeply-readonly types (so `colors.accent` is `'#6551c4'`, not `string`).
 const palette = /** @type {const} */ ({
     surface: "#ffffff",
-    surface2: "#f5f5f7",
-    ink: "#16161a",
-    ink2: "#5b5b66",
-    ink3: "#9a9aa5",
-    line: "#e4e4ea",
-    accent: "#5b5bd6",
-    accentSoft: "#ececfb",
-    done: "#12a56a",
-    doneSoft: "#e3f5ec",
-    slip: "#e05656",
-    slipSoft: "#fbe9e9",
+    surface2: "#f7f6fa",
+    ink: "#252332",
+    ink2: "#656171",
+    ink3: "#807b8c",
+    line: "#e9e5ef",
+    accent: "#6551c4",
+    accentSoft: "#eeeafa",
+    accentDeep: "#302746",
+    accentMuted: "#d2c7ea",
+    warm: "#93652e",
+    warmSoft: "#f7efdf",
+    done: "#19836b",
+    doneSoft: "#e8f4ee",
+    slip: "#bf5264",
+    slipSoft: "#f9e9ed",
 });
 
 module.exports = { palette };

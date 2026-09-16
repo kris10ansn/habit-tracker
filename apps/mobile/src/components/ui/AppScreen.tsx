@@ -59,7 +59,7 @@ export function AppScreen({
                 avoidKeyboard ? (
                     <KeyboardAwareScrollView
                         className="flex-1"
-                        contentContainerClassName="px-4 pb-8"
+                        contentContainerClassName="px-5 pb-8"
                         keyboardShouldPersistTaps="handled"
                         bottomOffset={16}
                         refreshControl={refreshControl}
@@ -70,7 +70,7 @@ export function AppScreen({
                 ) : (
                     <ScrollView
                         className="flex-1"
-                        contentContainerClassName="px-4 pb-8"
+                        contentContainerClassName="px-5 pb-8"
                         refreshControl={refreshControl}
                     >
                         {children}
@@ -78,7 +78,7 @@ export function AppScreen({
                     </ScrollView>
                 )
             ) : (
-                <View className="flex-1 px-4">
+                <View className="flex-1 px-5">
                     <View className="flex-1">{children}</View>
                     <TabBarClearance />
                 </View>

@@ -87,7 +87,7 @@ function PlainMark({ view, onPress, disabled }: Props) {
 const markClassName = (view: MarkView, small: boolean, interactive: boolean) =>
     cn(
         "items-center justify-center",
-        small ? "h-10 w-10 rounded-lg" : "h-14 w-14 rounded-2xl border",
+        small ? "h-10 w-10 rounded-lg" : "h-14 w-14 rounded-full border",
         small ? SM_CONTAINER[view.kind] : CONTAINER[view.kind],
         !small && view.muted && "opacity-40",
         interactive && "active:opacity-60",
@@ -111,9 +111,9 @@ const POP_TIMING_OUT = { duration: 60 };
 // Container + glyph colors per state. `lg` (Today) is a bordered tile; `sm`
 // (month grid) is a compact filled chip.
 const CONTAINER: Record<MarkKind, string> = {
-    done: "bg-done-soft border-done",
-    missed: "bg-slip-soft border-slip",
-    slip: "bg-slip-soft border-slip",
+    done: "bg-done-soft border-done-soft",
+    missed: "bg-slip-soft border-slip-soft",
+    slip: "bg-slip-soft border-slip-soft",
     clean: "bg-surface border-done",
     empty: "bg-surface-2 border-line",
 };

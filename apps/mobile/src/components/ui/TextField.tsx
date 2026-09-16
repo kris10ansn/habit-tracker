@@ -28,7 +28,7 @@ export function TextInputField({
         <TextInput
             placeholderTextColor={colors.ink3}
             className={cn(
-                "rounded-field border border-line bg-surface px-3.5 py-3.5 text-[15px] text-ink",
+                "min-h-[48px] rounded-field border border-line bg-surface-2 px-4 py-3.5 text-[15px] text-ink focus:border-accent",
                 className,
             )}
             {...props}
@@ -58,7 +58,7 @@ export function TextInputLabel({
     return (
         <Text
             className={cn(
-                "mb-1.5 ml-1 text-xs font-semibold uppercase tracking-wide text-ink-3",
+                "mb-2 ml-1 text-[11px] font-semibold tracking-wide text-ink-2",
                 className,
             )}
         >
