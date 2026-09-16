@@ -4,6 +4,7 @@ import { Toaster } from "sonner-native";
 
 import { AppProviders } from "@/components/AppProviders";
 import { Icon } from "@/components/ui/Icon";
+import { TabBarBackground } from "@/components/ui/TabBarBackground";
 import { colors } from "@/theme/colors";
 
 import { PlatformPressable } from "expo-router/build/react-navigation";
@@ -15,6 +16,8 @@ import "../../global.css";
 const TabBarButton = (
     props: React.ComponentProps<typeof PlatformPressable>,
 ) => <PlatformPressable {...props} android_ripple={{ color: null }} />;
+
+const TAB_ROUTES = ["index", "month", "habits", "sync"];
 
 export default function RootLayout() {
     const insets = useSafeAreaInsets();
@@ -28,11 +31,17 @@ export default function RootLayout() {
                     // Safe-area clearance belongs outside the capsule; the surrounding
                     // area stays transparent so screen content can scroll behind it.
                     safeAreaInsets={{ bottom: 0, left: 0, right: 0 }}
-                    screenOptions={{
+                    screenOptions={({ route }) => ({
                         headerShown: false,
+                        tabBarButtonTestID: `tab-${route.name}`,
                         tabBarActiveTintColor: colors.accent,
                         tabBarInactiveTintColor: colors.ink2,
-                        tabBarActiveBackgroundColor: colors.accentSoft,
+                        tabBarBackground: () => (
+                            <TabBarBackground
+                                activeIndex={TAB_ROUTES.indexOf(route.name)}
+                                tabCount={TAB_ROUTES.length}
+                            />
+                        ),
                         tabBarLabelPosition: "below-icon",
                         tabBarHideOnKeyboard: true,
                         tabBarStyle: {
@@ -64,7 +73,7 @@ export default function RootLayout() {
                             fontWeight: "600",
                         },
                         tabBarButton: TabBarButton,
-                    }}
+                    })}
                 >
                     <Tabs.Screen
                         name="index"
