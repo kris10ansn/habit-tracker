@@ -78,10 +78,8 @@ export function AppScreen({
                     </ScrollView>
                 )
             ) : (
-                <View className="flex-1 px-5">
-                    <View className="flex-1">{children}</View>
-                    <TabBarClearance />
-                </View>
+                // A screen with its own scroll view owns its scroll-end clearance.
+                <View className="flex-1 px-5">{children}</View>
             )}
         </SafeAreaView>
     );
@@ -89,7 +87,7 @@ export function AppScreen({
 
 // This spacer scrolls with the content instead of masking it with a fixed footer.
 // Include the home-indicator inset and room for the capsule at larger text sizes.
-function TabBarClearance() {
+export function TabBarClearance() {
     return (
         <SafeAreaView
             className="pt-28"

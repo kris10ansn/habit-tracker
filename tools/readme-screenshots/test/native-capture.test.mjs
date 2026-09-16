@@ -44,7 +44,7 @@ test("recovers an offline screenshot command after checking actual app content",
     let captures = 0;
     let retries = 0;
     const xml =
-        '<hierarchy><node package="host.exp.exponent" text="logged today Read 20 min 4 of 6 habits logged 6 days" /></hierarchy>';
+        '<hierarchy><node package="host.exp.exponent" text="Read 20 min 4 of 6 habits logged 6 days" /></hierarchy>';
     try {
         const files = await captureNative({
             output: directory,

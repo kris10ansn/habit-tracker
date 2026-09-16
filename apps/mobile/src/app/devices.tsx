@@ -72,6 +72,8 @@ export default function DevicesScreen() {
 
 function DeviceRow({ session }: { session: SessionDto }) {
     const revoke = useRevokeSession();
+    // Sessions currently expose a name rather than a device-type field.
+    const isRemarkable = /\bremarkable\b/i.test(session.deviceName);
 
     const confirmRevoke = () =>
         Alert.alert(
@@ -98,7 +100,11 @@ function DeviceRow({ session }: { session: SessionDto }) {
     return (
         <Card className="mb-3 flex-row items-center gap-3">
             <View className="h-12 w-12 items-center justify-center rounded-2xl bg-accent-soft">
-                <Icon name="devices" size={22} className="text-accent" />
+                <Icon
+                    name={isRemarkable ? "tablet-mac" : "smartphone"}
+                    size={22}
+                    className="text-accent"
+                />
             </View>
             <View className="min-w-0 flex-1">
                 <View className="flex-row flex-wrap items-center gap-1.5">

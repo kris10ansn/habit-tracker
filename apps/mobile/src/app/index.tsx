@@ -1,6 +1,5 @@
 import { useMemo } from "react";
 
-import { DaySummary } from "@/components/today/DaySummary";
 import { HabitListItem } from "@/components/today/HabitListItem";
 import { AppScreen } from "@/components/ui/AppScreen";
 import { Card } from "@/components/ui/Card";
@@ -45,10 +44,6 @@ export default function TodayScreen() {
     const logged = habits.filter((habit) =>
         isSuccess(habit.polarity, outcomeOf(habit.id)),
     ).length;
-    const slips = habits.filter(
-        (habit) =>
-            habit.polarity === "Negative" && outcomeOf(habit.id) === "Failure",
-    ).length;
 
     const sync = useSync();
 
@@ -68,11 +63,6 @@ export default function TodayScreen() {
                 <Loading />
             ) : (
                 <>
-                    <DaySummary
-                        logged={logged}
-                        total={habits.length}
-                        slips={slips}
-                    />
                     <SectionHeader
                         title="Your habits"
                         detail="One day at a time"

@@ -49,14 +49,7 @@ export default function MonthScreen() {
             eyebrow="Overview"
             title="Month"
             subtitle="Your habits across the month"
-            refreshControl={
-                <RefreshControl
-                    refreshing={habitsQuery.isPending || sync.isPending}
-                    onRefresh={() =>
-                        sync.mutate({ currentMonthKey: view.monthKey })
-                    }
-                />
-            }
+            scroll={false}
         >
             <MonthNav
                 label={view.monthLabel}
@@ -68,6 +61,7 @@ export default function MonthScreen() {
                 <Loading />
             ) : (
                 <SlideTransition
+                    fill
                     transitionKey={view.monthKey}
                     direction={direction}
                 >
@@ -78,6 +72,18 @@ export default function MonthScreen() {
                         entries={entriesQuery.data ?? []}
                         streaks={streaksQuery.data ?? {}}
                         onToggle={toggle}
+                        refreshControl={
+                            <RefreshControl
+                                refreshing={
+                                    habitsQuery.isPending || sync.isPending
+                                }
+                                onRefresh={() =>
+                                    sync.mutate({
+                                        currentMonthKey: view.monthKey,
+                                    })
+                                }
+                            />
+                        }
                     />
                 </SlideTransition>
             )}

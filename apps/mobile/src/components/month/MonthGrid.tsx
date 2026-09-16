@@ -1,7 +1,8 @@
 import { memo, useMemo } from "react";
-import { ScrollView, Text, View } from "react-native";
+import { ScrollView, Text, View, type RefreshControlProps } from "react-native";
 
 import { HabitMark } from "@/components/HabitMark";
+import { TabBarClearance } from "@/components/ui/AppScreen";
 import { Card } from "@/components/ui/Card";
 import { Icon } from "@/components/ui/Icon";
 import { dateKey, weekdayShort, type MonthView } from "@/domain/dates";
@@ -18,6 +19,7 @@ interface MonthGridProps {
     entries: Entry[];
     streaks: Record<string, HabitStreak>;
     onToggle?: ToggleFn;
+    refreshControl?: React.ReactElement<RefreshControlProps>;
 }
 
 const DAY_COLUMN = "w-11";
@@ -39,19 +41,24 @@ export const MonthGrid = memo(function MonthGrid({
     entries,
     streaks,
     onToggle,
+    refreshControl,
 }: MonthGridProps) {
     const days = Array.from({ length: view.daysInMonth }, (_, i) => i + 1);
     const index = useMemo(() => entryIndex(entries), [entries]);
 
+    // One horizontal viewport keeps labels and cells aligned; only the rows
+    // scroll vertically, leaving the column header pinned above them.
     return (
-        <Card className="px-2 py-3">
+        <Card className="flex-1 overflow-hidden p-0">
             <ScrollView
                 horizontal
+                className="flex-1"
+                directionalLockEnabled
                 showsHorizontalScrollIndicator={false}
-                contentContainerClassName="grow flex"
+                contentContainerClassName="grow"
             >
-                <View className="flex grow">
-                    <View className="mb-2 grow flex-row items-center border-b border-line pb-3">
+                <View className="grow px-2">
+                    <View className="shrink-0 flex-row items-center border-b border-line bg-surface py-3">
                         <View className={cn(DAY_COLUMN, "items-center")}>
                             <Text className="text-[9px] font-medium uppercase tracking-wide text-ink-3">
                                 Day
@@ -77,7 +84,7 @@ export const MonthGrid = memo(function MonthGrid({
                                         size={11}
                                         className={
                                             streaks[habit.id]?.current
-                                                ? "text-warm"
+                                                ? "text-streak"
                                                 : "text-ink-3"
                                         }
                                     />
@@ -86,17 +93,26 @@ export const MonthGrid = memo(function MonthGrid({
                         ))}
                     </View>
 
-                    {days.map((day) => (
-                        <MonthDayRow
-                            key={day}
-                            habits={habits}
-                            view={view}
-                            today={today}
-                            day={day}
-                            index={index}
-                            onToggle={onToggle}
-                        />
-                    ))}
+                    <ScrollView
+                        key={view.monthKey}
+                        className="flex-1"
+                        contentContainerClassName="pb-8"
+                        nestedScrollEnabled
+                        refreshControl={refreshControl}
+                    >
+                        {days.map((day) => (
+                            <MonthDayRow
+                                key={day}
+                                habits={habits}
+                                view={view}
+                                today={today}
+                                day={day}
+                                index={index}
+                                onToggle={onToggle}
+                            />
+                        ))}
+                        <TabBarClearance />
+                    </ScrollView>
                 </View>
             </ScrollView>
         </Card>

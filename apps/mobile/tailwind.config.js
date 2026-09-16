@@ -15,9 +15,8 @@ module.exports = {
                 accent: {
                     DEFAULT: palette.accent,
                     soft: palette.accentSoft,
-                    deep: palette.accentDeep,
-                    muted: palette.accentMuted,
                 },
+                streak: { DEFAULT: palette.streak, soft: palette.streakSoft },
                 warm: { DEFAULT: palette.warm, soft: palette.warmSoft },
                 done: { DEFAULT: palette.done, soft: palette.doneSoft },
                 slip: { DEFAULT: palette.slip, soft: palette.slipSoft },
