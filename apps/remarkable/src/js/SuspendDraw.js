@@ -8,7 +8,7 @@ function computeSignature(habits, today) {
     const month = today.getMonth();
     const visible = habits.filter((h) => !h.isPrivate);
 
-    const parts = [`power-images-ledger-v1|${year}-${month}-${currentDay}`];
+    const parts = [`power-images-ledger-v2|${year}-${month}-${currentDay}`];
 
     for (let i = 0; i < visible.length; i++) {
         const h = visible[i];
@@ -69,26 +69,16 @@ function draw(
         today,
     );
     drawLine(ctx, 96, 1085, 1776, 1085, "#111111", 2);
-    drawStateIcon(ctx, state, 96, 1136);
-    drawText(
-        ctx,
-        states[state][0],
-        state === "empty" ? 164 : 152,
-        1154,
-        42,
-        "sans-serif",
-        "left",
-        true,
-    );
-    drawText(ctx, states[state][1], 1776, 1154, 29, "sans-serif", "right");
+    drawStateBadge(ctx, state, states[state][0]);
+    drawText(ctx, states[state][1], 1776, 1168, 29, "sans-serif", "right");
     drawText(
         ctx,
         `Snapshot · ${today.getDate()} ${monthTitle} ${today.getFullYear()}`,
         96,
-        1240,
+        1270,
         25,
     );
-    drawText(ctx, "Habit tracker", 1776, 1240, 25, "sans-serif", "right");
+    drawText(ctx, "Habit tracker", 1776, 1270, 25, "sans-serif", "right");
     ctx.restore();
 }
 
@@ -100,10 +90,10 @@ const drawText = (
     size,
     family = "sans-serif",
     align = "left",
-    bold = false,
+    color = "#111111",
 ) => {
-    ctx.fillStyle = "#111111";
-    ctx.font = `${bold ? "bold " : ""}${size}px ${family}`;
+    ctx.fillStyle = color;
+    ctx.font = `${size}px ${family}`;
     ctx.textAlign = align;
     ctx.fillText(value, x, y);
 };
@@ -228,10 +218,57 @@ const drawPolyline = (ctx, points) => {
     ctx.stroke();
 };
 
-const drawStateIcon = (ctx, state, x, y) => {
+const drawStateBadge = (ctx, state, label) => {
+    const background = { sleep: "#ffffff", off: "#111111", empty: "#dddddd" }[
+        state
+    ];
+    const foreground = state === "off" ? "#ffffff" : "#111111";
+    const iconWidth = state === "empty" ? 50 : 38;
+    const padding = 26;
+    const gap = 14;
+    const left = 96;
+    const top = 1118;
+    const height = 100;
+    const centerY = top + height / 2;
+    ctx.font = "42px sans-serif";
+    const width = padding * 2 + iconWidth + gap + ctx.measureText(label).width;
+    roundedRectangle(ctx, left, top, width, height, 14);
+    ctx.fillStyle = background;
+    ctx.fill();
+    ctx.strokeStyle = "#111111";
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    drawStateIcon(ctx, state, left + padding, centerY - 18, foreground);
+    drawText(
+        ctx,
+        label,
+        left + padding + iconWidth + gap,
+        centerY,
+        42,
+        "sans-serif",
+        "left",
+        foreground,
+    );
+};
+
+const roundedRectangle = (ctx, x, y, width, height, radius) => {
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + width - radius, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+    ctx.lineTo(x + width, y + height - radius);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+    ctx.lineTo(x + radius, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
+    ctx.closePath();
+};
+
+const drawStateIcon = (ctx, state, x, y, color) => {
     ctx.save();
     ctx.translate(x, y);
-    ctx.strokeStyle = "#111111";
+    ctx.strokeStyle = color;
     ctx.lineWidth = 3;
     if (state === "sleep") {
         const outer = circlePoints(18, 18, 18, 0.465, 4.248);
@@ -242,10 +279,10 @@ const drawStateIcon = (ctx, state, x, y) => {
             ctx,
             circlePoints(18, 20, 16, -Math.PI / 3, (Math.PI * 4) / 3),
         );
-        drawLine(ctx, 18, 0, 18, 19, "#111111", 3);
+        drawLine(ctx, 18, 0, 18, 19, color, 3);
     } else {
         ctx.strokeRect(0, 1, 43, 34);
-        drawLine(ctx, 48, 12, 48, 24, "#111111", 3);
+        drawLine(ctx, 48, 12, 48, 24, color, 3);
     }
     ctx.restore();
 };

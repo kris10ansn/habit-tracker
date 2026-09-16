@@ -205,5 +205,5 @@ The renderer now uses Quiet ledger with aligned, compact state icons. Add `--sta
 `--out` still chooses a single output file. This tool previews images only and does not perform
 backup/restore or install them. The QML app owns the three-target write lifecycle.
 
-Rebuild this tool after the renderer update: its Canvas shim now supports paths, scaling, text
+Rebuild this tool after the renderer update: its Canvas shim now supports filled rounded paths, scaling, text
 measurement, and right-aligned labels. Copying the updated JavaScript beside an old binary is not sufficient.

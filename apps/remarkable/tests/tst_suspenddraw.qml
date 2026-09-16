@@ -98,6 +98,7 @@ TestCase {
             const context = {
                 fillRect: () => {}, strokeRect: () => {}, save: () => {}, restore: () => {},
                 translate: () => {}, rotate: () => {}, scale: () => {}, beginPath: () => {},
+                quadraticCurveTo: () => {}, closePath: () => {}, fill: () => {},
                 moveTo: () => {}, lineTo: () => {}, stroke: () => { strokes++; },
                 measureText: value => ({ width: value.length * 16 }),
                 fillText: value => labels.push(value)

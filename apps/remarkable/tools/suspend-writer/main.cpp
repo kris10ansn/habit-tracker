@@ -103,6 +103,11 @@ public:
     Q_INVOKABLE void beginPath() { m_path = QPainterPath(); }
     Q_INVOKABLE void moveTo(double x, double y) { m_path.moveTo(x, y); }
     Q_INVOKABLE void lineTo(double x, double y) { m_path.lineTo(x, y); }
+    Q_INVOKABLE void quadraticCurveTo(double controlX, double controlY, double x, double y) {
+        m_path.quadTo(controlX, controlY, x, y);
+    }
+    Q_INVOKABLE void closePath() { m_path.closeSubpath(); }
+    Q_INVOKABLE void fill() { m_painter->fillPath(m_path, QColor(m_fillStyle)); }
     Q_INVOKABLE void stroke() {
         QPen pen{QColor(m_strokeStyle)};
         pen.setWidthF(m_lineWidth);
