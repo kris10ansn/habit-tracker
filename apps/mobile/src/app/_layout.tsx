@@ -9,7 +9,8 @@ import { colors } from "@/theme/colors";
 
 import { PlatformPressable } from "expo-router/build/react-navigation";
 import React from "react";
-import { StatusBar, useWindowDimensions, View } from "react-native";
+import { Easing, StatusBar, useWindowDimensions, View } from "react-native";
+import { useReducedMotion } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import "../../global.css";
 
@@ -22,6 +23,7 @@ const TAB_ROUTES = ["index", "month", "habits", "sync"];
 export default function RootLayout() {
     const insets = useSafeAreaInsets();
     const { fontScale } = useWindowDimensions();
+    const reduceMotion = useReducedMotion();
 
     return (
         <AppProviders>
@@ -33,6 +35,15 @@ export default function RootLayout() {
                     safeAreaInsets={{ bottom: 0, left: 0, right: 0 }}
                     screenOptions={({ route }) => ({
                         headerShown: false,
+                        // Let the navigator transition the existing scenes while the tab bar stays put.
+                        animation: reduceMotion ? "none" : "shift",
+                        transitionSpec: {
+                            animation: "timing",
+                            config: {
+                                duration: reduceMotion ? 0 : 200,
+                                easing: Easing.out(Easing.cubic),
+                            },
+                        },
                         tabBarButtonTestID: `tab-${route.name}`,
                         tabBarActiveTintColor: colors.accent,
                         tabBarInactiveTintColor: colors.ink2,

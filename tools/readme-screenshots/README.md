@@ -156,6 +156,11 @@ The [cropped GIF preview](../../docs/assets/demos/tab-highlight.gif) removes idl
 switches while keeping each transition at its recorded speed. Settled tab appearance and existing
 README capture selectors are unchanged; allow the highlight to settle before taking still images.
 
+The same flow also records the navigator's page transitions. See the [full-page recording](../../docs/assets/demos/tab-pages.mp4)
+and [short preview](../../docs/assets/demos/tab-pages.gif) for the slide-and-fade between screens.
+The preview removes idle waits, retaining the original transition speed. Still captures should wait
+for both the page transition and tab highlight to settle; settled screen layouts are unchanged.
+
 ### Test isolation
 
 With `APP_TEST_MODE=1`, Metro replaces the root layout's `AppProviders` import and `expo-camera`
