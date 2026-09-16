@@ -19,7 +19,9 @@ Alternatively run `python3 apps/remarkable/prototypes/adaptive-layout/serve.py -
 - Mark entries: positive habits cycle blank → X → O → blank; negative habits toggle a failure,
   with implicit X only on dates up to the demo's fixed today (16 September 2026).
 - Browse months, return to Today, and move seven days with the horizontal arrows.
-- Edit names, reorder, add, delete with confirmation, and change polarity or privacy.
+- Edit names, reorder, add, delete with confirmation, and change polarity or privacy. All habit
+  edits are staged until Done. A newly private habit stays in the editor until you finish.
+  Negative and Private buttons both invert when selected.
 - Settings stage power-image, private-habit, and server changes until Done. Back prompts before
   discarding edits. Private habits stay hidden unless Show private habits is enabled.
 - Settings → Disconnect → Connect shows QR/manual pairing. The outer Screen selector also jumps
@@ -80,13 +82,15 @@ Implementation work after design review:
 5. Update the app README/screenshots for the approved implementation. Device deployment and
    real e-ink/keyboard checks remain user-run under the repository's never-SSH rule.
 
-Current verdict: B selected; adaptive density and complete settings/pairing layout pending review.
+Verdict: B, adaptive density, and the full settings/pairing layout approved. Negative and Private
+buttons invert consistently, and habit edits apply only on Done. Native implementation proceeds
+from the power-state branch, with this branch retained as the design reference.
 
 ## Verification recorded for this prototype
 
 Browser checks covered 5/11/20/35-habit views; adding a twelfth habit enabling overflow;
-35-habit last-page clamping; privacy changing the visible count from 11 → 10 → 11 and the row
-height from 72 → 81 → 72; edit/add controls; staged server edits disabling Sync; discard
+35-habit last-page clamping; staging privacy with the row still visible, then pressing Done
+changing the visible count from 11 → 10 and row height from 72 → 81; inverted polarity; edit/add controls; staged server edits disabling Sync; discard
 confirmation; QR expiry/new-code/approval; and the native surface measuring 1872 × 1404 via its
 DOM bounds in 1:1 mode. No browser errors were reported. The same QR matrix and 296px rendering
 geometry decoded as `H7K9Q2` with zbar. JavaScript syntax and changed web-file formatting passed.

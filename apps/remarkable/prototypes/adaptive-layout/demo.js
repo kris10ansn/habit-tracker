@@ -70,6 +70,16 @@
             .replace(/"/g, "&quot;");
     const button = (text, action, attributes = "") =>
         `<button type="button" data-action="${action}" ${attributes}>${text}</button>`;
+    let habitDraft = null;
+    let editorIds = [];
+    const editorHabits = () =>
+        habitDraft.filter((habit) => editorIds.includes(habit.id));
+    function beginEditing() {
+        habitDraft = state.habits.map((habit) => Object.assign({}, habit));
+        editorIds = visibleHabits().map((habit) => habit.id);
+        state.view = "edit";
+        state.editY = 0;
+    }
     const visibleHabits = () =>
         state.habits.filter((habit) => state.showPrivate || !habit.private);
     const monthDate = () => new Date(state.year, state.month, 1);
@@ -160,7 +170,7 @@
         if (state.view === "settings")
             return `<header class="header"><h1>Settings</h1></header>`;
         if (state.view === "edit")
-            return `<header class="header"><div class="header-group"><h1>Edit habits</h1><span class="secondary">${visibleHabits().length} visible</span></div>${button("Done", "grid", 'class="ink"')}</header>`;
+            return `<header class="header"><div class="header-group"><h1>Edit habits</h1><span class="secondary">${editorHabits().length} visible</span></div>${button("Done", "grid", 'class="ink"')}</header>`;
         return `<header class="header"><div class="header-group"><h1>${monthName()}<span class="year">${state.year}</span></h1><nav class="month-nav" aria-label="Month navigation">${button("‹", "month-prev", 'class="icon" aria-label="Previous month"')}${button("Today", "today", currentMonth() ? "disabled" : "")}${button("›", "month-next", 'class="icon" aria-label="Next month"')}</nav></div><nav class="actions" aria-label="App actions">${button("Edit habits", "edit")}${button("Settings", "settings")}${button("Quit", "quit", 'class="quiet"')}</nav></header>`;
     }
 
@@ -215,10 +225,10 @@
     }
 
     function editor() {
-        const rows = visibleHabits();
+        const rows = editorHabits();
         const maxY = Math.max(0, rows.length * 120 - 840);
         state.editY = clampScroll(state.editY, maxY);
-        return `<main class="section"><div class="editor-content"><div class="edit-head"><span>Habit name</span><span>Polarity</span><span>Visibility</span><span>Order / remove</span></div><div class="edit-clip"><div class="edit-rows" style="top:${-state.editY}px">${rows.map((habit, index) => `<div class="edit-row" ${index * 120 + 120 <= state.editY || index * 120 >= state.editY + 840 ? "inert" : ""}><input aria-label="Name for ${escape(habit.name)}" data-name="${habit.id}" maxlength="120" value="${escape(habit.name)}">${button(habit.negative ? "Negative" : "Positive", "polarity", `data-id="${habit.id}"`)}${button(habit.private ? "Private" : "Public", "private", `data-id="${habit.id}" ${habit.private ? 'class="ink"' : ""}`)}<div class="actions">${button("↑", "move-up", `class="icon" data-id="${habit.id}" aria-label="Move ${escape(habit.name)} up" ${state.habits.indexOf(habit) === 0 ? "disabled" : ""}`)}${button("↓", "move-down", `class="icon" data-id="${habit.id}" aria-label="Move ${escape(habit.name)} down" ${state.habits.indexOf(habit) === state.habits.length - 1 ? "disabled" : ""}`)}${button("×", "delete", `class="icon" data-id="${habit.id}" aria-label="Delete ${escape(habit.name)}"`)}</div></div>`).join("")}</div></div><form class="add-row" id="add-habit"><input id="new-habit" aria-label="New habit name" placeholder="New habit name" maxlength="120" required><button type="submit">Add habit</button></form></div>${verticalControls(true, maxY)}</main><div class="page-bottom"><span class="secondary">${rows.length ? `${Math.floor(state.editY / 120) + 1}–${Math.min(rows.length, Math.ceil((state.editY + 840) / 120))} of ${rows.length} habits` : "No visible habits"} · Changes apply as you edit</span><span class="secondary">Private habits stay off power-state images.</span></div>`;
+        return `<main class="section"><div class="editor-content"><div class="edit-head"><span>Habit name</span><span>Polarity</span><span>Visibility</span><span>Order / remove</span></div><div class="edit-clip"><div class="edit-rows" style="top:${-state.editY}px">${rows.map((habit, index) => `<div class="edit-row" ${index * 120 + 120 <= state.editY || index * 120 >= state.editY + 840 ? "inert" : ""}><input aria-label="Name for ${escape(habit.name)}" data-name="${habit.id}" maxlength="120" value="${escape(habit.name)}">${button(habit.negative ? "Negative" : "Positive", "polarity", `data-id="${habit.id}" ${habit.negative ? 'class="ink"' : ""}`)}${button(habit.private ? "Private" : "Public", "private", `data-id="${habit.id}" ${habit.private ? 'class="ink"' : ""}`)}<div class="actions">${button("↑", "move-up", `class="icon" data-id="${habit.id}" aria-label="Move ${escape(habit.name)} up" ${habitDraft.indexOf(habit) === 0 ? "disabled" : ""}`)}${button("↓", "move-down", `class="icon" data-id="${habit.id}" aria-label="Move ${escape(habit.name)} down" ${habitDraft.indexOf(habit) === habitDraft.length - 1 ? "disabled" : ""}`)}${button("×", "delete", `class="icon" data-id="${habit.id}" aria-label="Delete ${escape(habit.name)}"`)}</div></div>`).join("")}</div></div><form class="add-row" id="add-habit"><input id="new-habit" aria-label="New habit name" placeholder="New habit name" maxlength="120" required><button type="submit">Add habit</button></form></div>${verticalControls(true, maxY)}</main><div class="page-bottom"><span class="secondary">${rows.length ? `${Math.floor(state.editY / 120) + 1}–${Math.min(rows.length, Math.ceil((state.editY + 840) / 120))} of ${rows.length} habits` : "No visible habits"} · Changes apply on Done</span><span class="secondary">Private habits stay off power-state images.</span></div>`;
     }
 
     function toggle(property, value) {
@@ -286,7 +296,7 @@
             button("Discard changes", "discard", 'class="ink"');
         if (state.modal.type === "delete") {
             title = "Delete habit?";
-            message = `“${state.habits.find((habit) => habit.id === state.modal.id).name}” and its entries will be removed from this demo.`;
+            message = `“${habitDraft.find((habit) => habit.id === state.modal.id).name}” and its entries will be removed from this demo.`;
             actions =
                 button("Cancel", "dismiss") +
                 button("Delete habit", "confirm-delete", 'class="ink"');
@@ -401,12 +411,13 @@
 
     const actions = {
         grid: () => {
+            if (state.view === "edit") {
+                state.habits = habitDraft;
+                habitDraft = null;
+            }
             state.view = "grid";
         },
-        edit: () => {
-            state.view = "edit";
-            state.editY = 0;
-        },
+        edit: beginEditing,
         settings: openSettings,
         "month-prev": () => moveMonth(-1),
         "month-next": () => moveMonth(1),
@@ -449,7 +460,7 @@
                 state.editY,
                 -6,
                 120,
-                Math.max(0, visibleHabits().length * 120 - 840),
+                Math.max(0, editorHabits().length * 120 - 840),
             );
         },
         "edit-down": () => {
@@ -457,7 +468,7 @@
                 state.editY,
                 6,
                 120,
-                Math.max(0, visibleHabits().length * 120 - 840),
+                Math.max(0, editorHabits().length * 120 - 840),
             );
         },
         mark: (element) => {
@@ -487,7 +498,7 @@
             state.modal = { type: "delete", id: Number(element.dataset.id) };
         },
         "confirm-delete": () => {
-            state.habits = state.habits.filter(
+            habitDraft = habitDraft.filter(
                 (habit) => habit.id !== state.modal.id,
             );
             state.modal = null;
@@ -532,17 +543,17 @@
         state.pairing = "";
     }
     function findHabit(element) {
-        return state.habits.find(
+        return habitDraft.find(
             (habit) => habit.id === Number(element.dataset.id),
         );
     }
     function moveHabit(element, direction) {
         const habit = findHabit(element);
-        const index = state.habits.indexOf(habit);
+        const index = habitDraft.indexOf(habit);
         const next = index + direction;
-        if (next < 0 || next >= state.habits.length) return;
-        state.habits.splice(index, 1);
-        state.habits.splice(next, 0, habit);
+        if (next < 0 || next >= habitDraft.length) return;
+        habitDraft.splice(index, 1);
+        habitDraft.splice(next, 0, habit);
     }
     function moveMonth(direction) {
         const next = new Date(state.year, state.month + direction, 1);
@@ -570,7 +581,7 @@
     tablet.addEventListener("change", (event) => {
         if (event.target.dataset.name) {
             const name = event.target.value.trim();
-            const habit = state.habits.find(
+            const habit = habitDraft.find(
                 (item) => item.id === Number(event.target.dataset.name),
             );
             if (name) habit.name = name;
@@ -597,13 +608,15 @@
         event.preventDefault();
         const name = document.getElementById("new-habit").value.trim();
         if (!name) return;
-        state.habits.push({
-            id: state.nextId++,
+        const newId = state.nextId++;
+        editorIds.push(newId);
+        habitDraft.push({
+            id: newId,
             name,
             negative: false,
             private: false,
         });
-        state.editY = Math.max(0, visibleHabits().length * 120 - 840);
+        state.editY = Math.max(0, editorHabits().length * 120 - 840);
         render();
         document.getElementById("new-habit").focus({ preventScroll: true });
     });
@@ -627,6 +640,7 @@
                 event.target.value === "pairing"
             )
                 openSettings();
+            else if (event.target.value === "edit") beginEditing();
             else state.view = event.target.value;
             if (event.target.value === "pairing") {
                 state.connected = false;

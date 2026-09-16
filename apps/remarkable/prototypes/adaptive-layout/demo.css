@@ -136,7 +136,8 @@ button:disabled {
     outline: 4px solid #111;
     outline-offset: 4px;
 }
-#tablet button.ink {
+#tablet button.ink,
+#tablet button.ink:hover:not(:disabled) {
     background: #111;
     color: #fff;
     border-color: #111;
