@@ -137,6 +137,30 @@ onboarding/menu screens are dismissed, and a cold launch that returns to Android
 once. Missing fixture content fails readiness; other dialogs are not automatically dismissed.
 Screen routes and expected copy live in `lib/native-capture.mjs`; output filenames use the existing `scenarios.mjs` registry.
 
+### Tab animation recording with Maestro
+
+For an optional tab-switching video, load the isolated Expo Go test project as described below,
+wait for `TEST_MODE_READY`, then run Maestro against the explicit emulator serial:
+
+```sh
+maestro --device emulator-5554 test --test-output-dir .screenshots/tab-animation tools/readme-screenshots/maestro/tab-highlight.yaml
+```
+
+The flow verifies the four tab screens and records adjacent switches and jumps across the bar.
+Maestro saves `tab-highlight.mp4` inside the run's `startRecording/` directory. It records the
+emulator directly; desktop focus and desktop locking do not affect capture, provided the host
+stays awake. An emulator launched with `-no-window` works too.
+
+The retained [full recording](../../docs/assets/demos/tab-highlight.mp4) uses the isolated fixture.
+The [cropped GIF preview](../../docs/assets/demos/tab-highlight.gif) removes idle waits between
+switches while keeping each transition at its recorded speed. Settled tab appearance and existing
+README capture selectors are unchanged; allow the highlight to settle before taking still images.
+
+The same flow also records the navigator's page transitions. See the [full-page recording](../../docs/assets/demos/tab-pages.mp4)
+and [short preview](../../docs/assets/demos/tab-pages.gif) for the slide-and-fade between screens.
+The preview removes idle waits, retaining the original transition speed. Still captures should wait
+for both the page transition and tab highlight to settle; settled screen layouts are unchanged.
+
 ### Test isolation
 
 With `APP_TEST_MODE=1`, Metro replaces the root layout's `AppProviders` import and `expo-camera`
