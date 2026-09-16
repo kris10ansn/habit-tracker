@@ -1,0 +1,397 @@
+<!-- Throwaway: three state-icon treatments for the selected Quiet ledger design. -->
+<style>
+    #remarkable-icon-ideas {
+        position: relative;
+        padding-bottom: 82px;
+    }
+    #remarkable-icon-ideas .screen-preview {
+        background: #fff;
+        color: #111;
+        aspect-ratio: 4 / 3;
+        width: 100%;
+    }
+    #remarkable-icon-ideas .screen-preview > svg {
+        display: block;
+        width: 100%;
+        height: 100%;
+    }
+    #remarkable-icon-ideas .state-symbol {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-sizing: border-box;
+        color: #111;
+    }
+    #remarkable-icon-ideas .state-symbol svg {
+        width: 100% !important;
+        height: 100% !important;
+        stroke-width: var(--state-icon-stroke, 2);
+    }
+    #remarkable-icon-ideas .state-symbol.outlined {
+        border: 2px solid #111;
+        border-radius: 50%;
+        padding: 7px;
+    }
+    #remarkable-icon-ideas .state-symbol.solid {
+        background: #111;
+        border-radius: 9px;
+        color: #fff;
+        padding: 9px;
+    }
+    #remarkable-icon-ideas .prototype-controls {
+        position: sticky;
+        bottom: 12px;
+        display: flex;
+        justify-content: center;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        margin: 16px auto -66px;
+        width: fit-content;
+        max-width: 100%;
+    }
+    #remarkable-icon-ideas .prototype-controls select {
+        max-width: 185px;
+    }
+    #remarkable-icon-ideas .screen-description {
+        font: 12px sans-serif;
+        margin: 0 0 8px;
+    }
+</style>
+<div
+    id="remarkable-icon-ideas"
+    aria-label="Quiet ledger state-icon exploration"
+>
+    <div class="screen-description" aria-live="polite"></div>
+    <div class="screen-preview" aria-label="Tablet screen mockup"></div>
+    <div
+        class="prototype-controls"
+        aria-label="Prototype controls, outside tablet screen"
+    >
+        <button
+            class="btn"
+            type="button"
+            data-step="-1"
+            aria-label="Previous design"
+        >
+            ←
+        </button>
+        <select
+            class="form-select"
+            aria-label="Design concept"
+            id="screen-concept"
+        >
+            <option value="A">A1 · Simple line</option>
+            <option value="B">A2 · Outlined badge</option>
+            <option value="C">A3 · Solid badge</option>
+        </select>
+        <button
+            class="btn"
+            type="button"
+            data-step="1"
+            aria-label="Next design"
+        >
+            →
+        </button>
+        <select class="form-select" aria-label="Tablet state" id="screen-state">
+            <option value="sleep">Sleeping</option>
+            <option value="off">Powered off</option>
+            <option value="empty">Battery empty</option>
+        </select>
+    </div>
+</div>
+<script>
+    (() => {
+        const root = document.getElementById("remarkable-icon-ideas");
+        const preview = root.querySelector(".screen-preview");
+        const conceptSelect = root.querySelector("#screen-concept");
+        const stateSelect = root.querySelector("#screen-state");
+        const query = new URLSearchParams(location.search);
+        const settings = {
+            variant: ["A", "B", "C"].includes(query.get("variant"))
+                ? query.get("variant")
+                : "A",
+            deviceState: ["sleep", "off", "empty"].includes(query.get("state"))
+                ? query.get("state")
+                : "sleep",
+            serif: true,
+            sleepIcon: "moon",
+            iconStroke: 2,
+        };
+        // Public marks transcribed from the README screenshot; no O marks are added.
+        const habits = [
+            { name: "Read 20 min", days: [1, 2, 4, 5, 6, 7, 8, 9] },
+            { name: "Exercise", days: [1, 4, 6, 8] },
+            { name: "Journal", days: [1, 2, 3, 7, 9] },
+            { name: "Stretch", days: [2, 3, 4, 5, 7, 8, 9] },
+            { name: "No sweets", days: [1, 3, 4, 5, 7, 8] },
+        ];
+        const states = {
+            sleep: {
+                label: "Sleeping",
+                action: "Press power to wake",
+                short: "SLEEPING",
+            },
+            off: {
+                label: "Powered off",
+                action: "Hold power to turn on",
+                short: "POWERED OFF",
+            },
+            empty: {
+                label: "Battery empty",
+                action: "Connect to power",
+                short: "BATTERY EMPTY",
+            },
+        };
+        const names = {
+            A: "Simple line",
+            B: "Outlined badge",
+            C: "Solid badge",
+        };
+        const escape = (value) =>
+            String(value)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/"/g, "&quot;");
+        const text = (x, y, value, size = 28, extra = "") =>
+            `<text x="${x}" y="${y}" font-size="${size}" ${extra}>${escape(value)}</text>`;
+        const line = (x1, y1, x2, y2, stroke = "#777", width = 1.6) =>
+            `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${stroke}" stroke-width="${width}"/>`;
+        const rect = (x, y, width, height, fill, extra = "") =>
+            `<rect x="${x}" y="${y}" width="${width}" height="${height}" fill="${fill}" ${extra}/>`;
+        const editorial = () =>
+            settings.serif
+                ? 'font-family="Georgia, serif"'
+                : 'font-family="Arial, sans-serif"';
+        const overline = (x, y, value, extra = "") =>
+            text(x, y, value, 23, `letter-spacing="4" ${extra}`);
+        const mark = (x, y, size = 12) =>
+            `<path d="M${x - size},${y - size} l${size * 2},${size * 2} M${x - size},${y + size} l${size * 2},-${size * 2}" fill="none" stroke="#111" stroke-width="3.4" stroke-linecap="round"/>`;
+
+        function monthGrid({
+            x,
+            y,
+            width,
+            labelWidth,
+            first = 1,
+            last = 30,
+            rowHeight = 110,
+            size = 29,
+        }) {
+            const dayWidth = (width - labelWidth) / (last - first + 1);
+            const gridX = x + labelWidth;
+            const bodyTop = y + 48;
+            const bottom = bodyTop + rowHeight * habits.length;
+            const pieces = [];
+            if (first <= 9 && last >= 9) {
+                const currentX = gridX + (9 - first) * dayWidth;
+                pieces.push(
+                    rect(currentX, y + 5, dayWidth, bottom - y - 5, "#eee"),
+                );
+                pieces.push(
+                    rect(currentX + 2, y - 30, dayWidth - 4, 47, "#111"),
+                );
+            }
+            for (let day = first; day <= last; day++) {
+                const center = gridX + (day - first + 0.5) * dayWidth;
+                pieces.push(
+                    text(
+                        center,
+                        y + 3,
+                        day,
+                        size,
+                        `text-anchor="middle" fill="${day === 9 ? "#fff" : "#333"}"`,
+                    ),
+                );
+                if (day % 5 === 0 && day !== last)
+                    pieces.push(
+                        line(
+                            center + dayWidth / 2,
+                            bodyTop,
+                            center + dayWidth / 2,
+                            bottom,
+                            "#aaa",
+                            1.4,
+                        ),
+                    );
+            }
+            pieces.push(line(x, bodyTop, x + width, bodyTop, "#111", 2));
+            habits.forEach((habit, row) => {
+                const centerY = bodyTop + (row + 0.5) * rowHeight;
+                pieces.push(text(x, centerY + 11, habit.name, 33));
+                for (let day = first; day <= last; day++) {
+                    const centerX = gridX + (day - first + 0.5) * dayWidth;
+                    if (habit.days.includes(day))
+                        pieces.push(
+                            mark(
+                                centerX,
+                                centerY,
+                                Math.min(13, dayWidth * 0.22),
+                            ),
+                        );
+                }
+                pieces.push(
+                    line(
+                        x,
+                        bodyTop + (row + 1) * rowHeight,
+                        x + width,
+                        bodyTop + (row + 1) * rowHeight,
+                    ),
+                );
+            });
+            return pieces.join("");
+        }
+
+        function stateSymbol(x, y, size, treatment) {
+            const iconName = {
+                sleep: settings.sleepIcon,
+                off: "power",
+                empty: "battery",
+            }[settings.deviceState];
+            return `<foreignObject x="${x}" y="${y}" width="${size}" height="${size}" aria-hidden="true"><div xmlns="http://www.w3.org/1999/xhtml" class="state-symbol ${treatment}"><i data-lucide="${iconName}" aria-hidden="true"></i></div></foreignObject>`;
+        }
+
+        function statusFooter(y) {
+            const current = states[settings.deviceState];
+            const treatment = { A: "line", B: "outlined", C: "solid" }[
+                settings.variant
+            ];
+            const badgeSize = settings.variant === "A" ? 44 : 62;
+            const badgeX = settings.variant === "A" ? 96 : 87;
+            const pieces = [
+                line(96, y - 55, 1776, y - 55, "#111", 2),
+                stateSymbol(
+                    badgeX,
+                    y + 14 - badgeSize / 2,
+                    badgeSize,
+                    treatment,
+                ),
+                text(160, y + 26, current.label, 42, 'font-weight="600"'),
+                text(1776, y + 24, current.action, 29, 'text-anchor="end"'),
+                text(
+                    96,
+                    y + 105,
+                    "Snapshot · 9 September 2026",
+                    25,
+                    'fill="#444"',
+                ),
+                text(
+                    1776,
+                    y + 105,
+                    "Habit tracker",
+                    25,
+                    'text-anchor="end" fill="#444"',
+                ),
+            ];
+            return pieces.join("");
+        }
+
+        function VariantA() {
+            return [
+                overline(96, 110, "HABIT TRACKER"),
+                text(90, 232, "September", 112, editorial()),
+                text(1776, 223, "2026", 57, `text-anchor="end" ${editorial()}`),
+                text(96, 296, "30 days", 28, 'fill="#444"'),
+                text(
+                    1776,
+                    296,
+                    "9 · Snapshot day",
+                    28,
+                    'text-anchor="end" fill="#444"',
+                ),
+                monthGrid({
+                    x: 96,
+                    y: 407,
+                    width: 1680,
+                    labelWidth: 315,
+                    rowHeight: 112,
+                }),
+                statusFooter(1140),
+            ].join("");
+        }
+
+        function render() {
+            root.style.setProperty("--state-icon-stroke", settings.iconStroke);
+            preview.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1872 1404" role="img" aria-label="${escape(names[settings.variant])}, ${escape(states[settings.deviceState].label)}. September 2026, five public habits, 30 days. Saved snapshot from September 9." font-family="Arial, sans-serif" fill="#111"><title>${escape(names[settings.variant])} · ${escape(states[settings.deviceState].label)}</title><rect width="1872" height="1404" fill="#fff"/>${VariantA()}</svg>`;
+            if (globalThis.lucide)
+                lucide.createIcons({ attrs: { width: 16, height: 16 } });
+            conceptSelect.value = settings.variant;
+            stateSelect.value = settings.deviceState;
+            root.querySelector(".screen-description").textContent =
+                `Quiet ledger · ${names[settings.variant]} / ${states[settings.deviceState].label} · README sample, 9 Sep 2026`;
+        }
+
+        function updateUrl() {
+            if (
+                !["http:", "https:", "file:"].includes(location.protocol) ||
+                location.href === "about:srcdoc"
+            )
+                return;
+            const url = new URL(location.href);
+            url.searchParams.set("variant", settings.variant);
+            url.searchParams.set("state", settings.deviceState);
+            try {
+                history.replaceState(null, "", url);
+            } catch (_) {
+                /* Sandboxed inline previews have an opaque origin. */
+            }
+        }
+
+        function step(direction) {
+            const variants = ["A", "B", "C"];
+            settings.variant =
+                variants[
+                    (variants.indexOf(settings.variant) + direction + 3) % 3
+                ];
+            render();
+            updateUrl();
+        }
+
+        conceptSelect.addEventListener("change", () => {
+            settings.variant = conceptSelect.value;
+            render();
+            updateUrl();
+        });
+        stateSelect.addEventListener("change", () => {
+            settings.deviceState = stateSelect.value;
+            render();
+            updateUrl();
+        });
+        root.querySelectorAll("[data-step]").forEach((button) =>
+            button.addEventListener("click", () =>
+                step(Number(button.dataset.step)),
+            ),
+        );
+        document.addEventListener("keydown", (event) => {
+            if (
+                event.target.closest(
+                    "input, textarea, select, [contenteditable]",
+                )
+            )
+                return;
+            if (!["ArrowLeft", "ArrowRight"].includes(event.key)) return;
+            event.preventDefault();
+            step(event.key === "ArrowRight" ? 1 : -1);
+        });
+        render();
+        if (globalThis.Tweak) {
+            const tweak = new Tweak({ container: preview, onChange: render });
+            tweak.addSelect(settings, "sleepIcon", {
+                label: "Sleep symbol",
+                options: [
+                    { label: "Crescent moon", value: "moon" },
+                    { label: "Moon and stars", value: "moon-star" },
+                    { label: "Bed", value: "bed-single" },
+                ],
+            });
+            tweak.addSlider(settings, "iconStroke", {
+                label: "Icon stroke",
+                min: 1.5,
+                max: 3,
+                step: 0.25,
+            });
+        }
+    })();
+</script>
