@@ -23,6 +23,7 @@
         "mobile:test:screenshots": "node tools/readme-screenshots/capture-mobile.mjs",
         "mobile:test:readme": "npm run mobile:test:screenshots && npm run screenshots:frame -- --client android && npm run screenshots:linking",
         "remarkable:build": "pnpm --filter @habit-tracker/remarkable run build",
+        "remarkable:demo": "pnpm --filter @habit-tracker/remarkable run demo",
         "remarkable:test": "pnpm --filter @habit-tracker/remarkable run test",
         "remarkable:clean": "pnpm --filter @habit-tracker/remarkable run clean",
         "remarkable:deploy": "pnpm --filter @habit-tracker/remarkable run deploy",

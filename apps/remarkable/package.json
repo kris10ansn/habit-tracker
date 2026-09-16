@@ -4,6 +4,7 @@
     "private": true,
     "description": "Thin wrapper: this app is built with make, not node. Scripts shell out to the Makefile.",
     "scripts": {
+        "demo": "python3 prototypes/adaptive-layout/serve.py",
         "build": "make build",
         "test": "make test",
         "lint": "make lint",
