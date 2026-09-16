@@ -38,13 +38,13 @@ The host build bakes the app's `src/js` as the default `--js-dir`, so it reuses 
 straight from source. Text fidelity is approximate (host `sans-serif` ≠ device font), so this
 validates layout and logic, not pixel-exact device output.
 
-| Flag       | Required | Default         | Notes                                                               |
-| ---------- | -------- | --------------- | ------------------------------------------------------------------- |
-| `--roster` | yes      | —               | Roster file (identity + config + display order).                    |
-| `--month`  | no       | `{}`            | The month whose entries to draw. Omitted → an empty grid.           |
-| `--today`  | no       | system date     | `YYYY-MM-DD`. Sets which day is highlighted and the cutoff.         |
-| `--out`    | no       | `suspended.png` | Output PNG path.                                                    |
-| `--js-dir` | no       | build default   | Dir holding the five JS modules below (set this on-device).         |
+| Flag       | Required | Default         | Notes                                                       |
+| ---------- | -------- | --------------- | ----------------------------------------------------------- |
+| `--roster` | yes      | —               | Roster file (identity + config + display order).            |
+| `--month`  | no       | `{}`            | The month whose entries to draw. Omitted → an empty grid.   |
+| `--today`  | no       | system date     | `YYYY-MM-DD`. Sets which day is highlighted and the cutoff. |
+| `--out`    | no       | `suspended.png` | Output PNG path.                                            |
+| `--js-dir` | no       | build default   | Dir holding the five JS modules below (set this on-device). |
 
 ## Building & deploying to the reMarkable
 
@@ -197,3 +197,13 @@ in a `{ count, get }` stand-in for the QML `ListModel` and calls the app's own
 skipped, which glyph a day gets) therefore lives in `HabitsModel.js` / `Entries.js` and is shared
 with the running app. Reimplementing any of it here is what let this tool silently drift out of date
 once already — keep the join, push everything else into the modules.
+
+### Power-state previews
+
+The renderer now uses Quiet ledger with aligned, compact state icons. Add `--state sleep`,
+`--state off`, or `--state empty` to select the footer; the default is `sleep`.
+`--out` still chooses a single output file. This tool previews images only and does not perform
+backup/restore or install them. The QML app owns the three-target write lifecycle.
+
+Rebuild this tool after the renderer update: its Canvas shim now supports paths, scaling, text
+measurement, and right-aligned labels. Copying the updated JavaScript beside an old binary is not sufficient.

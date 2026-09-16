@@ -5,6 +5,7 @@ Item {
     id: settingsPage
 
     property bool suspendImageEnabled: false
+    property bool suspendImageBusy: false
     property bool showPrivateHabits: false
     property string serverUrl: ""
     property string syncStatusText: ""
@@ -88,7 +89,7 @@ Item {
 
             Text {
                 anchors.verticalCenter: parent.verticalCenter
-                text: "Write to suspend image"
+                text: "Write habit grid to power-state images"
                 font.pixelSize: App.Theme.labelFont
                 color: App.Theme.fg
             }
@@ -96,6 +97,7 @@ Item {
             SegmentedToggle {
                 anchors.verticalCenter: parent.verticalCenter
                 value: settingsPage.staged
+                enabled: !settingsPage.suspendImageBusy
                 onToggled: settingsPage.staged = value
             }
         }
@@ -300,7 +302,7 @@ Item {
         width: App.Theme.quitButtonWidth
         height: App.Theme.quitButtonHeight
         text: "Done"
-        disabled: !settingsPage.dirty
+        disabled: !settingsPage.dirty || settingsPage.suspendImageBusy
         onClicked: settingsPage._commit()
     }
 

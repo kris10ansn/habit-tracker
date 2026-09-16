@@ -24,13 +24,13 @@ Rectangle {
 
     readonly property bool screenshotReady: habitsStore.isLoaded && settingsStore.isLoaded
         && syncStore.isLoaded && (landscape.currentView === "settings" || landscape.gridReady)
-    readonly property string suspendStatusText: SuspendStatus.text(suspendCanvas.phase, suspendCanvas.remainingSeconds)
+    readonly property string suspendStatusText: SuspendStatus.text(suspendCanvas.phase, suspendCanvas.remainingSeconds, suspendCanvas.failedPath)
 
     signal close
 
     function _waitForPendingOperations() {
         const syncInProgress = syncStore.isRequestInFlight || syncStore.status === "pending";
-        const renderInProgress = suspendCanvas.phase === "saving" || suspendCanvas.phase === "pending";
+        const renderInProgress = suspendCanvas.busy || suspendCanvas.phase === "saving" || suspendCanvas.phase === "pending";
 
         if (syncInProgress || renderInProgress) {
             Qt.callLater(() => root._waitForPendingOperations());
@@ -80,19 +80,16 @@ Rectangle {
     }
 
     function applySuspendSetting(enabled) {
-        if (!enabled) {
-            settingsStore.setSuspendImageEnabled(false);
-            suspendCanvas.invalidateSignature();
-            suspendCanvas.restore();
-            return;
-        }
-
-        // The setting turns on only once the stock image is safely backed up — enabling it after a
-        // failed backup overwrites an image nothing can restore (ADR 0001). The backup reports
-        // asynchronously, so this cannot be a guard clause.
         suspendCanvas.backup(ok => {
-            if (ok)
+            if (!ok) return;
+            if (enabled) {
+                suspendCanvas.restorationPending = false;
                 settingsStore.setSuspendImageEnabled(true);
+                return;
+            }
+            suspendCanvas.restore(restored => {
+                if (restored) settingsStore.setSuspendImageEnabled(false);
+            });
         });
     }
 
@@ -128,6 +125,8 @@ Rectangle {
     App.SuspendCanvas {
         id: suspendCanvas
         habits: habitsStore.habits
+        today: root.today
+        renderAllowed: landscape.canRenderSuspend && landscape.gridReady && !landscape.editing
     }
 
     Connections {
@@ -425,6 +424,7 @@ Rectangle {
             anchors.fill: parent
             visible: landscape.currentView === "settings"
             suspendImageEnabled: settingsStore.suspendImageEnabled
+            suspendImageBusy: suspendCanvas.busy
             showPrivateHabits: settingsStore.showPrivateHabits
             serverUrl: settingsStore.serverUrl
             syncStatusText: syncStore.statusText

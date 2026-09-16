@@ -3,7 +3,7 @@
 Terms unique to the reMarkable 1 client — a pure-QML scene loaded inside xochitl via
 XOVI + rm-appload. The shared habit vocabulary (Habit, Polarity, Entry, X/O marks, Unmarked,
 Default habits) lives in the [root glossary](../../CONTEXT.md). This file covers only what's specific to running on
-the device: the suspend image, settings, and edit mode.
+the device: power-state images, settings, and edit mode.
 
 Presentation note: this client lays habits as **rows** and days-of-the-**viewed month** as
 **columns** (landscape). Only when the viewed month is the current month is today's column
@@ -12,14 +12,18 @@ its future days render muted.
 
 ## Language
 
+**Power-state image**:
+A static habit snapshot displayed while the tablet is sleeping, powered off, or out of battery.
+Each state has its own icon, label, and instruction; the snapshot date describes the data, not the current date.
+_Avoid_: lock screen, wallpaper.
+
 **Suspend image**:
-The full-screen image xochitl shows while the device sleeps. The app overwrites it with the
-current habit grid so the habits are the first thing the user sees on waking the device.
-_Avoid_: sleep screen, sleep image, lock screen, wallpaper, suspended.png.
+The power-state image displayed while the tablet sleeps.
+_Avoid_: sleep screen, sleep image, suspended.png.
 
 **Private**:
 Per-habit toggle (`isPrivate` in code; the edit-mode `P` control) marking a habit hidden from
-glanceable surfaces. A private habit never appears in the suspend image, and is also hidden from
+glanceable surfaces. A private habit never appears in any power-state image, and is also hidden from
 the main grid — including edit mode — unless the device's **Show private habits** setting is on.
 The flag itself syncs like name or polarity; see the [backend glossary](../backend/CONTEXT.md)'s
 Private entry for the shared-intent-vs-presentation split.
@@ -28,26 +32,22 @@ screen visibility.
 
 **Show private habits**:
 The device-local, never-synced Settings toggle that reveals private habits on this device's grid
-and edit mode. It does not affect the suspend image — private habits stay off the suspend image
+and edit mode. It does not affect power-state images — private habits stay off all power-state images
 regardless of this setting.
 _Avoid_: reveal setting, unhide toggle.
 
-**Suspend-image writing**:
-The app-wide setting for whether the app overwrites the suspend image at all. Opt-in: off by
-default, toggled on the Settings page. Enabling takes a suspend-image backup then starts
-drawing the grid; disabling restores the backup. Private habits are excluded from the grid it
-draws regardless of this setting.
+**Power-state-image writing**:
+The device-local opt-in setting that replaces all three power-state images with public habit snapshots.
+Disabling restores the original images from their backups.
 _Avoid_: sleep-screen toggle, suspend mode.
 
-**Suspend-image backup**:
-The copy of the original suspend image (`suspended.png.bak`) taken when the user enables
-suspend-image writing, and copied back when they disable it. The user's recovery path to the
-stock image.
+**Power-state-image backup**:
+A retained copy of an original power-state image, used to restore that image when writing is disabled.
 _Avoid_: marker, restore point.
 
 **Settings**:
 The app-wide preferences page, reached from the Settings button and left via Back/Done. Holds
-the suspend-image writing toggle and the Show private habits toggle. Changes are staged and
+the power-state-image writing toggle and the Show private habits toggle. Changes are staged and
 applied on Done.
 _Avoid_: options, preferences pane, config screen.
 
@@ -56,7 +56,7 @@ The state, toggled by Edit/Done, in which rows become editable — reorder, rena
 toggle polarity, toggle private — and an empty add-row appears at the bottom.
 
 **Current month**:
-The real calendar month (`new Date()`). It alone highlights today, drives the suspend image, and
+The real calendar month (`new Date()`). It alone highlights today, drives all power-state images, and
 is where the grid opens. Distinct from the viewed month.
 _Avoid_: this month, present month.
 
@@ -134,7 +134,7 @@ The shared Sync / Tombstone / Edit-time vocabulary lives in the
 _Avoid_: host, endpoint, API URL, server address.
 
 **Sync status**:
-The ambient status line shown beneath the suspend status, reporting last-sync / offline state. Quiet
+The ambient status line shown beneath the power-state-image status, reporting last-sync / offline state. Quiet
 by design: normal offline is silent here, and only genuine misconfiguration (malformed Server URL,
 server rejection) is raised loudly as a modal.
 _Avoid_: connection indicator, sync banner, online status.

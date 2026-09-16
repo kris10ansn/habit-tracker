@@ -1,5 +1,4 @@
 import QtQuick 2.15
-import ".." as App
 import "../js/SuspendRender.js" as SuspendRender
 import "../js/SuspendDraw.js" as SuspendDraw
 import "../js/HabitsModel.js" as HabitsModel
@@ -7,34 +6,21 @@ import "../js/HabitsModel.js" as HabitsModel
 Canvas {
     id: canvas
 
-    readonly property string targetPath: "/usr/share/remarkable/suspended.png"
-    readonly property string backupPath: "/usr/share/remarkable/suspended.png.bak"
-    readonly property string signaturePath: "/home/root/xovi/exthome/appload/habit-tracker/.sleep-sig"
-
+    property string imageDirectory: "/usr/share/remarkable"
+    property string signaturePath: "/home/root/xovi/exthome/appload/habit-tracker/.sleep-sig"
+    readonly property var targets: SuspendRender.imageTargets(imageDirectory)
     property var habits: []
     property date today: new Date()
+    property bool renderAllowed: false
     property bool lastRenderFailed: false
-    property bool saveQueued: false
+    property string failedPath: ""
     property string phase: ""
     property int remainingSeconds: 0
     property string lastRenderedSignature: ""
-
-    readonly property var drawConfig: ({
-            margin: App.Theme.margin,
-            habitsWidth: App.Theme.habitsWidth,
-            boxSize: 40,
-            boxSpacing: 5,
-            rowSpacing: App.Theme.rowSpacing,
-            buttonGap: App.Theme.buttonGap,
-            dayLabelHeight: App.Theme.dayLabelHeight,
-            titleFont: App.Theme.titleFont,
-            subtitleFont: App.Theme.subtitleFont,
-            labelFont: App.Theme.labelFont,
-            dayLabelFont: App.Theme.dayLabelFont,
-            borderWidth: App.Theme.borderWidth,
-            fg: "#000000",
-            bg: "#ffffff"
-        })
+    property bool busy: false
+    property bool restorationPending: false
+    property bool _backupsReady: false
+    property int _generation: 0
 
     width: 1404
     height: 1872
@@ -44,16 +30,13 @@ Canvas {
     renderTarget: Canvas.Image
 
     Component.onCompleted: canvas.lastRenderedSignature = SuspendRender.readSignature(canvas.signaturePath)
+    onRenderAllowedChanged: if (!renderAllowed) cancelPending()
 
     Timer {
         id: debounceTimer
         interval: 3000
         repeat: false
-        onTriggered: {
-            statusTickTimer.stop();
-            canvas.phase = "saving";
-            canvas._beginAsyncRender();
-        }
+        onTriggered: canvas.renderAsync()
     }
 
     Timer {
@@ -63,114 +46,142 @@ Canvas {
         onTriggered: canvas.remainingSeconds = Math.max(0, canvas.remainingSeconds - 1)
     }
 
-    onPaint: _draw()
-
-    onPainted: {
-        if (!canvas.saveQueued)
-            return;
-        canvas.saveQueued = false;
-        Qt.callLater(canvas._save);
-    }
-
     function scheduleRender() {
-        if (_upToDate()) {
-            _cancelPending();
+        if (!renderAllowed || restorationPending || busy)
+            return;
+        if (_backupsReady && _upToDate()) {
+            cancelPending();
             return;
         }
         canvas.phase = "pending";
-        canvas.remainingSeconds = debounceTimer.interval / 1000;
+        canvas.remainingSeconds = 3;
         debounceTimer.restart();
         statusTickTimer.restart();
     }
 
     function renderAsync() {
-        if (!_beginSaving())
+        if (!renderAllowed || restorationPending || busy)
             return;
-        _beginAsyncRender();
+        if (_backupsReady && _upToDate()) {
+            cancelPending();
+            return;
+        }
+        debounceTimer.stop();
+        statusTickTimer.stop();
+        if (canvas._backupsReady) {
+            canvas.phase = "saving";
+            Qt.callLater(canvas._renderAll);
+            return;
+        }
+        const generation = canvas._generation;
+        backup(ok => {
+            if (!ok || generation !== canvas._generation || !canvas.renderAllowed || canvas.restorationPending)
+                return;
+            if (_upToDate()) {
+                canvas.phase = "saved";
+                return;
+            }
+            canvas.phase = "saving";
+            Qt.callLater(canvas._renderAll);
+        });
     }
 
     function renderSync() {
-        if (!_beginSaving())
+        // Unloading cannot wait for asynchronous backup writes. Normal startup prepares these.
+        if (busy || !_backupsReady)
             return;
-        _draw();
-        canvas.saveQueued = false;
-        _save();
+        _renderAll();
     }
 
-    // Drop a queued (debounced) render before it fires. Used when leaving the
-    // current month so a render scheduled against it can't paint another month.
     function cancelPending() {
-        _cancelPending();
+        canvas._generation++;
+        debounceTimer.stop();
+        statusTickTimer.stop();
+        if (canvas.phase === "pending" || canvas.phase === "saving")
+            canvas.phase = "";
     }
 
-    // Both report through onDone rather than returning: the copy is only known to have worked once
-    // the write has landed. onDone is optional for restore, whose caller has nothing left to gate.
     function backup(onDone) {
+        if (busy) {
+            onDone(false);
+            return;
+        }
+        canvas.busy = true;
         canvas.phase = "backing-up";
-        SuspendRender.copyFile(canvas.targetPath, canvas.backupPath, ok => {
+        SuspendRender.backupImages(canvas.targets, (ok, path) => {
+            canvas.busy = false;
+            canvas._backupsReady = ok;
+            canvas.failedPath = path;
+            canvas.lastRenderFailed = !ok;
             canvas.phase = ok ? "backed-up" : "backup-failed";
-            if (onDone)
-                onDone(ok);
+            onDone(ok);
         });
     }
 
     function restore(onDone) {
+        if (busy) {
+            if (onDone) onDone(false);
+            return;
+        }
+        cancelPending();
+        canvas.restorationPending = true;
+        canvas.busy = true;
         canvas.phase = "restoring";
-        SuspendRender.copyFile(canvas.backupPath, canvas.targetPath, ok => {
-            canvas.phase = ok ? "restored" : "restore-failed";
-            if (onDone)
-                onDone(ok);
+        SuspendRender.restoreImages(canvas.targets, (ok, path) => {
+            if (!ok) {
+                _finishRestore(false, path, onDone);
+                return;
+            }
+            invalidateSignature(saved => _finishRestore(saved, saved ? "" : canvas.signaturePath, onDone));
         });
     }
 
-    // Force the next render to write even if nothing visible changed: restoring
-    // the stock image leaves the persisted signature describing a grid that is
-    // no longer on screen, which would otherwise dedup the re-enable render away.
-    function invalidateSignature() {
+    function _finishRestore(ok, path, onDone) {
+        canvas.busy = false;
+        canvas.failedPath = path;
+        canvas.lastRenderFailed = !ok;
+        canvas.phase = ok ? "restored" : "restore-failed";
+        if (onDone) onDone(ok);
+    }
+
+    function invalidateSignature(onDone) {
         canvas.lastRenderedSignature = "";
-        SuspendRender.writeSignature(canvas.signaturePath, "");
+        SuspendRender.writeSignature(canvas.signaturePath, "", onDone);
     }
 
     function _upToDate() {
         return SuspendDraw.computeSignature(HabitsModel.toSuspendHabits(canvas.habits), canvas.today) === canvas.lastRenderedSignature;
     }
 
-    function _beginSaving() {
-        if (_upToDate()) {
-            _cancelPending();
-            return false;
-        }
-        debounceTimer.stop();
-        statusTickTimer.stop();
-        canvas.phase = "saving";
-        return true;
-    }
-
-    function _cancelPending() {
-        debounceTimer.stop();
-        statusTickTimer.stop();
-        if (canvas.phase === "pending")
-            canvas.phase = "";
-    }
-
-    function _draw() {
-        SuspendDraw.draw(canvas.getContext("2d"), canvas.width, canvas.height, HabitsModel.toSuspendHabits(canvas.habits), canvas.today, canvas.drawConfig);
-    }
-
-    function _beginAsyncRender() {
-        canvas.saveQueued = true;
-        canvas.requestPaint();
-    }
-
-    function _save() {
-        const ok = canvas.save(canvas.targetPath);
-        canvas.lastRenderFailed = !ok;
-        canvas.phase = ok ? "saved" : "";
-        if (!ok) {
-            console.warn("SuspendCanvas: save failed for", canvas.targetPath);
+    function _renderAll() {
+        if (!renderAllowed || restorationPending || busy || !_backupsReady || _upToDate())
             return;
+
+        canvas.phase = "saving";
+        canvas.busy = true;
+        const snapshot = HabitsModel.toSuspendHabits(canvas.habits);
+        const snapshotDate = new Date(canvas.today.getTime());
+        const signature = SuspendDraw.computeSignature(snapshot, snapshotDate);
+        const context = canvas.getContext("2d");
+        for (let index = 0; index < canvas.targets.length; index++) {
+            const target = canvas.targets[index];
+            SuspendDraw.draw(context, canvas.width, canvas.height, snapshot, snapshotDate, { fg: "#000000", bg: "#ffffff" }, target.state);
+            if (!canvas.save(target.path)) {
+                canvas.busy = false;
+                canvas.failedPath = target.path;
+                canvas.lastRenderFailed = true;
+                canvas.phase = "save-failed";
+                return;
+            }
         }
-        canvas.lastRenderedSignature = SuspendDraw.computeSignature(HabitsModel.toSuspendHabits(canvas.habits), canvas.today);
-        SuspendRender.writeSignature(canvas.signaturePath, canvas.lastRenderedSignature);
+        SuspendRender.writeSignature(canvas.signaturePath, signature, ok => {
+            canvas.busy = false;
+            canvas.lastRenderFailed = !ok;
+            canvas.failedPath = ok ? "" : canvas.signaturePath;
+            canvas.phase = ok ? "saved" : "save-failed";
+            if (!ok) return;
+            canvas.lastRenderedSignature = signature;
+            if (canvas.renderAllowed && !canvas._upToDate()) canvas.scheduleRender();
+        });
     }
 }
