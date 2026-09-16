@@ -32,7 +32,8 @@ type AppScreenProps = {
 };
 
 // Page scaffold shared by every tab: safe-area frame, header, and a body that
-// either scrolls (default) or fills. The bottom edge is owned by the tab bar.
+// either scrolls (default) or fills. Scroll content extends behind the floating
+// tab bar, with clearance only at the end so the last row remains reachable.
 export function AppScreen({
     title,
     eyebrow,
@@ -64,6 +65,7 @@ export function AppScreen({
                         refreshControl={refreshControl}
                     >
                         {children}
+                        <TabBarClearance />
                     </KeyboardAwareScrollView>
                 ) : (
                     <ScrollView
@@ -72,11 +74,27 @@ export function AppScreen({
                         refreshControl={refreshControl}
                     >
                         {children}
+                        <TabBarClearance />
                     </ScrollView>
                 )
             ) : (
-                <View className="flex-1 px-4">{children}</View>
+                <View className="flex-1 px-4">
+                    <View className="flex-1">{children}</View>
+                    <TabBarClearance />
+                </View>
             )}
         </SafeAreaView>
+    );
+}
+
+// This spacer scrolls with the content instead of masking it with a fixed footer.
+// Include the home-indicator inset and room for the capsule at larger text sizes.
+function TabBarClearance() {
+    return (
+        <SafeAreaView
+            className="pt-28"
+            edges={["bottom"]}
+            pointerEvents="none"
+        />
     );
 }

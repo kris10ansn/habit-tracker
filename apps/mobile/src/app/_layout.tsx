@@ -25,8 +25,8 @@ export default function RootLayout() {
             <StatusBar barStyle={"dark-content"} />
             <View className="flex-1 bg-surface-2">
                 <Tabs
-                    // Safe-area clearance belongs outside the capsule. Keeping the bar in
-                    // layout also keeps the last row and keyboard-aware forms above it.
+                    // Safe-area clearance belongs outside the capsule; the surrounding
+                    // area stays transparent so screen content can scroll behind it.
                     safeAreaInsets={{ bottom: 0, left: 0, right: 0 }}
                     screenOptions={{
                         headerShown: false,
@@ -36,13 +36,13 @@ export default function RootLayout() {
                         tabBarLabelPosition: "below-icon",
                         tabBarHideOnKeyboard: true,
                         tabBarStyle: {
+                            position: "absolute",
                             backgroundColor: colors.surface,
                             borderTopWidth: 0,
                             borderRadius: 36,
                             // Grow with accessibility text sizes while retaining generous targets.
                             height: 72 + Math.max(0, fontScale - 1) * 14,
-                            marginTop: 8,
-                            marginBottom: Math.max(insets.bottom, 12),
+                            bottom: Math.max(insets.bottom, 12),
                             marginLeft: Math.max(insets.left, 16),
                             marginRight: Math.max(insets.right, 16),
                             paddingTop: 8,
