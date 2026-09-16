@@ -22,9 +22,10 @@ The power-state image displayed while the tablet sleeps.
 _Avoid_: sleep screen, sleep image, suspended.png.
 
 **Private**:
-Per-habit toggle (`isPrivate` in code; the edit-mode `P` control) marking a habit hidden from
+Per-habit toggle (`isPrivate` in code; the editor’s Public / Private control) marking a habit hidden from
 glanceable surfaces. A private habit never appears in any power-state image, and is also hidden from
 the main grid — including edit mode — unless the device's **Show private habits** setting is on.
+New privacy changes remain pending in the editor until Done; the row stays visible for that edit session.
 The flag itself syncs like name or polarity; see the [backend glossary](../backend/CONTEXT.md)'s
 Private entry for the shared-intent-vs-presentation split.
 _Avoid_: hideFromSleep (the field's device-local predecessor), suspend visibility, hidden, sleep-
@@ -52,8 +53,8 @@ applied on Done.
 _Avoid_: options, preferences pane, config screen.
 
 **Edit mode**:
-The state, toggled by Edit/Done, in which rows become editable — reorder, rename, delete,
-toggle polarity, toggle private — and an empty add-row appears at the bottom.
+The separate habit editor opened with Edit habits. Renames, reordering, additions, deletions,
+polarity, and privacy changes stay pending until Done; Cancel discards them.
 
 **Current month**:
 The real calendar month (`new Date()`). It alone highlights today, drives all power-state images, and
@@ -63,7 +64,7 @@ _Avoid_: this month, present month.
 **Viewed month**:
 The month whose entries the grid currently shows — the current month by default, moved by the
 header `‹` / `›` arrows. Its entries are loaded into the one in-memory model and its file is the
-sync unit; editing works on any viewed month. The **Today** button (shown only off-current)
+sync unit; editing works on any viewed month. The **Today** button
 returns to the current month.
 _Avoid_: selected month, shown month, browsed month (in code/UI copy).
 
@@ -134,7 +135,7 @@ The shared Sync / Tombstone / Edit-time vocabulary lives in the
 _Avoid_: host, endpoint, API URL, server address.
 
 **Sync status**:
-The ambient status line shown beneath the power-state-image status, reporting last-sync / offline state. Quiet
+The ambient status line shown alongside the power-state-image status, reporting last-sync / offline state. Quiet
 by design: normal offline is silent here, and only genuine misconfiguration (malformed Server URL,
 server rejection) is raised loudly as a modal.
 _Avoid_: connection indicator, sync banner, online status.
