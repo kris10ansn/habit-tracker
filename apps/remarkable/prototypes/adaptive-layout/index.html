@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <meta
+            http-equiv="Content-Security-Policy"
+            content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'"
+        />
+        <title>reMarkable · Adaptive layout prototype</title>
+        <link rel="stylesheet" href="demo.css" />
+        <script src="../../src/js/vendor/qrcode-generator.js" defer></script>
+        <script src="../../src/js/Scroll.js" defer></script>
+        <script src="demo.js" defer></script>
+    </head>
+    <body>
+        <header class="demo-toolbar">
+            <div class="demo-title">
+                <strong>reMarkable · Design B</strong
+                ><span
+                    >Interactive prototype · sample data · no server
+                    connection</span
+                >
+            </div>
+            <div class="demo-controls">
+                <fieldset>
+                    <legend>Sample roster</legend>
+                    <button data-roster="5">5 habits</button
+                    ><button data-roster="11">11 habits</button
+                    ><button data-roster="20">20 habits</button
+                    ><button data-roster="35">35 habits</button>
+                </fieldset>
+                <label
+                    >Screen
+                    <select id="demo-scene">
+                        <option value="grid">Habit grid</option>
+                        <option value="edit">Edit habits</option>
+                        <option value="settings">Settings</option>
+                        <option value="pairing">QR pairing</option>
+                    </select></label
+                >
+                <label
+                    >View
+                    <select id="demo-zoom">
+                        <option value="fit">Fit</option>
+                        <option value="native">1:1 pixels</option>
+                    </select></label
+                >
+                <button id="reset-demo">Reset demo</button>
+            </div>
+            <div class="demo-meta">
+                <span id="geometry"></span
+                ><span id="density" aria-live="polite"></span>
+            </div>
+            <div id="simulation-controls" class="simulation-controls" hidden>
+                <span>Pairing simulation</span
+                ><button data-simulate="approve">Approve from phone</button
+                ><button data-simulate="expire">Expire code</button
+                ><button data-simulate="error">Connection error</button>
+            </div>
+        </header>
+        <main
+            class="preview-viewport"
+            id="preview-viewport"
+            aria-label="Tablet preview"
+        >
+            <div id="scaled-stage">
+                <section
+                    id="tablet"
+                    aria-label="reMarkable screen, 1872 by 1404 pixels"
+                ></section>
+            </div>
+        </main>
+        <footer class="demo-note">
+            The screen stays 1872 × 1404 in both views. Fit only scales it; 1:1
+            maps one design pixel to one CSS pixel, not physical tablet size.
+            Browser font rasterization and e-ink appearance may differ. Changes
+            live only in this demo until you reload.
+        </footer>
+    </body>
+</html>
