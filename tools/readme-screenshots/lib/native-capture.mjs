@@ -5,7 +5,12 @@ const screens = [
     {
         name: "today",
         route: "",
-        content: ["Read 20 min", "4 of 6 habits logged", "6 days"],
+        content: [
+            "logged today",
+            "Read 20 min",
+            "4 of 6 habits logged",
+            "6 days",
+        ],
     },
     {
         name: "habits",

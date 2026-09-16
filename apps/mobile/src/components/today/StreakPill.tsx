@@ -32,8 +32,8 @@ export function StreakPill({ streak, success }: StreakPillProps) {
 
     return (
         <AnimatedPill
-            className="bg-streak-soft"
-            labelClassName="text-streak"
+            className="bg-streak-soft px-2 py-0.5"
+            labelClassName="text-sm text-streak"
             icon="local-fire-department"
             label={`${streak} days`}
             style={style}
