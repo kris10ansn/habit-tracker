@@ -1,13 +1,11 @@
-import { Pressable, Text, View } from "react-native";
+import { Text, View } from "react-native";
 
-import { Icon } from "@/components/ui/Icon";
+import { Card } from "@/components/ui/Card";
+import { IconButton } from "@/components/ui/IconButton";
 import { SlideTransition } from "@/components/ui/SlideTransition";
-import { cn } from "@/lib/cn";
-import React from "react";
 
 interface Props {
     label: string;
-    // Sign of the last navigation (+1 next / -1 prev), so the title slides in from the matching side.
     direction: number;
     onPrev?: () => void;
     onNext?: () => void;
@@ -15,37 +13,31 @@ interface Props {
 
 export function MonthNav({ label, direction, onPrev, onNext }: Props) {
     return (
-        <View className="my-2 mb-3 flex-row items-center justify-between">
-            <NavButton onPress={onPrev}>
-                <Icon name="chevron-left" />
-            </NavButton>
-
-            <SlideTransition
-                transitionKey={label}
-                direction={direction}
-                distance={20}
-                fade
-            >
-                <Text className="text-[17px] font-semibold text-ink">
-                    {label}
-                </Text>
-            </SlideTransition>
-
-            <NavButton onPress={onNext}>
-                <Icon name="chevron-right" />
-            </NavButton>
-        </View>
+        <Card className="mb-4 flex-row items-center gap-2 p-2">
+            <IconButton
+                icon="chevron-left"
+                accessibilityLabel="Previous month"
+                onPress={onPrev}
+                className="border-0 bg-surface-2"
+            />
+            <View className="flex-1 items-center">
+                <SlideTransition
+                    transitionKey={label}
+                    direction={direction}
+                    distance={20}
+                    fade
+                >
+                    <Text className="text-[17px] font-semibold tracking-tight text-ink">
+                        {label}
+                    </Text>
+                </SlideTransition>
+            </View>
+            <IconButton
+                icon="chevron-right"
+                accessibilityLabel="Next month"
+                onPress={onNext}
+                className="border-0 bg-surface-2"
+            />
+        </Card>
     );
 }
-
-const NavButton = (props: React.ComponentProps<typeof Pressable>) => (
-    <Pressable
-        {...props}
-        className={cn(
-            "elevation-sm rounded-xl bg-surface p-2",
-            props.className,
-        )}
-    >
-        {props.children}
-    </Pressable>
-);

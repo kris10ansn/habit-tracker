@@ -1,3 +1,4 @@
+import { cn } from "@/lib/cn";
 import { useUpdateEffect } from "@/lib/useUpdateEffect";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { View } from "react-native";
@@ -18,6 +19,8 @@ interface Props {
     // Cross-fade the two layers on top of the slide (used for the month title).
     fade?: boolean;
     durationMs?: number;
+    // Fill a bounded viewport when the children own scrolling (e.g. the Month table).
+    fill?: boolean;
 }
 
 // Cross-slides its children whenever `transitionKey` changes: the previous render is snapshotted into
@@ -36,6 +39,7 @@ export function SlideTransition({
     distance,
     fade = false,
     durationMs = 220,
+    fill = false,
 }: Props) {
     const width = useSharedValue(0);
     const dir = useSharedValue(0);
@@ -84,8 +88,9 @@ export function SlideTransition({
     });
 
     return (
-        <View className="overflow-hidden">
+        <View className={cn("overflow-hidden", fill && "flex-1")}>
             <Animated.View
+                className={fill ? "flex-1" : undefined}
                 onLayout={(event) => {
                     width.set(event.nativeEvent.layout.width);
                 }}
@@ -94,8 +99,17 @@ export function SlideTransition({
                 {children}
             </Animated.View>
             {outgoing && (
-                <View className="absolute inset-x-0 top-0" pointerEvents="none">
-                    <Animated.View style={outgoingStyle}>
+                <View
+                    className={cn(
+                        "absolute inset-x-0 top-0",
+                        fill && "bottom-0",
+                    )}
+                    pointerEvents="none"
+                >
+                    <Animated.View
+                        className={fill ? "flex-1" : undefined}
+                        style={outgoingStyle}
+                    >
                         {outgoing.node}
                     </Animated.View>
                 </View>

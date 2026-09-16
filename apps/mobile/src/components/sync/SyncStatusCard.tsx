@@ -43,9 +43,9 @@ const stateViews: Record<SyncState, StateView> = {
     },
     dirty: {
         icon: "cloud-sync",
-        medallionClass: "bg-yellow-50",
-        iconClass: "text-yellow-500",
-        dotClass: "bg-yellow-500",
+        medallionClass: "bg-warm-soft",
+        iconClass: "text-warm",
+        dotClass: "bg-warm",
         label: "Changes not synced",
         detail: ({ lastSynced }) => `Last synced ${lastSynced}`,
         action: { label: "Sync now", enabled: true },
@@ -79,9 +79,9 @@ const stateViews: Record<SyncState, StateView> = {
     },
     ["not-synced"]: {
         icon: "cloud-sync",
-        medallionClass: "bg-yellow-50",
-        iconClass: "text-yellow-500",
-        dotClass: "bg-yellow-500",
+        medallionClass: "bg-warm-soft",
+        iconClass: "text-warm",
+        dotClass: "bg-warm",
         label: "Not synced yet",
         detail: ({ lastSynced }) => `Last synced ${lastSynced}`,
         action: { label: "Sync now", enabled: true, busy: false },
@@ -92,37 +92,41 @@ export function SyncStatusCard(props: SyncStatusCardProps) {
     const view = stateViews[props.state];
 
     return (
-        <Card className="mb-3 flex-row items-center gap-3.5 p-4">
-            <View
-                className={twMerge(
-                    "h-10 w-10 items-center justify-center rounded-full",
-                    view.medallionClass,
-                )}
-            >
-                <Icon name={view.icon} size={21} className={view.iconClass} />
-            </View>
-
-            <View className="min-w-0 flex-1">
-                <View className="flex-row items-center gap-1.5">
-                    <View
-                        className={twMerge(
-                            "h-[7px] w-[7px] rounded-full",
-                            view.dotClass,
-                        )}
+        <Card className="p-5">
+            <View className="flex-row items-center gap-4">
+                <View
+                    className={twMerge(
+                        "h-14 w-14 items-center justify-center rounded-2xl",
+                        view.medallionClass,
+                    )}
+                >
+                    <Icon
+                        name={view.icon}
+                        size={21}
+                        className={view.iconClass}
                     />
-                    <Text
-                        numberOfLines={1}
-                        className="shrink text-[15px] font-semibold text-ink"
-                    >
-                        {view.label}
+                </View>
+
+                <View className="min-w-0 flex-1">
+                    <View className="flex-row items-center gap-1.5">
+                        <View
+                            className={twMerge(
+                                "h-[7px] w-[7px] rounded-full",
+                                view.dotClass,
+                            )}
+                        />
+                        <Text className="shrink text-[18px] font-semibold tracking-tight text-ink">
+                            {view.label}
+                        </Text>
+                    </View>
+                    <Text className="mt-1 text-[12px] leading-5 text-ink-2">
+                        {view.detail(props)}
                     </Text>
                 </View>
-                <Text numberOfLines={1} className="text-[12px] text-ink-3">
-                    {view.detail(props)}
-                </Text>
             </View>
-
-            <SyncActionPill {...view.action} onPress={props.onSyncNow} />
+            <View className="mt-4">
+                <SyncActionPill {...view.action} onPress={props.onSyncNow} />
+            </View>
         </Card>
     );
 }
@@ -135,10 +139,12 @@ function SyncActionPill({
 }: StateView["action"] & { onPress?: () => void }) {
     return (
         <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ disabled: !enabled }}
             onPress={onPress}
             disabled={!enabled}
             className={twMerge(
-                "flex-shrink-0 flex-row items-center gap-1.5 rounded-full px-4 py-2.5",
+                "min-h-[48px] flex-row items-center justify-center gap-2 rounded-field px-4 py-3",
                 enabled
                     ? "bg-accent active:opacity-80"
                     : "border border-line bg-surface-2",

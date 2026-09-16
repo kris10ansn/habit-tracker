@@ -22,7 +22,7 @@ export function AccountSummary({ session }: Props) {
     return (
         <Card className="flex-col gap-3.5">
             <View className="flex-row items-center gap-3">
-                <View className="h-10 w-10 items-center justify-center rounded-full bg-accent-soft">
+                <View className="h-12 w-12 items-center justify-center rounded-2xl bg-accent-soft">
                     <Icon name="person" size={20} className="text-accent" />
                 </View>
                 <View className="min-w-0 flex-1">
@@ -32,7 +32,7 @@ export function AccountSummary({ session }: Props) {
                     >
                         {session.user.email}
                     </Text>
-                    <Text className="text-[12px] text-ink-3">
+                    <Text className="mt-1 text-[12px] text-ink-2">
                         Signed in on this device
                     </Text>
                 </View>
@@ -78,10 +78,11 @@ function AccountActionButton({
 }) {
     return (
         <Pressable
+            accessibilityRole="button"
             onPress={onPress}
             disabled={disabled}
             className={twMerge(
-                "flex-1 flex-row items-center justify-center gap-1.5 rounded-field border border-line bg-surface-2 px-3 py-3 active:opacity-70",
+                "min-h-[48px] flex-1 flex-row items-center justify-center gap-1.5 rounded-field bg-surface-2 px-3 py-3 active:opacity-70",
                 disabled && "opacity-50",
             )}
         >

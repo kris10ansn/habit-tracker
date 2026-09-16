@@ -59,7 +59,7 @@ export function AppScreen({
                 avoidKeyboard ? (
                     <KeyboardAwareScrollView
                         className="flex-1"
-                        contentContainerClassName="px-4 pb-8"
+                        contentContainerClassName="px-5 pb-8"
                         keyboardShouldPersistTaps="handled"
                         bottomOffset={16}
                         refreshControl={refreshControl}
@@ -70,7 +70,7 @@ export function AppScreen({
                 ) : (
                     <ScrollView
                         className="flex-1"
-                        contentContainerClassName="px-4 pb-8"
+                        contentContainerClassName="px-5 pb-8"
                         refreshControl={refreshControl}
                     >
                         {children}
@@ -78,10 +78,8 @@ export function AppScreen({
                     </ScrollView>
                 )
             ) : (
-                <View className="flex-1 px-4">
-                    <View className="flex-1">{children}</View>
-                    <TabBarClearance />
-                </View>
+                // A screen with its own scroll view owns its scroll-end clearance.
+                <View className="flex-1 px-5">{children}</View>
             )}
         </SafeAreaView>
     );
@@ -89,7 +87,7 @@ export function AppScreen({
 
 // This spacer scrolls with the content instead of masking it with a fixed footer.
 // Include the home-indicator inset and room for the capsule at larger text sizes.
-function TabBarClearance() {
+export function TabBarClearance() {
     return (
         <SafeAreaView
             className="pt-28"
