@@ -1,9 +1,9 @@
 const path = require("node:path");
 
 const APP_PROVIDERS_IMPORT = "@/components/AppProviders";
+const CAMERA_IMPORT = "expo-camera";
 
-// Replace only the root layout's provider import in the isolated test target. Relative imports,
-// including the adapter's import of the production provider, keep Metro's ordinary resolution.
+// Keep test adapters and their assets out of the ordinary app's dependency graph.
 function withTestTarget(config, projectRoot) {
     if (process.env.APP_TEST_MODE !== "1") return config;
 
@@ -19,6 +19,16 @@ function withTestTarget(config, projectRoot) {
             };
         }
 
+        if (moduleName === CAMERA_IMPORT) {
+            return {
+                type: "sourceFile",
+                filePath: path.resolve(
+                    projectRoot,
+                    "src/testMode/TestCamera.tsx",
+                ),
+            };
+        }
+
         return defaultResolveRequest
             ? defaultResolveRequest(context, moduleName, platform)
             : context.resolveRequest(context, moduleName, platform);
@@ -27,4 +37,4 @@ function withTestTarget(config, projectRoot) {
     return config;
 }
 
-module.exports = { APP_PROVIDERS_IMPORT, withTestTarget };
+module.exports = { APP_PROVIDERS_IMPORT, CAMERA_IMPORT, withTestTarget };

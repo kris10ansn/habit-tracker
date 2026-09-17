@@ -11,6 +11,10 @@ import {
 } from "@/api/gen";
 import { getDeviceName } from "@/auth/deviceName";
 import {
+    isCompletePairingCode,
+    normalizePairingCode,
+} from "@/auth/pairingCode";
+import {
     clearAuthSession,
     getAuthSession,
     setAuthSession,
@@ -180,12 +184,12 @@ export function useRevokeSession() {
  */
 export function usePairingLookup(code: string) {
     const baseURL = useBaseUrl();
-    const normalized = code.trim().toUpperCase();
+    const normalized = normalizePairingCode(code);
 
     return useQuery({
         queryKey: pairingCodeKey(normalized),
         queryFn: () => getApiPairingCode(normalized, { baseURL }),
-        enabled: normalized.length === 6 && Boolean(baseURL),
+        enabled: isCompletePairingCode(normalized) && Boolean(baseURL),
         retry: false,
     });
 }
@@ -199,7 +203,7 @@ export function usePairingApprove() {
             if (!baseURL) throw new Error(NO_SERVER_URL_MESSAGE);
 
             return postApiPairingApprove(
-                { code: code.trim().toUpperCase() },
+                { code: normalizePairingCode(code) },
                 { baseURL },
             );
         },

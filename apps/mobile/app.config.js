@@ -4,6 +4,7 @@
 module.exports = ({ config }) => {
     if (process.env.APP_TEST_MODE !== "1") return config;
 
+    const { pairing } = require("../../tools/readme-screenshots/fixture.json");
     const testExtra = Object.fromEntries(
         Object.entries(config.extra ?? {}).filter(([key]) => key !== "eas"),
     );
@@ -13,7 +14,11 @@ module.exports = ({ config }) => {
         name: "Habit Tracker Test",
         slug: "habit-tracker-test",
         scheme: "habittracker-test",
-        extra: testExtra,
+        extra: {
+            ...testExtra,
+            testPairingCode: pairing.code,
+            screenshotMode: process.env.APP_SCREENSHOT_MODE === "1",
+        },
         ios: {
             ...config.ios,
             bundleIdentifier: "no.silli.habittracker.test",

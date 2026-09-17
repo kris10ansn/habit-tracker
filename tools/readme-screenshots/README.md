@@ -18,8 +18,8 @@ stretching, or gutters, and masks the phone's round corners. Device texture, lig
 therefore remain stable across screenshot updates; AI is not involved after the frame source has
 been committed.
 
-Both capture helpers create the matching framed output automatically. Existing or manually copied
-captures can be framed separately:
+The standalone APK and reMarkable capture helpers create framed output automatically. The Expo Go
+capture command writes raw images; frame those or other existing captures separately:
 
 ```sh
 pnpm screenshots:frame
@@ -27,10 +27,10 @@ pnpm screenshots:frame -- --client remarkable --scenario settings
 pnpm screenshots:frame -- --client android --scenario devices
 ```
 
-The three-device linking scene is generated separately. It replaces every source screen currently
-available and leaves the original concept pixels in any missing slot. The committed example uses
+The `mobile:test:readme` workflow also refreshes the three-device linking scene. The compositor
+replaces every source screen currently available and leaves the original concept pixels in any missing slot. The committed example uses
 real captures in all three slots; the fallback only keeps partial regeneration possible if one is
-temporarily unavailable:
+temporarily unavailable. To regenerate it separately:
 
 ```sh
 pnpm screenshots:linking
@@ -61,14 +61,125 @@ Quick host. The suspend image still comes from the production suspend renderer; 
 rotates its framebuffer-oriented result for readable README presentation. Each raw capture and its
 framed presentation copy are written together.
 
-## Mobile test target and manual captures
+## Mobile test target and captures
 
-Mobile's existing application source is unchanged. With `APP_TEST_MODE=1`, Metro replaces only the
-root layout's `AppProviders` import with a test adapter. Before that adapter loads the production
+### Automated Expo Go captures
+
+With workspace dependencies installed, Node.js 22+, `adb` on PATH, and one local Android
+emulator already running with SDK 57-compatible Expo Go installed:
+
+```sh
+npm run mobile:test:screenshots
+npm run mobile:test:screenshots -- --scenario today
+npm run mobile:test:screenshots -- --serial emulator-5554 --port 8083
+```
+
+The command captures Today, Habits, Month, Sync, Linked devices, and Link a device with the
+fixture below. It starts an isolated screenshot Metro server on unused port 8082 (override with
+`--port`), reloads the test project, waits for fixture data and icon fonts, and navigates with
+Android deep links. ADB/UIAutomator checks each screen's expected content twice before capturing.
+No native build, installation, or manual navigation is needed. Existing development servers stay
+running; Expo Go itself is restarted to reset the fixture. Run one capture at a time and avoid
+editing the app or interacting with the emulator during a run.
+
+The runner selects the sole online emulator or the explicit `--serial`, and rejects physical
+devices. It uses the local Android Emulator host alias `10.0.2.2`; remote emulators and iOS are
+not supported. Maestro was tested in this environment, but repeatedly lost its driver connection.
+The working command needs neither Maestro nor Java. Its experimental implementation remains in
+Git history rather than adding a second driver to maintain.
+
+Capture writes only the raw `docs/assets/screenshots/android-*.png` images. Framing is a separate
+step using the existing compositor (requires ImageMagick's `magick` on PATH):
+
+```sh
+npm run mobile:test:screenshots
+npm run screenshots:frame -- --client android
+npm run screenshots:linking
+```
+
+For one command that runs those same three steps in order, stopping if any step fails:
+
+```sh
+npm run mobile:test:readme
+```
+
+The frame command updates `docs/assets/screenshots/framed/android-*.png`. The linking command
+refreshes `framed/device-linking.png` from the current phone captures and existing tablet capture.
+To update only Today, capture with `--scenario today` and frame with `--client android --scenario today`.
+The combined `mobile:test:readme` command always updates all six screens.
+
+Capture validates the full selected set before replacing raw images. A later framing failure
+leaves those new raw captures available; rerun framing without recapturing. Each replacement uses
+rename, but the set is not a filesystem transaction.
+
+Every run prints its ignored `.screenshots/<timestamp>/` diagnostic directory:
+
+- `report.json`: result, stage timings, emulator serial, recovery counts, and updated image paths
+  relative to the repository root.
+- `logs/metro.log`, `logs/android.log`, `logs/launch.log`: console output, filtered Android
+  diagnostics, and project-launch output. Framing commands print their output to the terminal.
+- `native/*.xml` and `native/events.log`: readiness evidence and retry diagnostics.
+- `failure.png`: a best-effort screenshot when capture fails.
+
+Android's status-bar clock remains real time, so the output is not a pixel-identical visual
+regression baseline. Successful captures move into the README image directory; failed runs retain
+staged images for diagnosis.
+
+Progress prints every 15 seconds. Metro startup and fixture readiness each have a 60-second
+budget, screen readiness 30 seconds, capture 180 seconds, and the run a five-minute watchdog.
+Each ADB command has a ten-second timeout. These limits apply to capture; framing runs separately.
+Interrupted UI reads retry within the readiness budget; commands rejected with `device offline` retry at most twice. Failure or Ctrl+C stops owned process
+groups, forcibly if necessary, while leaving the emulator and preexisting Metro servers running.
+
+`APP_SCREENSHOT_MODE=1` hides nonfatal React Native LogBox overlays only for this test server;
+console messages are still logged. Fatal app errors are not suppressed. Known Expo Go developer
+onboarding/menu screens are dismissed, and a cold launch that returns to Android Home is reopened
+once. Missing fixture content fails readiness; other dialogs are not automatically dismissed.
+Screen routes and expected copy live in `lib/native-capture.mjs`; output filenames use the existing `scenarios.mjs` registry.
+
+### Tab animation recording with Maestro
+
+For an optional tab-switching video, load the isolated Expo Go test project as described below,
+wait for `TEST_MODE_READY`, then run Maestro against the explicit emulator serial:
+
+```sh
+maestro --device emulator-5554 test --test-output-dir .screenshots/tab-animation tools/readme-screenshots/maestro/tab-highlight.yaml
+```
+
+The flow verifies the four tab screens and records adjacent switches and jumps across the bar.
+Maestro saves `tab-highlight.mp4` inside the run's `startRecording/` directory. It records the
+emulator directly; desktop focus and desktop locking do not affect capture, provided the host
+stays awake. An emulator launched with `-no-window` works too.
+
+The retained [full recording](../../docs/assets/demos/tab-highlight.mp4) uses the isolated fixture.
+The [cropped GIF preview](../../docs/assets/demos/tab-highlight.gif) removes idle waits between
+switches while keeping each transition at its recorded speed. Settled tab appearance and existing
+README capture selectors are unchanged; allow the highlight to settle before taking still images.
+
+The same flow also records the navigator's page transitions. See the [full-page recording](../../docs/assets/demos/tab-pages.mp4)
+and [short preview](../../docs/assets/demos/tab-pages.gif) for the slide-and-fade between screens.
+The preview removes idle waits, retaining the original transition speed. Still captures should wait
+for both the page transition and tab highlight to settle; settled screen layouts are unchanged.
+
+### Test isolation
+
+With `APP_TEST_MODE=1`, Metro replaces the root layout's `AppProviders` import and `expo-camera`
+with test adapters. Before the provider adapter loads the production
 provider, it freezes implicit `Date` construction and `Date.now()` and replaces the global fetch
 implementation. It then wraps the real provider, seeds SQLite and SecureStore after migrations,
 answers device and pairing reads locally, and rejects unexpected requests before they reach a
 network. Expo Router remains the package entry point in both modes.
+
+The camera adapter grants test permission without an OS prompt and shows the retained AI-generated
+desk scene in `apps/mobile/src/testMode/assets/pairing-camera.jpg`. Its crop matches preview C;
+the real scanner still draws the viewfinder. The image stays still and
+does not emit scan events, so screenshot timing is repeatable. The code field starts with the
+fixture code `H7K9Q2`, supplied through Expo's `extra.testPairingCode` configuration, allowing the
+existing lookup to show the requesting device and Approve button
+alongside the camera image. This captures the manual-entry state; a real successful QR scan closes
+the camera. The field remains editable and approval uses the normal UI with a local test response.
+Normal mode starts with an empty code, uses the real camera module, and does not bundle the sample
+image. The image is an illustration, not a test of QR decoding.
 
 Agents leave native builds, emulator launches, installation, and other resource-heavy steps to the
 user unless the user explicitly requests that specific operation.
@@ -82,13 +193,14 @@ pnpm mobile:test:fixture
 pnpm mobile:test:go
 ```
 
-Open the displayed project in an SDK 56-compatible Expo Go installation yourself. The command does
+Open the displayed project in an SDK 57-compatible Expo Go installation yourself. The command does
 not select or launch an emulator. Test mode uses the separate `habit-tracker-test` Expo project
 identity and omits the production EAS project ID, so its Expo Go SQLite and SecureStore data do not
 share the ordinary project's storage scope.
 
-Navigate Today, Month, Habits, Sync, Link device, and Devices normally. Type the fixture pairing code
-`H7K9Q2` when capturing Link device. Android Studio's screenshot button is the simplest capture
+Navigate Today, Month, Habits, Sync, Link device, and Devices normally. Link device opens with the
+camera image, prefilled code, and approval controls. Clear the code for a scanner-only capture.
+The camera remains visible during manual entry. Android Studio's screenshot button is the simplest capture
 mechanism. Stop the Expo development server when finished.
 
 ### Optional standalone APK
@@ -135,3 +247,19 @@ presentation copy.
 Fixture validation rejects duplicate identities and positions, unknown polarity/outcome spellings,
 future entries, ambiguous pairing codes, and inconsistent session state. Generated and staged data
 must stay inside the isolated test locations described above.
+
+## Commit reminder
+
+The existing pre-commit hook prints a nonblocking reminder when staged changes touch mobile
+screens, components, themes, state/domain/database code, test-mode setup, assets, Expo/build
+configuration, or screenshot fixtures. It also watches dependency manifests, the shared lockfile,
+and workspace/package-manager configuration; those shared files can warn for non-mobile changes.
+Deletions and both sides of renames are included. Unstaged edits do not trigger it.
+
+The reminder lists the relevant paths and points to the capture definitions and
+`npm run mobile:test:readme`. It neither proves the workflow is stale nor requires screenshot-code
+changes in the same commit. It still appears when workflow changes are included, since their
+presence does not establish correctness. It starts no emulator, capture, framing, or tests, and
+leaves the existing OpenAPI/generated-client blocking check intact.
+
+`pnpm install` enables the repository hooks through the existing root `prepare` script.

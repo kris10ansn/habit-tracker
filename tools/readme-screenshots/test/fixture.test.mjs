@@ -27,6 +27,7 @@ const {
 } = require("../../../apps/mobile/src/testMode/freezeDate.js");
 const {
     APP_PROVIDERS_IMPORT,
+    CAMERA_IMPORT,
     withTestTarget,
 } = require("../../../apps/mobile/src/testMode/metro.js");
 
@@ -194,6 +195,7 @@ test("emulator validation rejects physical, offline, and non-QEMU targets", () =
 });
 
 test("test app identity leaves ordinary Expo config unchanged", async () => {
+    const fixture = await loadFixture(fixturePath);
     const appConfig = require("../../../apps/mobile/app.config.js");
     const appJson = JSON.parse(
         await readFile(
@@ -206,6 +208,10 @@ test("test app identity leaves ordinary Expo config unchanged", async () => {
     try {
         delete process.env.APP_TEST_MODE;
         assert.deepEqual(appConfig({ config: appJson }), appJson);
+        assert.equal(
+            appConfig({ config: appJson }).extra.testPairingCode,
+            undefined,
+        );
 
         process.env.APP_TEST_MODE = "1";
         const testConfig = appConfig({ config: appJson });
@@ -219,6 +225,10 @@ test("test app identity leaves ordinary Expo config unchanged", async () => {
         );
         assert.equal("eas" in testConfig.extra, false);
         assert.deepEqual(testConfig.extra.router, {});
+        assert.equal(testConfig.extra.testPairingCode, fixture.pairing.code);
+
+        process.env.APP_TEST_MODE = "0";
+        assert.deepEqual(appConfig({ config: appJson }), appJson);
     } finally {
         if (previous === undefined) delete process.env.APP_TEST_MODE;
         else process.env.APP_TEST_MODE = previous;
@@ -264,7 +274,7 @@ test("test mode leaves the normal entry and resolver unchanged", async () => {
     }
 });
 
-test("test target substitutes only the root provider import", () => {
+test("test target substitutes providers and camera while delegating other imports", () => {
     const previous = process.env.APP_TEST_MODE;
     const delegated = { type: "sourceFile", filePath: "/default.ts" };
     const context = {
@@ -299,6 +309,49 @@ test("test target substitutes only the root provider import", () => {
             ),
             delegated,
         );
+        assert.deepEqual(
+            config.resolver.resolveRequest(context, CAMERA_IMPORT, "ios"),
+            {
+                type: "sourceFile",
+                filePath: path.join("/mobile", "src/testMode/TestCamera.tsx"),
+            },
+        );
+        assert.equal(
+            config.resolver.resolveRequest(context, "expo-image", "ios"),
+            delegated,
+        );
+    } finally {
+        if (previous === undefined) delete process.env.APP_TEST_MODE;
+        else process.env.APP_TEST_MODE = previous;
+    }
+});
+
+test("ordinary mode keeps the real camera resolver for unset and false flags", () => {
+    const previous = process.env.APP_TEST_MODE;
+    const realCamera = {
+        type: "sourceFile",
+        filePath: "/expo-camera/index.ts",
+    };
+    const resolveRequest = (_context, moduleName) => {
+        assert.equal(moduleName, CAMERA_IMPORT);
+        return realCamera;
+    };
+
+    try {
+        for (const mode of [undefined, "0"]) {
+            if (mode === undefined) delete process.env.APP_TEST_MODE;
+            else process.env.APP_TEST_MODE = mode;
+
+            const config = withTestTarget(
+                { resolver: { resolveRequest } },
+                "/mobile",
+            );
+            assert.equal(config.resolver.resolveRequest, resolveRequest);
+            assert.equal(
+                config.resolver.resolveRequest({}, CAMERA_IMPORT, "android"),
+                realCamera,
+            );
+        }
     } finally {
         if (previous === undefined) delete process.env.APP_TEST_MODE;
         else process.env.APP_TEST_MODE = previous;

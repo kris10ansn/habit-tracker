@@ -6,7 +6,7 @@
 > the [root `CONTEXT.md`](../../CONTEXT.md), the sync terms in the
 > [backend glossary](../backend/CONTEXT.md).
 
-The mobile client of the habit tracker: an [Expo](https://expo.dev) (SDK 56) app built with
+The mobile client of the habit tracker: an [Expo](https://expo.dev) (SDK 57) app built with
 expo-router and TypeScript, styled with [NativeWind](https://www.nativewind.dev) (Tailwind for
 React Native).
 
@@ -16,7 +16,8 @@ It renders the Habit × Entry model in the backend's shape over a mobile-native,
 - **Month** — the whole grid at review scale, **transposed** for portrait: days are rows (vertical
   scroll), habits are columns, today's row highlighted.
 - **Habits** — manage the roster: rename, reorder, set polarity.
-- **Sync** — point the app at a backend, or stay standalone with an empty Server URL.
+- **Sync** — point the app at a backend, sign in, and manage linked devices, or stay standalone with
+  an empty Server URL.
 
 ## Status
 
@@ -28,9 +29,12 @@ passes whichever month is being viewed when you pull to refresh, while Today and
 refreshed to sync. A fresh install starts empty and fills in from its first sync. The backend at
 [`apps/backend/`](../backend/) owns the merge (last-write-wins on
 `editedAt`) — this client submits its state and accepts the result rather than resolving conflicts
-itself.
+itself. From **Sync → Linked devices → Link a device**, scan a pairing QR code with the in-app
+camera or enter its six-character code manually, review the requesting device, and approve it.
 
 ## Run it
+
+Use Node.js 22.13 or newer. After an SDK upgrade, rebuild any installed native development or preview app before testing.
 
 Install workspace deps once from the monorepo root (`pnpm install`), then from the root:
 
@@ -43,6 +47,10 @@ pnpm mobile:ios        # open on an iOS simulator/device
 Or run scripts directly from this directory with `pnpm start` / `pnpm android` / `pnpm ios`.
 There is deliberately no web target. The dev server prints options to open the app in a development build, a simulator, or
 [Expo Go](https://expo.dev/go).
+
+QR pairing opens the scanner automatically and requests camera access when needed. If access is
+denied, the scanner shows an action to allow it or open system settings. Manual code entry remains
+available below it. Scanning needs a physical Android or iOS device.
 
 Checks:
 

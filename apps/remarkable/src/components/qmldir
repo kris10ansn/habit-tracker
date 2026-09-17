@@ -14,4 +14,5 @@ SuspendCanvas 1.0 SuspendCanvas.qml
 StatusText 1.0 StatusText.qml
 SegmentedToggle 1.0 SegmentedToggle.qml
 SettingsPage 1.0 SettingsPage.qml
+QrCode 1.0 QrCode.qml
 GridBottomBar 1.0 GridBottomBar.qml

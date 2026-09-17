@@ -2,6 +2,7 @@ import { SyncStatusCard } from "@/components/sync/SyncStatusCard";
 import { AppScreen } from "@/components/ui/AppScreen";
 import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
+import { SectionHeader } from "@/components/ui/SectionHeader";
 import {
     TextInputField,
     TextInputHint,
@@ -17,7 +18,7 @@ import {
     useUpdateSettings,
 } from "@/state/queries";
 import { useState } from "react";
-import { Text, View } from "react-native";
+import { View } from "react-native";
 
 import { AccountSection } from "@/components/account/AccountSection";
 
@@ -76,6 +77,7 @@ export default function SyncScreen() {
                 onSyncNow={() => sync.mutate({})}
             />
 
+            <SectionHeader title="Connection" />
             <Card className="flex-col">
                 <TextInputLabel>Server URL</TextInputLabel>
 
@@ -115,9 +117,7 @@ export default function SyncScreen() {
                 </View>
             </Card>
 
-            <Text className="mb-2 ml-1 mt-1 text-xs font-semibold uppercase tracking-wide text-ink-3">
-                Account
-            </Text>
+            <SectionHeader title="Account" />
             <AccountSection />
         </AppScreen>
     );

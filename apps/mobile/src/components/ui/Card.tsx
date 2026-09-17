@@ -8,13 +8,13 @@ interface Props {
     className?: string;
 }
 
-// The app's one surface primitive: rounded white panel with a soft shadow.
+// The app's one surface primitive: rounded white panel with a quiet outline.
 // Layout (flex-row, gaps, margins) is passed in by the caller via className.
 export function Card({ children, className }: Props) {
     return (
         <View
             className={cn(
-                "rounded-card bg-surface px-4 py-3.5 shadow-sm",
+                "rounded-card border border-line bg-surface p-4",
                 className,
             )}
         >

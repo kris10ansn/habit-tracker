@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Pressable, Text, TextInput, View } from "react-native";
+import { Pressable, TextInput, View } from "react-native";
 
+import { Icon } from "@/components/ui/Icon";
 import { useCreateHabit } from "@/state/queries";
 import { colors } from "@/theme/colors";
 
@@ -20,7 +21,7 @@ export function AddHabitRow() {
     };
 
     return (
-        <View className="mt-1 flex-row gap-2.5">
+        <View className="mt-2 flex-row gap-3">
             <TextInput
                 value={name}
                 onChangeText={setName}
@@ -28,16 +29,22 @@ export function AddHabitRow() {
                 returnKeyType="done"
                 placeholder="New habit…"
                 placeholderTextColor={colors.ink3}
-                className="flex-1 rounded-field border border-dashed border-ink-3 bg-surface px-3.5 py-3 text-[15px] text-ink"
+                className="min-h-[48px] flex-1 rounded-field border border-line bg-surface px-4 py-3 text-[15px] text-ink focus:border-accent"
             />
             <Pressable
                 onPress={submit}
+                accessibilityRole="button"
+                accessibilityLabel="Add habit"
                 disabled={!trimmed}
                 className={`items-center justify-center rounded-field px-4 ${
-                    trimmed ? "bg-accent active:opacity-80" : "bg-ink-3/30"
+                    trimmed ? "bg-accent active:opacity-80" : "bg-accent-soft"
                 }`}
             >
-                <Text className="text-xl font-semibold text-white">+</Text>
+                <Icon
+                    name="add"
+                    size={22}
+                    className={trimmed ? "text-white" : "text-accent"}
+                />
             </Pressable>
         </View>
     );
