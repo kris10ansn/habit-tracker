@@ -1,3 +1,5 @@
+.import "BuildProfile.js" as BuildProfile
+
 const MISSING = "missing";
 const CORRUPT = "corrupt";
 
@@ -37,6 +39,11 @@ const rawText = (path) => {
 };
 
 function writeFile(path, body, onDone) {
+    if (!BuildProfile.canWrite(path)) {
+        reportWrite(onDone, `Test build: refusing write outside its app directory: ${path}`);
+        return;
+    }
+
     const xhr = new XMLHttpRequest();
 
     xhr.onreadystatechange = () => {
@@ -116,6 +123,11 @@ function readBinary(path) {
 // Verified by size rather than by content: the failure mode is nothing being written at all, and
 // comparing a megabyte of suspend image byte by byte on the device is not worth the certainty.
 function writeBinary(path, buffer, onDone) {
+    if (!BuildProfile.canWrite(path)) {
+        reportWrite(onDone, `Test build: refusing write outside its app directory: ${path}`);
+        return;
+    }
+
     const xhr = new XMLHttpRequest();
     const expected = buffer ? buffer.byteLength : 0;
 

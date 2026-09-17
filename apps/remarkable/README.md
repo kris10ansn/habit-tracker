@@ -49,7 +49,7 @@ Then build and deploy this app:
 
 ```sh
 make build      # produces build/resources.rcc + staged icon/manifest
-make deploy     # scps build/* to /home/root/xovi/exthome/appload/habit-tracker/
+make deploy CONFIRM_STABLE=1  # scps build/* to /home/root/xovi/exthome/appload/habit-tracker/
 ```
 
 (`make deploy` needs `ssh remarkable` to resolve to the tablet — set it up in `~/.ssh/config`, or use `make REMARKABLE_HOST=<host> deploy`. If the tablet's address moves — a phone hotspot re-leases every session — `make find-hotspot-ip` locates it and updates the config; see [below](#finding-the-tablet-after-its-address-changes).)
@@ -104,6 +104,58 @@ This app is the QML scene. It's packaged as a Qt binary resource (`.rcc`) plus a
 
 ## Building from source
 
+### Testing alongside your working app
+
+From the worktree containing the feature you want to test, run these at the monorepo root:
+
+```sh
+pnpm remarkable:build:test       # local build only
+pnpm remarkable:deploy:test      # user-run: install Habit Tracker TEST on the tablet
+pnpm remarkable:backup:test      # user-run: copy test habits to apps/remarkable/.backup/test/<timestamp>/
+```
+
+Or use `make build-test`, `make deploy-test`, and `make backup-test` from `apps/remarkable`.
+Close **Habit Tracker TEST** before deploying it again, then reopen that launcher entry. Your
+ordinary app remains installed. These commands always use `habit-tracker-test`, including from a
+feature worktree; the test and stable bundles have separate local build directories too.
+
+The test install keeps its roster, month files, sync state, settings, and pairing token under
+`/home/root/xovi/exthome/appload/habit-tracker-test/`. First launch uses default habits and blank
+server/token settings. Deploying copies only the app bundle, manifest, and icon; it never copies
+production data or credentials, and later deploys preserve existing test data. There is one shared
+test slot on the tablet, so deploying another worktree replaces that test version.
+
+The grid and Settings display **TEST**. Test builds refuse file writes outside their own app
+directory, including production data paths. The suspend setting saves `suspend-preview.png` inside
+the test install instead of changing the device's suspend image or its backup. The separate native
+device suspend-writer is unavailable in the test profile. The write check protects the app's write
+paths; both apps still run inside xochitl, so this is not an operating-system sandbox. Keep the test
+directory as a normal directory, without symlinks to production files.
+
+**Sync requires separate test data on both clients.** For pairing tests, use a separate backend
+account (or a separate backend), and a phone installation with separate local storage. A real
+account on either test client can sync test edits into real habits, even though tablet files are
+separate. Signing out of an existing phone app does not isolate the habits it already has locally.
+The tablet starts disconnected, but remembers the test server and token after you pair it.
+
+For device pairing: configure the same test server on both clients, sign in on the test phone app,
+then choose **Connect** in the tablet's test Settings. Enter its code and approve it from the phone's
+**Linked devices → Link a device** screen. Features added on other branches, such as QR scanning,
+can use the same test-install workflow once those changes are present in the worktree.
+
+Replacing the stable app requires an explicit choice:
+
+```sh
+make deploy CONFIRM_STABLE=1
+```
+
+Plain `make deploy` refuses before contacting the device. The confirmation also works from the
+monorepo root as `pnpm remarkable:deploy CONFIRM_STABLE=1`. Back up stable habits with
+`pnpm remarkable:backup` before a stable upgrade. Existing unreadable-file protection remains in
+place: incompatible or corrupt habit files block saves and sync.
+
+### Build tools
+
 You need Qt 5's `rcc` (Qt 6's works too for `--binary`, but the device runtime is Qt 5.15 — stay on 5 to avoid surprises):
 
 - Arch/Manjaro: `pacman -S qt5-base` (binary is `rcc-qt5`)
@@ -115,7 +167,7 @@ Override the binary with `make RCC=<path>` if it isn't on `$PATH` as `rcc-qt5`.
 ```sh
 make build      # produces build/resources.rcc + staged icon/manifest
 make test       # runs the test suite (see below)
-make deploy     # scps build/* to the device
+make deploy CONFIRM_STABLE=1  # scps build/* to the device
 make remove     # uninstalls from the device
 make backup     # pulls the device's data/ into a timestamped .backup/ dir
 make find-hotspot-ip  # relocates the tablet on the current network (see below)
@@ -185,7 +237,7 @@ back and deploy:
 
 ```sh
 rsync -avz /tmp/migrated/ remarkable:/home/root/xovi/exthome/appload/habit-tracker/data/
-make deploy
+make deploy CONFIRM_STABLE=1
 ```
 
 Then reopen the app. If you get the order wrong, nothing is lost: the new build refuses files it

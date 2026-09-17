@@ -1,9 +1,10 @@
 import QtQuick 2.15
+import "js/BuildProfile.js" as BuildProfile
 
 JsonStore {
     id: settingsStore
 
-    filePath: "/home/root/xovi/exthome/appload/habit-tracker/settings.json"
+    filePath: BuildProfile.settingsPath
 
     // Whether the app overwrites the device suspend image with the grid.
     // Opt-in: off until the user turns it on in Settings.

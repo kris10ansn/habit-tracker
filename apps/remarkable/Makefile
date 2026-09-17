@@ -1,13 +1,27 @@
 REMARKABLE_HOST ?= remarkable
 HOTSPOT_HOST ?= remarkable-hotspot
-APP_ID := habit-tracker
-REMOTE_DIR := /home/root/xovi/exthome/appload/$(APP_ID)
+PROFILE ?= stable
+ifeq ($(PROFILE),test)
+override APP_ID := habit-tracker-test
+override BUILD_DIR := build/test
+ifneq ($(filter suspend-writer-device suspend-writer-deploy,$(MAKECMDGOALS)),)
+$(error The device suspend-writer is unavailable for test installs; use the app's suspend preview)
+endif
+else ifeq ($(PROFILE),stable)
+override APP_ID := habit-tracker
+override BUILD_DIR := build
+else
+$(error PROFILE must be stable or test)
+endif
+override REMOTE_DIR := /home/root/xovi/exthome/appload/$(APP_ID)
 RCC ?= rcc-qt5
 QMLLINT ?= qmllint-qt5
 QMLTESTRUNNER ?= qmltestrunner-qt5
 QML_IMPORT_PATH ?= /usr/lib/qt/qml
-BUILD_DIR := build
 BACKUP_DIR := .backup
+ifeq ($(PROFILE),test)
+BACKUP_DIR := .backup/test
+endif
 TEST_DIR := tests
 TEST_TMP := $(TEST_DIR)/tmp
 QML_FILES := $(shell find src -name '*.qml')
@@ -17,13 +31,24 @@ SW_JS_MODULES := $(addprefix src/js/,SuspendDraw.js DateUtils.js Entries.js Pola
 SCREENSHOT_DIR := tools/readme-screenshots
 
 .PHONY: build inject-pragma deploy remove clean lint test suspend-writer-test backup find-hotspot-ip \
+	build-test deploy-test backup-test \
 	suspend-writer-host suspend-writer-device suspend-writer-deploy suspend-writer-clean \
 	readme-screenshot-host readme-screenshot-clean
 
 build: inject-pragma
+	node scripts/stage-profile.mjs $(PROFILE) $(BUILD_DIR)
 	cp application.qrc $(BUILD_DIR)/
 	cd $(BUILD_DIR) && $(RCC) --binary -o resources.rcc application.qrc
-	cp manifest.json icon.png $(BUILD_DIR)/
+	cp icon.png $(BUILD_DIR)/
+
+build-test:
+	$(MAKE) build PROFILE=test
+
+deploy-test:
+	$(MAKE) deploy PROFILE=test
+
+backup-test:
+	$(MAKE) backup PROFILE=test
 
 # Stage src/ into build/src/ and prepend `.pragma library` to every JS file.
 # Sources omit the directive so prettier/VSCode can parse them; Qt requires it
@@ -51,6 +76,7 @@ lint:
 # deploy create data/ — ADR 0002), so a HabitsStore test cannot make its own: habits/ is the
 # shared working dir, habits-seed/ is left empty for the first-run seeding test.
 test:
+	node --test tests/build-profile.test.mjs
 	@command -v $(QMLTESTRUNNER) >/dev/null 2>&1 || { echo "$(QMLTESTRUNNER) not found (install qt5-declarative)"; exit 1; }
 	rm -rf $(TEST_TMP)
 	mkdir -p $(TEST_TMP)/habits $(TEST_TMP)/habits-seed
@@ -60,6 +86,7 @@ test:
 # The data/ subdir must exist before first launch: QML/XHR cannot create it, so
 # a missing dir turns every save into a visible failure (see ADR 0002).
 deploy: build
+	@test "$(PROFILE)" = test || test "$(CONFIRM_STABLE)" = 1 || { echo "Stable install protected. Use make deploy-test, or make deploy CONFIRM_STABLE=1 to replace the stable app."; exit 1; }
 	ssh $(REMARKABLE_HOST) "mkdir -p $(REMOTE_DIR)/data"
 	scp $(BUILD_DIR)/resources.rcc $(BUILD_DIR)/manifest.json $(BUILD_DIR)/icon.png $(REMARKABLE_HOST):$(REMOTE_DIR)/
 

@@ -35,6 +35,7 @@
         <file>src/js/Polarity.js</file>
         <file>src/js/Ids.js</file>
         <file>src/js/Storage.js</file>
+        <file>src/js/BuildProfile.js</file>
         <file>src/js/SuspendRender.js</file>
         <file>src/js/SuspendDraw.js</file>
         <file>src/js/SuspendStatus.js</file>
