@@ -30,9 +30,9 @@ exposed on a Settings page. Default **off**.
 - All automatic render/save triggers are gated on `suspendImageEnabled`. While off, the
   per-habit `Z` (suspend visibility) controls are hidden.
 
-  > Superseded by [ADR 0008](0008-private-habits.md): suspend visibility became the synced
-  > Private flag, and its edit-mode toggle is no longer gated on this setting — it is always
-  > visible.
+    > Superseded by [ADR 0008](0008-private-habits.md): suspend visibility became the synced
+    > Private flag, and its edit-mode toggle is no longer gated on this setting — it is always
+    > visible.
 
 ## Consequences
 
@@ -42,3 +42,23 @@ exposed on a Settings page. Default **off**.
   marker file to maintain.
 - Recovery of the stock image is in-app (toggle off) rather than SSH-only. Uninstalling still
   does not restore it; toggle off first or copy `suspended.png.bak` back manually.
+
+## Amendment: all three power-state images (2026-09-16)
+
+The existing opt-in now covers `suspended.png`, `poweroff.png`, and `batteryempty.png` together,
+as requested for the Quiet ledger redesign. The persisted `suspendImageEnabled` name is retained;
+this extends the feature without introducing a settings migration. Existing enabled installations
+prepare any missing backups before writing the new layout.
+
+All three originals must be backed up before replacing any image. Existing `.bak` files are
+retained across retries and enable transitions, preserving the original suspend backup on upgrade.
+This amends the old rule that copied the current suspend image on every enable.
+
+Disabling first checks all backups, restores all images, then persists off. A failed restore leaves
+the setting on for retry and pauses automatic rendering for that session; it never reports a
+successful disable. A batch's content signature includes the layout version and is saved only
+after every image write succeeds. The three outputs use the same captured snapshot and keep the
+current-month-only and private-habit constraints.
+
+The images are prepared while the app is running, with explicit state labels and a snapshot date.
+No code needs to run at battery depletion, and the image never promises a live date or charging status.

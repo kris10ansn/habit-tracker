@@ -6,11 +6,13 @@
 // app's own roster.json + month YYYY-MM.json (same on-disk shapes the QML stores
 // write). Build with ./build-host.sh (host) or ./build-device.sh (ARM); see
 // README. Run: ./build/suspend-writer --roster <roster.json> [--month <YYYY-MM.json>]
-//              [--today YYYY-MM-DD] [--out suspended.png] [--js-dir <dir>]
+//              [--today YYYY-MM-DD] [--out suspended.png] [--state sleep|off|empty] [--js-dir <dir>]
 
 #include <QGuiApplication>
 #include <QImage>
 #include <QPainter>
+#include <QPainterPath>
+#include <QVariantMap>
 #include <QFont>
 #include <QFontMetricsF>
 #include <QColor>
@@ -30,7 +32,7 @@
 #define JS_DIR "."
 #endif
 
-// The ~12-member subset of the Canvas 2D API that SuspendDraw.js touches,
+// The subset of the Canvas 2D API that SuspendDraw.js touches,
 // backed by a QPainter. save/restore/translate/rotate map 1:1 onto QPainter;
 // textAlign/textBaseline are honoured via QFontMetricsF.
 class Canvas2D : public QObject {
@@ -83,13 +85,35 @@ public:
 
         const QFontMetricsF fm(m_font);
         const double width = fm.horizontalAdvance(text);
-        const double startX = m_textAlign == "center" ? x - width / 2.0 : x;
+        double startX = x;
+        if (m_textAlign == "center") startX -= width / 2.0;
+        else if (m_textAlign == "right") startX -= width;
 
         const double baselineY = m_textBaseline == "top"
             ? y + fm.ascent()
             : y + (fm.ascent() - fm.descent()) / 2.0; // "middle"
 
         m_painter->drawText(QPointF(startX, baselineY), text);
+    }
+
+    Q_INVOKABLE QVariantMap measureText(const QString &text) {
+        return {{"width", QFontMetricsF(m_font).horizontalAdvance(text)}};
+    }
+    Q_INVOKABLE void scale(double x, double y) { m_painter->scale(x, y); }
+    Q_INVOKABLE void beginPath() { m_path = QPainterPath(); }
+    Q_INVOKABLE void moveTo(double x, double y) { m_path.moveTo(x, y); }
+    Q_INVOKABLE void lineTo(double x, double y) { m_path.lineTo(x, y); }
+    Q_INVOKABLE void quadraticCurveTo(double controlX, double controlY, double x, double y) {
+        m_path.quadTo(controlX, controlY, x, y);
+    }
+    Q_INVOKABLE void closePath() { m_path.closeSubpath(); }
+    Q_INVOKABLE void fill() { m_painter->fillPath(m_path, QColor(m_fillStyle)); }
+    Q_INVOKABLE void stroke() {
+        QPen pen{QColor(m_strokeStyle)};
+        pen.setWidthF(m_lineWidth);
+        m_painter->setPen(pen);
+        m_painter->setBrush(Qt::NoBrush);
+        m_painter->drawPath(m_path);
     }
 
     Q_INVOKABLE void save() { m_painter->save(); }
@@ -99,6 +123,7 @@ public:
 
 private:
     QPainter *m_painter;
+    QPainterPath m_path;
     QString m_fillStyle = "#000000";
     QString m_strokeStyle = "#000000";
     QString m_fontSpec;
@@ -186,6 +211,7 @@ int main(int argc, char *argv[]) {
     QGuiApplication app(argc, argv);
 
     QString rosterPath, monthPath, todayArg;
+    QString powerState = "sleep";
     QString outPath = "suspended.png";
     QString jsDir = QStringLiteral(JS_DIR);
     const QStringList args = app.arguments();
@@ -194,14 +220,15 @@ int main(int argc, char *argv[]) {
         if (arg == "--roster" && i + 1 < args.size()) rosterPath = args[++i];
         else if (arg == "--month" && i + 1 < args.size()) monthPath = args[++i];
         else if (arg == "--today" && i + 1 < args.size()) todayArg = args[++i];
+        else if (arg == "--state" && i + 1 < args.size()) powerState = args[++i];
         else if (arg == "--out" && i + 1 < args.size()) outPath = args[++i];
         else if (arg == "--js-dir" && i + 1 < args.size()) jsDir = args[++i];
         else { qWarning() << "unknown argument" << arg; return 2; }
     }
 
-    if (rosterPath.isEmpty()) {
+    if (rosterPath.isEmpty() || !QStringList{"sleep", "off", "empty"}.contains(powerState)) {
         qWarning() << "usage: suspend-writer --roster <roster.json> [--month <YYYY-MM.json>]"
-                   << "[--today YYYY-MM-DD] [--out suspended.png] [--js-dir <dir>]";
+                   << "[--today YYYY-MM-DD] [--out suspended.png] [--state sleep|off|empty] [--js-dir <dir>]";
         return 2;
     }
 
@@ -231,6 +258,7 @@ int main(int argc, char *argv[]) {
 
     QJSEngine engine;
     engine.globalObject().setProperty("ctx", engine.newQObject(&ctx));
+    engine.globalObject().setProperty("powerState", powerState);
     engine.globalObject().setProperty("rosterJson", rosterJson);
     engine.globalObject().setProperty("monthJson", monthJson);
     engine.globalObject().setProperty("todayYear", today.year());
@@ -302,7 +330,7 @@ int main(int argc, char *argv[]) {
 
     const QString script = qtShim + dateUtils + polarity + entries + habitsModel +
         suspendDraw + data + cfg +
-        "SuspendDraw.draw(ctx, 1404, 1872, habits, today, cfg);";
+        "SuspendDraw.draw(ctx, 1404, 1872, habits, today, cfg, powerState);";
 
     const QJSValue result = engine.evaluate(script);
     if (result.isError()) {
