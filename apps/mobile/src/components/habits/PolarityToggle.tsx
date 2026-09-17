@@ -93,11 +93,14 @@ export function PolarityToggle({ negative, onChange }: Props) {
 
     return (
         <Pressable
+            accessibilityRole="switch"
+            accessibilityLabel="Negative habit"
+            accessibilityState={{ checked: negative }}
             onPress={() => onChange?.(!negative)}
             className="flex-row self-start overflow-hidden rounded-full border border-line"
         >
             <Animated.View
-                className={`absolute h-full bg-accent`}
+                className="absolute h-full rounded-full bg-accent"
                 style={slideStyle}
             />
 

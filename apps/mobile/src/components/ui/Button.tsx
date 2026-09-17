@@ -16,10 +16,12 @@ type Props = {
 export function Button({ onPress, disabled, className, ...props }: Props) {
     return (
         <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ disabled: Boolean(disabled) }}
             onPress={onPress}
             disabled={disabled}
             className={twMerge(
-                "items-center rounded-field bg-accent py-4 active:opacity-80",
+                "min-h-[48px] items-center justify-center rounded-field bg-accent px-4 py-3.5 active:opacity-80",
                 disabled && "opacity-50",
                 className,
             )}

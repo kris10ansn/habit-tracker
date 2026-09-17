@@ -1,0 +1,29 @@
+appId: host.exp.exponent
+name: Sliding tab highlight
+---
+- extendedWaitUntil:
+      visible:
+          id: tab-index
+      timeout: 60000
+- tapOn:
+      id: tab-index
+- startRecording: tab-highlight
+- tapOn:
+      id: tab-month
+- assertVisible: Your habits across the month
+- tapOn:
+      id: tab-habits
+- assertVisible: Rename, reorder, set polarity, or add
+- tapOn:
+      id: tab-sync
+- assertVisible: Keep every device in step
+- tapOn:
+      id: tab-index
+- assertVisible: Read 20 min
+- tapOn:
+      id: tab-sync
+- tapOn:
+      id: tab-month
+- tapOn:
+      id: tab-index
+- stopRecording
