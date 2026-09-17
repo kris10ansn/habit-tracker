@@ -65,9 +65,57 @@ On the tablet, hold the middle button for ~3 seconds to open apploader, then tap
 - **Settings** (bottom-right, left of Quit) opens the settings page. Toggle suspend-image writing `On` / `Off`, toggle **Show private habits** `On` / `Off`, and/or type a **Sync server** address (e.g. `http://192.168.1.50:5137`; blank = offline). **Done** applies and returns to the grid — enabling suspend writing backs up your current suspend image and starts drawing the grid there; disabling restores the backup; a non-blank server triggers a sync. **Sync now** forces an immediate sync. **Back** returns without applying. If the server requires an account, **Connect** (under **Tablet pairing**, enabled once a server address is set) shows a QR code and its short manual code — scan either way from your phone to approve this device; **Disconnect** signs it out locally.
 - **Quit** (bottom-right) unloads the app and restores the normal xochitl UI.
 
-State is saved under `/home/root/xovi/exthome/appload/habit-tracker/data/` — `roster.json` plus a `YYYY-MM.json` per month. First launch seeds the roster from the defaults in `src/js/habits.js`. The `data/` folder must exist (the deploy creates it); if it's missing, saves surface a visible error instead of failing silently. To reset, delete the files and relaunch.
+State is saved under `/home/root/xovi/exthome/appload/habit-tracker/data/` — `roster.json` plus a `YYYY-MM.json` per month. First launch seeds the roster from the defaults in `src/js/habits.js`. The `data/` folder must exist (the deploy creates it); if it's missing, saves surface a visible error instead of failing silently. Back up before resetting or removing the app; deleting local files removes local history and does not delete the server's copy.
 
 A habit is stored as `{ id, name, polarity, isPrivate, createdAt, editedAt, deletedAt }` and a month as `{ "month": "2026-07", "entries": [ { habitId, date, outcome, editedAt, deletedAt }, … ] }` — the same row shape the sync server speaks, so the only thing translated on the way out is the X/O mark, which the server calls `Success` / `Failure`. Files written in an older shape are refused, not converted: see [Upgrading across a storage-format change](#upgrading-across-a-storage-format-change).
+
+## Connect to the sync service
+
+1. Set up the [backend](../backend/README.md#run-it) and sign in on mobile. The included backend
+   requires authentication for all habit and sync requests.
+2. In tablet **Settings**, enter the server's base URL (without `/api/sync`) and apply it with
+   **Done**. For local development, use the computer's LAN address, such as
+   `http://192.168.1.50:5137`; `localhost` would refer to the tablet itself.
+3. Reopen **Settings → Connect**, then use mobile's **Sync → Linked devices → Link a device**
+   to scan or enter the code and approve the requesting tablet.
+4. Keep Settings open until the tablet receives its token, then use **Sync now**. If the code
+   expires after five minutes, request a new one.
+
+Sync includes the roster and the month currently being viewed. Visit each older month you want to
+upload or retrieve; a single sync does not transfer the tablet's entire history. **Disconnect**
+removes this tablet's token locally. To revoke its server session, use mobile's **Linked devices**.
+
+## Backups, upgrades, and removal
+
+Close the app with **Quit** before backing up so pending saves reach disk. From this directory:
+
+```sh
+make backup     # copies data/ into .backup/<timestamp>/ on your computer
+```
+
+This includes the roster, month files, and sync bookkeeping. It does **not** include the app's
+`settings.json` (preferences and pairing token) or the system suspend-image backup. Keep the backup
+directory somewhere safe. Sync propagates deletions and is not a substitute for a backup.
+
+For a normal update, close the app and run `make deploy`; it replaces application assets while
+preserving data and settings. If the storage format changed, follow the
+[migration procedure](#upgrading-across-a-storage-format-change) first.
+
+Before uninstalling, turn suspend-image writing **Off** and apply with **Done** to restore the
+original sleep image, then quit and back up. `make remove` deletes the entire installed app
+directory, **including local data and settings**, and does not restore the sleep image or revoke
+the server session. Revoke that session separately from mobile if retiring the tablet.
+
+### Troubleshooting
+
+| Symptom                          | What to check                                                                                                                           |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| Sync fails offline               | Confirm the server URL, network connection, and backend availability. Local tracking still works.                                       |
+| Not connected                    | Pair again; the server may have revoked the token or lost its sessions.                                                                 |
+| A private habit disappeared      | Enable **Show private habits** in Settings and apply with **Done** before editing it.                                                   |
+| Sleep image looks stale          | Enable suspend-image writing and return to the current month. Other months do not update it. Wait for the saved status before sleeping. |
+| Storage file is refused          | Keep the original file and backup. Follow the relevant migration; deleting it to silence the error would discard data.                  |
+| Saves report a missing directory | Deployment creates `data/`. Check the installed path before continuing to enter data; unsaved changes remain only in memory.            |
 
 ## How it's built
 
@@ -104,7 +152,7 @@ This app is the QML scene. It's packaged as a Qt binary resource (`.rcc`) plus a
 
 ## Building from source
 
-You need Qt 5's `rcc` (Qt 6's works too for `--binary`, but the device runtime is Qt 5.15 — stay on 5 to avoid surprises):
+You need Qt 5's `rcc` to match the app's Qt 5.15 runtime:
 
 - Arch/Manjaro: `pacman -S qt5-base` (binary is `rcc-qt5`)
 - Debian/Ubuntu: `apt install qtbase5-dev-tools`
