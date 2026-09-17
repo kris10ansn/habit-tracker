@@ -439,6 +439,7 @@ Rectangle {
             pairingStatus: root.screenshotMode ? root.screenshotPairingStatus : pairingStore.status
             pairingCode: root.screenshotMode ? root.screenshotPairingCode : pairingStore.code
             pairingErrorMessage: pairingStore.errorMessage
+            onDeveloperRequested: landscape.currentView = "developer"
             onApplyRequested: root.applySuspendSetting(value)
             onShowPrivateHabitsApplied: settingsStore.setShowPrivateHabits(value)
             onServerUrlApplied: {
@@ -449,6 +450,24 @@ Rectangle {
             onConnectRequested: pairingStore.requestCode()
             onDisconnectRequested: pairingStore.disconnect()
             onBackRequested: landscape.currentView = "grid"
+        }
+
+        Loader {
+            id: developerTools
+            anchors.fill: parent
+            active: BuildProfile.isTest && landscape.currentView === "developer"
+            visible: landscape.currentView === "developer"
+            source: "testing/DeveloperTools.qml"
+            onLoaded: {
+                item.habits = Qt.binding(() => habitsStore.habits);
+                item.canRender = Qt.binding(() => !root.screenshotMode && landscape.isCurrentMonth && habitsStore.isLoaded && !habitsStore.hasUnreadableData);
+                item.dataDirectory = Qt.binding(() => root.dataDir);
+            }
+        }
+
+        Connections {
+            target: developerTools.item
+            function onBackRequested() { landscape.currentView = "settings"; }
         }
 
         App.ConfirmDialog {

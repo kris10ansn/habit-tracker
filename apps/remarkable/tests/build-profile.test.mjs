@@ -36,14 +36,19 @@ function withProfile(profile, run) {
         const manifest = JSON.parse(
             readFileSync(path.join(directory, "manifest.json"), "utf8"),
         );
-        run(configuration, manifest);
+        const resources = readFileSync(
+            path.join(directory, "application.qrc"),
+            "utf8",
+        );
+        run(configuration, manifest, resources);
     } finally {
         rmSync(directory, { recursive: true, force: true });
     }
 }
 
 test("test install and every persisted file belong to the test app", () => {
-    withProfile("test", (profile, manifest) => {
+    withProfile("test", (profile, manifest, resources) => {
+        assert.match(resources, /src\/testing\/DeveloperTools.qml/);
         assert.equal(manifest.id, "habit-tracker-test");
         assert.equal(manifest.name, "Habit Tracker TEST");
         assert.equal(profile.appId, manifest.id);
@@ -116,7 +121,8 @@ test("test writes reject production, system, traversal, and URL-escaped paths", 
 });
 
 test("stable paths and launcher identity remain compatible", () => {
-    withProfile("stable", (profile, manifest) => {
+    withProfile("stable", (profile, manifest, resources) => {
+        assert.doesNotMatch(resources, /src\/testing\//);
         assert.equal(profile.isTest, false);
         assert.equal(manifest.id, "habit-tracker");
         assert.equal(
@@ -128,5 +134,51 @@ test("stable paths and launcher identity remain compatible", () => {
             "/usr/share/remarkable/suspended.png",
         );
         assert.equal(profile.canWrite("/tmp/host-test.json"), true);
+    });
+});
+
+test("binary writes reject an unchanged same-size file and verify the actual bytes", () => {
+    withProfile("test", (profile) => {
+        const destination = "/usr/share/remarkable/suspended.png";
+        const requested = new Uint8Array([1, 2, 3]).buffer;
+        let stored = new Uint8Array([3, 2, 1]).buffer;
+        let acceptWrite = false;
+        const writes = [];
+        const context = vm.createContext({
+            BuildProfile: profile,
+            console: { warn() {} },
+            XMLHttpRequest: class {
+                DONE = 4;
+                status = 0;
+                open(method, url) {
+                    this.method = method;
+                    this.url = url;
+                }
+                send(buffer) {
+                    assert.equal(this.url, `file://${destination}`);
+                    if (this.method === "GET") {
+                        this.response = stored;
+                        return;
+                    }
+                    writes.push(this.url);
+                    if (acceptWrite) stored = buffer;
+                    this.readyState = this.DONE;
+                    this.onreadystatechange();
+                }
+            },
+        });
+        const storage = readFileSync(
+            path.join(appDirectory, "src/js/BinaryFiles.js"),
+            "utf8",
+        );
+        vm.runInContext(storage, context);
+        const errors = [];
+        context.write(destination, requested, (error) => errors.push(error));
+        assert.match(errors[0], /binary write failed/);
+        acceptWrite = true;
+        context.write(destination, requested, (error) => errors.push(error));
+        assert.equal(errors[1], null);
+        assert.equal(writes.length, 2);
+        assert.equal(profile.canWrite(destination), false);
     });
 });

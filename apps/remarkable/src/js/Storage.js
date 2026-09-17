@@ -1,4 +1,5 @@
 .import "BuildProfile.js" as BuildProfile
+.import "BinaryFiles.js" as BinaryFiles
 
 const MISSING = "missing";
 const CORRUPT = "corrupt";
@@ -102,53 +103,14 @@ function isCorrupt(result) {
 }
 
 function readBinary(path) {
-    try {
-        const xhr = new XMLHttpRequest();
-
-        xhr.open("GET", `file://${path}`, false);
-        xhr.responseType = "arraybuffer";
-        xhr.send();
-
-        // An unreadable file answers with a zero-length buffer rather than nothing, so length is
-        // the real test — otherwise a missing suspend image copies as an empty one.
-        const empty = !xhr.response || xhr.response.byteLength === 0;
-
-        return ok(xhr.status) && !empty ? xhr.response : null;
-    } catch (e) {
-        console.warn("Storage: could not read binary", path, "-", e);
-        return null;
-    }
+    return BinaryFiles.read(path);
 }
 
-// Verified by size rather than by content: the failure mode is nothing being written at all, and
-// comparing a megabyte of suspend image byte by byte on the device is not worth the certainty.
 function writeBinary(path, buffer, onDone) {
     if (!BuildProfile.canWrite(path)) {
         reportWrite(onDone, `Test build: refusing write outside its app directory: ${path}`);
         return;
     }
 
-    const xhr = new XMLHttpRequest();
-    const expected = buffer ? buffer.byteLength : 0;
-
-    xhr.onreadystatechange = () => {
-        if (xhr.readyState !== xhr.DONE) return;
-
-        const written = readBinary(path);
-        const landed = !!written && written.byteLength === expected;
-        reportWrite(
-            onDone,
-            landed ? null : `Storage: binary write failed for ${path}`,
-        );
-    };
-
-    try {
-        xhr.open("PUT", `file://${path}`);
-        xhr.send(buffer);
-    } catch (error) {
-        reportWrite(
-            onDone,
-            `Storage: binary write failed for ${path} - ${error}`,
-        );
-    }
+    BinaryFiles.write(path, buffer, error => reportWrite(onDone, error));
 }

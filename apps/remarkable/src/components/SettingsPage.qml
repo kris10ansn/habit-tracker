@@ -24,6 +24,7 @@ Item {
     signal syncNowRequested
     signal connectRequested
     signal disconnectRequested
+    signal developerRequested
     signal backRequested
 
     property bool staged: false
@@ -281,6 +282,18 @@ Item {
             opacity: App.Theme.fadedOpacity
             wrapMode: Text.WordWrap
         }
+    }
+
+    AppButton {
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: App.Theme.margin
+        width: 320
+        height: App.Theme.quitButtonHeight
+        visible: BuildProfile.isTest
+        disabled: settingsPage.dirty
+        text: "Developer options"
+        onClicked: settingsPage.developerRequested()
     }
 
     AppButton {

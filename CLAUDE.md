@@ -9,6 +9,13 @@ Keep it lean: this is the cross-cutting layer only. Anything specific to one app
 app's `CLAUDE.md`, not here. Prefer tightening existing sections over appending; remove obsolete
 guidance.
 
+## Branch naming
+
+When creating a branch, use `<type>/<short-kebab-case-description>`, choosing the type from the
+purpose of the change: `feat`, `fix`, `refactor`, `docs`, `test`, `perf`, `chore`, `ci`, or `build`.
+For example, `feat/habit-reminders` or `fix/sync-conflicts`. Use an exact branch name supplied by
+the user when provided.
+
 ## Pull request attribution
 
 When an AI agent writes and commits changes included in a pull request, add a `Co-authored-by`

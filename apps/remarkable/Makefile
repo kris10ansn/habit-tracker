@@ -37,7 +37,6 @@ SCREENSHOT_DIR := tools/readme-screenshots
 
 build: inject-pragma
 	node scripts/stage-profile.mjs $(PROFILE) $(BUILD_DIR)
-	cp application.qrc $(BUILD_DIR)/
 	cd $(BUILD_DIR) && $(RCC) --binary -o resources.rcc application.qrc
 	cp icon.png $(BUILD_DIR)/
 
@@ -80,7 +79,7 @@ test:
 	@command -v $(QMLTESTRUNNER) >/dev/null 2>&1 || { echo "$(QMLTESTRUNNER) not found (install qt5-declarative)"; exit 1; }
 	rm -rf $(TEST_TMP)
 	mkdir -p $(TEST_TMP)/habits $(TEST_TMP)/habits-seed
-	QT_QPA_PLATFORM=offscreen QML_XHR_ALLOW_FILE_READ=1 QML_XHR_ALLOW_FILE_WRITE=1 \
+	QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software QML_XHR_ALLOW_FILE_READ=1 QML_XHR_ALLOW_FILE_WRITE=1 \
 		$(QMLTESTRUNNER) -input $(TEST_DIR) -import $(QML_IMPORT_PATH)
 
 # The data/ subdir must exist before first launch: QML/XHR cannot create it, so

@@ -30,3 +30,11 @@ writeFileSync(
     path.join(buildDirectory, "manifest.json"),
     JSON.stringify(manifest, null, 4) + "\n",
 );
+
+const resources = readFileSync("application.qrc", "utf8");
+writeFileSync(
+    path.join(buildDirectory, "application.qrc"),
+    profile === "test"
+        ? resources
+        : resources.replace(/^.*<file>src\/testing\/.*\n/gm, ""),
+);

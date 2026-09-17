@@ -125,12 +125,39 @@ server/token settings. Deploying copies only the app bundle, manifest, and icon;
 production data or credentials, and later deploys preserve existing test data. There is one shared
 test slot on the tablet, so deploying another worktree replaces that test version.
 
-The grid and Settings display **TEST**. Test builds refuse file writes outside their own app
-directory, including production data paths. The suspend setting saves `suspend-preview.png` inside
-the test install instead of changing the device's suspend image or its backup. The separate native
-device suspend-writer is unavailable in the test profile. The write check protects the app's write
-paths; both apps still run inside xochitl, so this is not an operating-system sandbox. Keep the test
+The grid and Settings display **TEST**. Ordinary test writes stay inside the test app directory,
+including when **Save suspend preview** is enabled: automatic renders, edits, and quitting only
+update `suspend-preview.png`. Test builds refuse writes to production habit data, settings, and the
+stable suspend-image backup. The separate native device suspend-writer is unavailable in the test
+profile. Both apps run inside xochitl; this is not an operating-system sandbox. Keep the test
 directory as a normal directory, without symlinks to production files.
+
+#### Developer options (test builds only)
+
+From the current month's grid, open **Settings → Developer options**. Apply or discard staged
+settings before opening it. The page shows the test data, preview, and backup paths and offers:
+
+- **Render preview** regenerates `developer-preview.png` once, even if nothing changed. It leaves the
+  device's suspend image alone and works with automatic previews switched off.
+- **Write suspend image once** renders the current month's test habits and writes the device's
+  actual suspend image for this one button press. It never enables automatic device-image writes.
+  The first write saves and verifies the existing image as `device-suspend-original.png` inside
+  the test install before changing the device image. Later writes and app restarts preserve it.
+- **Restore original image** copies that verified original back, even when viewing another month
+  or when habit data cannot be read. Restore before removing the test install, which holds the
+  backup. The original is the image captured before the **first** test write, not necessarily the
+  stock reMarkable image or the latest stable habit grid.
+
+The developer UI, controller, and their own preview renderer live under `src/testing/`, behind
+`DeveloperTools.qml`. The app passes only the habit model, render eligibility, and data directory;
+the module handles its actions internally. Stable bundles omit every `src/testing/` resource.
+The ordinary suspend renderer exposes a reusable one-shot render operation, and binary file I/O is
+shared without giving ordinary test storage permission to write outside its app directory.
+
+Render actions require readable, loaded data for the current month. Private habits remain excluded.
+Failures are displayed on the developer page; a failed render or backup never proceeds to a device
+write. Close the stable app during suspend-image testing, since it can otherwise replace the shared
+device image with its own grid. The test app never changes the stable app's backup or signature.
 
 **Sync requires separate test data on both clients.** For pairing tests, use a separate backend
 account (or a separate backend), and a phone installation with separate local storage. A real
@@ -156,7 +183,7 @@ place: incompatible or corrupt habit files block saves and sync.
 
 ### Build tools
 
-You need Qt 5's `rcc` (Qt 6's works too for `--binary`, but the device runtime is Qt 5.15 — stay on 5 to avoid surprises):
+You need Node.js (to stage the build profile) and Qt 5's `rcc` (Qt 6's works too for `--binary`, but the device runtime is Qt 5.15 — stay on 5 to avoid surprises):
 
 - Arch/Manjaro: `pacman -S qt5-base` (binary is `rcc-qt5`)
 - Debian/Ubuntu: `apt install qtbase5-dev-tools`
