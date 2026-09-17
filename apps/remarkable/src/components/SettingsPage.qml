@@ -1,5 +1,6 @@
 import QtQuick 2.15
 import ".." as App
+import "../js/BuildProfile.js" as BuildProfile
 
 Item {
     id: settingsPage
@@ -23,6 +24,7 @@ Item {
     signal syncNowRequested
     signal connectRequested
     signal disconnectRequested
+    signal developerRequested
     signal backRequested
 
     property bool staged: false
@@ -77,7 +79,7 @@ Item {
         spacing: App.Theme.rowSpacing
 
         Text {
-            text: "Settings"
+            text: BuildProfile.isTest ? "Settings · TEST · use a test account for pairing" : "Settings"
             font.pixelSize: App.Theme.titleFont
             font.bold: true
             color: App.Theme.fg
@@ -88,7 +90,7 @@ Item {
 
             Text {
                 anchors.verticalCenter: parent.verticalCenter
-                text: "Write to suspend image"
+                text: BuildProfile.isTest ? "Save suspend preview (app folder only)" : "Write to suspend image"
                 font.pixelSize: App.Theme.labelFont
                 color: App.Theme.fg
             }
@@ -280,6 +282,18 @@ Item {
             opacity: App.Theme.fadedOpacity
             wrapMode: Text.WordWrap
         }
+    }
+
+    AppButton {
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: parent.bottom
+        anchors.bottomMargin: App.Theme.margin
+        width: 320
+        height: App.Theme.quitButtonHeight
+        visible: BuildProfile.isTest
+        disabled: settingsPage.dirty
+        text: "Developer options"
+        onClicked: settingsPage.developerRequested()
     }
 
     AppButton {

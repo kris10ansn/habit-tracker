@@ -3,13 +3,14 @@ import ".." as App
 import "../js/SuspendRender.js" as SuspendRender
 import "../js/SuspendDraw.js" as SuspendDraw
 import "../js/HabitsModel.js" as HabitsModel
+import "../js/BuildProfile.js" as BuildProfile
 
 Canvas {
     id: canvas
 
-    readonly property string targetPath: "/usr/share/remarkable/suspended.png"
-    readonly property string backupPath: "/usr/share/remarkable/suspended.png.bak"
-    readonly property string signaturePath: "/home/root/xovi/exthome/appload/habit-tracker/.sleep-sig"
+    property string targetPath: BuildProfile.suspendPath
+    readonly property string backupPath: BuildProfile.suspendBackupPath
+    property string signaturePath: BuildProfile.signaturePath
 
     property var habits: []
     property date today: new Date()
@@ -18,6 +19,7 @@ Canvas {
     property string phase: ""
     property int remainingSeconds: 0
     property string lastRenderedSignature: ""
+    property var _onRenderDone: null
 
     readonly property var drawConfig: ({
             margin: App.Theme.margin,
@@ -87,6 +89,13 @@ Canvas {
         if (!_beginSaving())
             return;
         _beginAsyncRender();
+    }
+
+    function renderOnce(onDone) {
+        canvas.cancelPending();
+        canvas._onRenderDone = onDone;
+        canvas.lastRenderedSignature = "";
+        canvas.renderAsync();
     }
 
     function renderSync() {
@@ -163,9 +172,13 @@ Canvas {
     }
 
     function _save() {
-        const ok = canvas.save(canvas.targetPath);
+        const ok = BuildProfile.canWrite(canvas.targetPath) && canvas.save(canvas.targetPath);
         canvas.lastRenderFailed = !ok;
         canvas.phase = ok ? "saved" : "";
+        const onDone = canvas._onRenderDone;
+        canvas._onRenderDone = null;
+        if (onDone)
+            onDone(ok);
         if (!ok) {
             console.warn("SuspendCanvas: save failed for", canvas.targetPath);
             return;
