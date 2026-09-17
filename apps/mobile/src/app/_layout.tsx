@@ -30,6 +30,7 @@ export default function RootLayout() {
             <StatusBar barStyle={"dark-content"} />
             <View className="flex-1 bg-surface-2">
                 <Tabs
+                    backBehavior="history"
                     // Safe-area clearance belongs outside the capsule; the surrounding
                     // area stays transparent so screen content can scroll behind it.
                     safeAreaInsets={{ bottom: 0, left: 0, right: 0 }}
