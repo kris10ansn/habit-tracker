@@ -20,6 +20,7 @@ export default function RootLayout() {
         <AppProviders>
             <StatusBar barStyle={"dark-content"} />
             <Tabs
+                backBehavior="history"
                 screenOptions={{
                     headerShown: false,
                     tabBarActiveTintColor: colors.accent,
