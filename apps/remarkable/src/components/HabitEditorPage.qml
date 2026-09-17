@@ -1,5 +1,6 @@
 import QtQuick 2.15
 import ".." as App
+import "../js/HabitEdits.js" as HabitEdits
 import "../js/Polarity.js" as Polarity
 import "../js/Scroll.js" as Scroll
 
@@ -215,7 +216,7 @@ Item {
                                     width: 80
                                     height: 72
                                     text: "↑"
-                                    disabled: editorRow.rowIndex === 0
+                                    disabled: HabitEdits.visibleNeighborIndex(page.habits, editorRow.rowIndex, -1) < 0
                                     onClicked: page.moveRequested(editorRow.rowIndex, -1)
                                 }
 
@@ -223,7 +224,7 @@ Item {
                                     width: 80
                                     height: 72
                                     text: "↓"
-                                    disabled: editorRow.rowIndex === page.habits.count - 1
+                                    disabled: HabitEdits.visibleNeighborIndex(page.habits, editorRow.rowIndex, 1) < 0
                                     onClicked: page.moveRequested(editorRow.rowIndex, 1)
                                 }
 

@@ -32,6 +32,36 @@ TestCase {
         session.finish();
     }
 
+    function test_reorderButtonsFollowVisibleNeighbors_data() {
+        return [
+            { tag: "hidden-before", privateIndex: 0, habitId: "b", direction: "up", disabled: true },
+            { tag: "hidden-after", privateIndex: 1, habitId: "a", direction: "down", disabled: true },
+            { tag: "visible-before", privateIndex: -1, habitId: "b", direction: "up", disabled: false },
+            { tag: "visible-after", privateIndex: -1, habitId: "a", direction: "down", disabled: false }
+        ];
+    }
+
+    function test_reorderButtonsFollowVisibleNeighbors(data) {
+        source.clear();
+        ["a", "b"].forEach((id, index) => source.append({
+            id: id, name: id, polarity: "Positive", isPrivate: index === data.privateIndex
+        }));
+        session.begin(source, false);
+        wait(0);
+        const input = findChild(editor, "habit-name-" + data.habitId);
+        const row = input.parent.parent;
+        const actions = row.children[row.children.length - 1];
+        const button = actions.children[data.direction === "up" ? 0 : 1];
+        compare(button.disabled, data.disabled);
+
+        if (!data.disabled) {
+            button.clicked();
+            compare(session.habits.get(0).id, "b");
+            compare(button.disabled, true);
+        }
+        session.finish();
+    }
+
     function test_settingsCommitKeepsAllStagedChangesWhenStoresResync() {
         settings.suspendImageEnabled = false;
         settings.showPrivateHabits = false;
@@ -67,6 +97,7 @@ TestCase {
         anchors.fill: parent
         habits: session.habits
         onNameEdited: session.setName(index, name)
+        onMoveRequested: session.move(index, direction)
         onPrivateToggled: session.togglePrivate(index)
         onPolarityToggled: session.togglePolarity(index)
     }

@@ -1,5 +1,14 @@
 const FIELDS = ["name", "polarity", "isPrivate"];
 
+function visibleNeighborIndex(model, index, direction) {
+    let target = index + direction;
+    while (target >= 0 && target < model.count && !model.get(target).editVisible) {
+        target += direction;
+    }
+
+    return target >= 0 && target < model.count ? target : -1;
+}
+
 function snapshot(model) {
     const rows = [];
     for (let index = 0; index < model.count; index++) {

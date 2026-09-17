@@ -67,9 +67,8 @@ QtObject {
     }
 
     function move(index, direction) {
-        let target = index + direction;
-        while (target >= 0 && target < session.habits.count && !session.habits.get(target).editVisible)target += direction
-        if (target >= 0 && target < session.habits.count)
+        const target = HabitEdits.visibleNeighborIndex(session.habits, index, direction);
+        if (target >= 0)
             session.habits.move(index, target, 1);
 
     }
