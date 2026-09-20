@@ -102,6 +102,20 @@ expect_exit "refusesAPreMigrationMonth" 2 "$status"
 status=$(render stale-private.png --roster "$FIXTURES/roster-hide-from-sleep.json")
 expect_exit "refusesARosterStillSpellingHideFromSleep" 2 "$status"
 
+# --- every power state keeps the same grid but changes its state footer -------------------------
+
+for state in off empty; do
+    status=$(render "$state.png" --state "$state" --roster "$FIXTURES/roster.json" --month "$FIXTURES/2026-08.json")
+    expect_exit "renders-$state" 0 "$status"
+    if cmp -s "$TMP/valid.png" "$TMP/$state.png"; then
+        fail "distinct-$state" "state image is identical to sleep"
+    else
+        pass "distinct-$state"
+    fi
+done
+status=$(render invalid-state.png --state charging --roster "$FIXTURES/roster.json")
+expect_exit "rejectsAnUnknownPowerState" 2 "$status"
+
 # --- report ------------------------------------------------------------------------------------------
 
 if [ "$failures" -ne 0 ]; then
@@ -109,4 +123,4 @@ if [ "$failures" -ne 0 ]; then
     exit 1
 fi
 
-echo "Totals: 9 passed, 0 failed"
+echo "Totals: 14 passed, 0 failed"

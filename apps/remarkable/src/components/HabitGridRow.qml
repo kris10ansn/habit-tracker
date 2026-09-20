@@ -20,6 +20,7 @@ Row {
 
     property real boxSize: App.Theme.boxSize
     property real boxSpacing: App.Theme.boxSpacing
+    property real rowHeight: App.Theme.boxSize
 
     readonly property bool isNegative: Polarity.isNegative(gridRow.polarity)
 
@@ -33,9 +34,10 @@ Row {
         Rectangle {
             id: box
             width: gridRow.boxSize
-            height: gridRow.boxSize
-            color: App.Theme.bg
-            border.color: App.Theme.fg
+            height: gridRow.rowHeight
+            color: box.day === gridRow.highlightDay ? "#e7e7e7" : App.Theme.bg
+            radius: 6
+            border.color: box.day === gridRow.highlightDay ? "#666666" : "#999999"
             border.width: App.Theme.borderWidth
 
             readonly property int day: index + 1
@@ -46,23 +48,11 @@ Row {
             readonly property string mark: Entries.markFor(outcome, showsImplicitX)
             readonly property bool faded: mark === "O" || isFuture
 
-            Rectangle {
-                anchors.fill: parent
-                anchors.leftMargin: -gridRow.boxSpacing / 2
-                anchors.rightMargin: -gridRow.boxSpacing / 2
-                anchors.topMargin: -App.Theme.rowSpacing / 2
-                anchors.bottomMargin: -App.Theme.rowSpacing / 2
-                color: box.day === gridRow.highlightDay ? App.Theme.fg : "transparent"
-                z: -1
-            }
-
             Text {
                 anchors.centerIn: parent
                 text: box.mark
-                font.pixelSize: gridRow.boxSize * 0.7
-                font.bold: true
-                color: App.Theme.fg
-                opacity: box.faded ? App.Theme.fadedOpacity : 1.0
+                font.pixelSize: 48
+                color: box.faded ? App.Theme.muted : App.Theme.fg
             }
 
             MouseArea {

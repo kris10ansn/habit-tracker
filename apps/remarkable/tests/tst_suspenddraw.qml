@@ -91,4 +91,30 @@ TestCase {
 
         verify(signature.length > 0);
     }
+    function test_allStatesPreservePrivateFilteringAndXOnlyProjection() {
+        ["sleep", "off", "empty"].forEach(state => {
+            const labels = [];
+            let strokes = 0;
+            const context = {
+                fillRect: () => {}, strokeRect: () => {}, save: () => {}, restore: () => {},
+                translate: () => {}, rotate: () => {}, scale: () => {}, beginPath: () => {},
+                quadraticCurveTo: () => {}, closePath: () => {}, fill: () => {},
+                moveTo: () => {}, lineTo: () => {}, stroke: () => { strokes++; },
+                measureText: value => ({ width: value.length * 16 }),
+                fillText: value => labels.push(value)
+            };
+            const rows = [habit({ name: "Public", entries: { "2026-08-01": "x", "2026-08-02": "o" } }), habit({ name: "Secret", isPrivate: true })];
+            SuspendDraw.draw(context, 1404, 1872, rows, today, { fg: "#000000", bg: "#ffffff" }, state);
+            verify(labels.includes("Public"));
+            verify(!labels.includes("Secret"));
+            verify(!labels.includes("O"));
+            verify(labels.includes("Snapshot · 9 August 2026"));
+            verify(labels.includes({ sleep: "Sleeping", off: "Powered off", empty: "Battery empty" }[state]));
+            const withoutMarks = strokes;
+            strokes = 0;
+            SuspendDraw.draw(context, 1404, 1872, [habit({ name: "Public" })], today, { fg: "#000000", bg: "#ffffff" }, state);
+            compare(withoutMarks - strokes, 2);
+        });
+    }
+
 }

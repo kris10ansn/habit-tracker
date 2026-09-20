@@ -1,71 +1,72 @@
 import QtQuick 2.15
 import ".." as App
+import "../js/Polarity.js" as Polarity
 
 Item {
-    id: habitsColumn
+    id: labels
 
-    property var habits: []
-    property bool editing: false
+    property var habits
     property bool showPrivateHabits: false
-    property int rowWidth: App.Theme.habitsWidth
-    property int scrollY: 0
-    property real viewportHeight: 0
+    property real rowHeight: App.Theme.boxSize
+    property real rowGap: App.Theme.rowSpacing
+    property real scrollY: 0
 
-    signal removeRequested(int index)
-    signal polarityToggled(int index)
-    signal privateToggled(int index)
-    signal nameEdited(int index, string newName)
-    signal moveRequested(int from, int to)
-    signal addRequested(string name, string polarity)
-
-    width: rowWidth
-    height: viewportHeight
     clip: true
 
-    Item {
-        id: header
-        width: habitsColumn.rowWidth
+    Text {
+        text: "Habit"
+        color: App.Theme.muted
+        font.pixelSize: App.Theme.subtitleFont
         height: App.Theme.dayLabelHeight
+        verticalAlignment: Text.AlignVCenter
     }
 
     Item {
-        id: bodyViewport
-        y: header.height + App.Theme.rowSpacing
-        width: habitsColumn.rowWidth
-        height: habitsColumn.height - y
+        y: App.Theme.dayLabelHeight
+        width: parent.width
+        height: parent.height - y
         clip: true
 
         Column {
-            id: body
-            y: -habitsColumn.scrollY
-            spacing: App.Theme.rowSpacing
+            y: -labels.scrollY
+            width: parent.width
+            spacing: labels.rowGap
 
             Repeater {
-                model: habitsColumn.habits
+                model: labels.habits
 
-                HabitRow {
-                    width: habitsColumn.rowWidth
-                    visible: habitsColumn.showPrivateHabits || !model.isPrivate
-                    name: model.name
-                    polarity: model.polarity
-                    isPrivate: !!model.isPrivate
-                    editing: habitsColumn.editing
-                    canMoveUp: index > 0
-                    canMoveDown: index < habitsColumn.habits.count - 1
-                    onRemoveClicked: habitsColumn.removeRequested(index)
-                    onPolarityToggled: habitsColumn.polarityToggled(index)
-                    onPrivateToggled: habitsColumn.privateToggled(index)
-                    onNameEdited: habitsColumn.nameEdited(index, newName)
-                    onMoveUpClicked: habitsColumn.moveRequested(index, index - 1)
-                    onMoveDownClicked: habitsColumn.moveRequested(index, index + 1)
+                Item {
+                    width: labels.width
+                    height: labels.rowHeight
+                    visible: labels.showPrivateHabits || !model.isPrivate
+
+                    Text {
+                        id: suffix
+
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: (Polarity.isNegative(model.polarity) ? " (−)" : "") + (model.isPrivate ? " P" : "")
+                        font.pixelSize: 26
+                        color: App.Theme.muted
+                    }
+
+                    Text {
+                        anchors.left: parent.left
+                        anchors.right: suffix.left
+                        anchors.rightMargin: 8
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: model.name
+                        elide: Text.ElideRight
+                        font.pixelSize: App.Theme.labelFont
+                        color: App.Theme.fg
+                    }
+
                 }
+
             }
 
-            HabitAddRow {
-                width: habitsColumn.rowWidth
-                visible: habitsColumn.editing
-                onAddRequested: habitsColumn.addRequested(name, polarity)
-            }
         }
+
     }
+
 }

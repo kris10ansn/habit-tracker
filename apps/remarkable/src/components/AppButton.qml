@@ -8,11 +8,13 @@ Rectangle {
     property int fontSize: App.Theme.buttonFont
     property bool disabled: false
     property bool active: false
+    property bool quiet: false
     signal clicked
 
     color: active ? App.Theme.fg : App.Theme.bg
-    border.color: App.Theme.fg
-    border.width: App.Theme.buttonBorderWidth
+    border.color: active ? App.Theme.fg : "#888888"
+    border.width: quiet ? 0 : App.Theme.buttonBorderWidth
+    radius: 8
     opacity: disabled ? App.Theme.fadedOpacity : 1.0
 
     Text {

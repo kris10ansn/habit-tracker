@@ -20,6 +20,16 @@ export const scenarios = Object.freeze({
             view: "settings",
             pairing: "waiting",
         }),
+        poweroff: Object.freeze({
+            output: "remarkable-poweroff.png",
+            renderer: "suspend",
+            state: "off",
+        }),
+        batteryempty: Object.freeze({
+            output: "remarkable-batteryempty.png",
+            renderer: "suspend",
+            state: "empty",
+        }),
         suspend: Object.freeze({
             output: "remarkable-suspend.png",
             renderer: "suspend",

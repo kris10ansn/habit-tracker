@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { cpSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { cpSync, existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { test } from "node:test";
@@ -40,7 +40,7 @@ function withProfile(profile, run) {
             path.join(directory, "application.qrc"),
             "utf8",
         );
-        run(configuration, manifest, resources);
+        run(configuration, manifest, resources, directory);
     } finally {
         rmSync(directory, { recursive: true, force: true });
     }
@@ -135,6 +135,42 @@ test("stable paths and launcher identity remain compatible", () => {
         );
         assert.equal(profile.canWrite("/tmp/host-test.json"), true);
     });
+});
+
+test("staged Qt renderers keep test previews local and stable power-state targets intact", () => {
+    for (const profile of ["stable", "test"]) {
+        withProfile(
+            profile,
+            (_configuration, _manifest, _resources, directory) => {
+                const testFile = path.join(directory, "tst_profile.qml");
+                cpSync(
+                    path.join(
+                        appDirectory,
+                        "tests/fixtures/profile-rendering.qml",
+                    ),
+                    testFile,
+                );
+                execFileSync(
+                    process.env.QMLTESTRUNNER || "qmltestrunner-qt5",
+                    ["-input", testFile],
+                    {
+                        encoding: "utf8",
+                        env: {
+                            ...process.env,
+                            QT_QPA_PLATFORM: "offscreen",
+                            QT_QUICK_BACKEND: "software",
+                            QML_XHR_ALLOW_FILE_READ: "1",
+                            QML_XHR_ALLOW_FILE_WRITE: "1",
+                        },
+                    },
+                );
+                assert.equal(
+                    existsSync(path.join(directory, "forbidden-preview.png")),
+                    false,
+                );
+            },
+        );
+    }
 });
 
 test("binary writes reject an unchanged same-size file and verify the actual bytes", () => {
