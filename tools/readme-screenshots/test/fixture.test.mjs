@@ -81,7 +81,7 @@ test("validator rejects duplicate entry identities", async () => {
 });
 
 test("scenario selection is explicit", () => {
-    assert.equal(Object.keys(scenarios.remarkable).length, 5);
+    assert.equal(Object.keys(scenarios.remarkable).length, 7);
     assert.equal(Object.keys(scenarios.android).length, 6);
     assert.deepEqual(selectScenarios("android", "devices")[0][0], "devices");
     assert.equal("route" in scenarios.android.devices, false);

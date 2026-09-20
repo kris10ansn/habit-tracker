@@ -16,6 +16,7 @@ Row {
         input.focus = false;
         Qt.inputMethod.hide();
         addRow.polarity = Polarity.POSITIVE;
+        input.text = "";
     }
 
     function submit() {
@@ -34,6 +35,7 @@ Row {
         color: App.Theme.bg
         border.color: App.Theme.fg
         border.width: App.Theme.borderWidth
+        radius: 6
 
         TextInput {
             id: input
@@ -50,8 +52,7 @@ Row {
         Text {
             anchors.fill: input
             text: "New habit…"
-            color: App.Theme.fg
-            opacity: App.Theme.fadedOpacity
+            color: App.Theme.muted
             font.pixelSize: input.font.pixelSize
             verticalAlignment: Text.AlignVCenter
             visible: input.text.length === 0 && !input.activeFocus

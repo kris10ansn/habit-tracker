@@ -6,6 +6,7 @@ import "js/DateUtils.js" as DateUtils
 import "js/Entries.js" as Entries
 import "js/Polarity.js" as Polarity
 import "js/Ids.js" as Ids
+import "js/HabitEdits.js" as HabitEdits
 
 // Facade over month-partitioned persistence. Keeps the public store API
 // (habits, isLoaded, the mutators) but splits storage across two files: a
@@ -325,6 +326,42 @@ QtObject {
 
         habits.setProperty(index, "entriesByDate", Entries.withRow(entriesByDate, row));
         _month.scheduleSave();
+    }
+
+    function _indexOfId(id) {
+        for (let index = 0; index < habits.count; index++) {
+            if (habits.get(index).id === id) return index;
+        }
+        return -1;
+    }
+
+    // Only fields changed in the editor are applied to the latest live rows. A sync arriving
+    // during editing must not lose its entries or revive a remotely deleted habit on Done.
+    function applyHabitEdits(original, draft) {
+        const changes = HabitEdits.changes(original, draft);
+        const addedIds = {};
+        changes.removed.forEach(id => store.remove(store._indexOfId(id)));
+        changes.updated.forEach(change => store._applyHabitFields(change));
+        changes.added.forEach(habit => {
+            const item = store._newItem(habit.name, habit.polarity);
+            item.isPrivate = habit.isPrivate;
+            addedIds[habit.id] = item.id;
+            habits.append(item);
+        });
+        if (changes.added.length) store._roster.scheduleSave();
+        if (!changes.reordered) return;
+
+        const order = changes.order.map(id => addedIds[id] || id).filter(id => store._indexOfId(id) >= 0);
+        order.forEach((id, target) => store.move(store._indexOfId(id), target));
+    }
+
+    function _applyHabitFields(change) {
+        const index = store._indexOfId(change.id);
+        if (index < 0) return;
+
+        Object.keys(change.fields).forEach(field => habits.setProperty(index, field, change.fields[field]));
+        habits.setProperty(index, "editedAt", Date.now());
+        store._roster.scheduleSave();
     }
 
     // Overwrite local state with the authoritative result of a sync: rebuild the

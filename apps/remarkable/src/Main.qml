@@ -2,7 +2,7 @@ import QtQuick 2.15
 import "." as App
 import "components" as App
 import "js/DateUtils.js" as DateUtils
-import "js/Scroll.js" as Scroll
+import "js/HabitEdits.js" as HabitEdits
 import "js/SuspendStatus.js" as SuspendStatus
 
 Rectangle {
@@ -23,14 +23,15 @@ Rectangle {
     property string screenshotPairingCode: ""
 
     readonly property bool screenshotReady: habitsStore.isLoaded && settingsStore.isLoaded
-        && syncStore.isLoaded && (landscape.currentView === "settings" || landscape.gridReady)
-    readonly property string suspendStatusText: SuspendStatus.text(suspendCanvas.phase, suspendCanvas.remainingSeconds)
+        && syncStore.isLoaded && (!root.initialEditing || editSession.active)
+        && (landscape.currentView === "settings" || landscape.editing || landscape.gridReady)
+    readonly property string suspendStatusText: SuspendStatus.text(suspendCanvas.phase, suspendCanvas.remainingSeconds, suspendCanvas.failedPath)
 
     signal close
 
     function _waitForPendingOperations() {
         const syncInProgress = syncStore.isRequestInFlight || syncStore.status === "pending";
-        const renderInProgress = suspendCanvas.phase === "saving" || suspendCanvas.phase === "pending";
+        const renderInProgress = suspendCanvas.busy || suspendCanvas.phase === "saving" || suspendCanvas.phase === "pending";
 
         if (syncInProgress || renderInProgress) {
             Qt.callLater(() => root._waitForPendingOperations());
@@ -80,20 +81,25 @@ Rectangle {
     }
 
     function applySuspendSetting(enabled) {
-        if (!enabled) {
-            settingsStore.setSuspendImageEnabled(false);
-            suspendCanvas.invalidateSignature();
-            suspendCanvas.restore();
-            return;
-        }
-
-        // The setting turns on only once the stock image is safely backed up — enabling it after a
-        // failed backup overwrites an image nothing can restore (ADR 0001). The backup reports
-        // asynchronously, so this cannot be a guard clause.
         suspendCanvas.backup(ok => {
-            if (ok)
+            if (!ok) return;
+            if (enabled) {
+                suspendCanvas.restorationPending = false;
                 settingsStore.setSuspendImageEnabled(true);
+                return;
+            }
+            suspendCanvas.restore(restored => {
+                if (restored) settingsStore.setSuspendImageEnabled(false);
+            });
         });
+    }
+
+    property bool _initialEditStarted: false
+    function _maybeStartInitialEditing() {
+        if (root.initialEditing && !root._initialEditStarted && habitsStore.isLoaded && settingsStore.isLoaded) {
+            root._initialEditStarted = true;
+            landscape.beginEditing();
+        }
     }
 
     Component.onCompleted: console.log("Habit Tracker loaded; size:", width, "x", height)
@@ -102,6 +108,10 @@ Rectangle {
         id: habitsStore
         dataDir: root.dataDir
         today: root.today
+    }
+
+    App.HabitEditSession {
+        id: editSession
     }
 
     App.SettingsStore {
@@ -128,6 +138,8 @@ Rectangle {
     App.SuspendCanvas {
         id: suspendCanvas
         habits: habitsStore.habits
+        today: root.today
+        renderAllowed: landscape.canRenderSuspend && landscape.gridReady && !landscape.editing
     }
 
     Connections {
@@ -139,6 +151,7 @@ Rectangle {
         }
         function onIsLoadedChanged() {
             root._maybeSyncOnLoad();
+            root._maybeStartInitialEditing();
         }
     }
 
@@ -153,6 +166,9 @@ Rectangle {
     // and settings.json loading after the grid is already built.
     Connections {
         target: settingsStore
+        function onIsLoadedChanged() {
+            root._maybeStartInitialEditing();
+        }
         function onSuspendImageEnabledChanged() {
             if (landscape.canRenderSuspend && landscape.gridReady && !landscape.editing)
                 suspendCanvas.renderAsync();
@@ -170,8 +186,7 @@ Rectangle {
         property int currentDay: today.getDate()
         property int currentYear: today.getFullYear()
         property int currentMonth: today.getMonth()
-        property bool editing: root.initialEditing
-        property int pendingDeleteIndex: -1
+        readonly property bool editing: currentView === "edit"
         property string currentView: root.initialView
 
         // The month on screen. Starts on the real current month; the header arrows
@@ -244,180 +259,89 @@ Rectangle {
         }
 
         function recenterScroll() {
-            landscape.scrollX = landscape.isCurrentMonth
-                ? Scroll.centerOnDay(landscape.currentDay, landscape.viewportWidth, App.Theme.boxSize, App.Theme.boxSpacing, landscape.maxScrollX)
-                : 0;
+            if (gridLoader.item) gridLoader.item.recenter();
         }
 
-        onEditingChanged: if (!editing && canRenderSuspend)
-            suspendCanvas.renderAsync()
+        function beginEditing() {
+            editSession.begin(habitsStore.habits, settingsStore.showPrivateHabits);
+            landscape.currentView = "edit";
+        }
 
-        property int step: App.Theme.boxSize + App.Theme.boxSpacing
-        property int habitsRowWidth: App.Theme.habitsWidth + (editing ? App.Theme.editingExtraWidth : 0)
-        property int viewportWidth: width - 2 * App.Theme.margin - habitsRowWidth - App.Theme.labelGap - 2 * App.Theme.buttonWidth - 2 * App.Theme.buttonGap - (canScrollY ? App.Theme.buttonWidth + App.Theme.buttonGap : 0)
-        property int contentWidth: daysInMonth * App.Theme.boxSize + (daysInMonth - 1) * App.Theme.boxSpacing
-        property int maxScrollX: Math.max(0, contentWidth - viewportWidth)
-        property int scrollX: 0
+        function finishEditing() {
+            habitsStore.applyHabitEdits(editSession.original, HabitEdits.snapshot(editSession.habits));
+            landscape.currentView = "grid";
+            editSession.finish();
+        }
 
+        onEditingChanged: if (!editing && landscape.canRenderSuspend) suspendCanvas.renderAsync()
         readonly property bool gridReady: gridLoader.status === Loader.Ready
-        readonly property bool loading: !gridReady
 
-        // The month-nav arrows gate on the store's first-ever load only, not on the
-        // per-switch teardown/rebuild — so you can keep hopping while a switch is in
-        // flight (hasLoadedOnce stays true across the transient isLoaded drop).
-        readonly property bool dataLoading: !habitsStore.hasLoadedOnce
-
-        onViewportWidthChanged: recenterScroll()
-
-        // Vertical scrolling for when the habit rows overflow the available height.
-        property int viewportHeight: height - 2 * App.Theme.margin - monthHeaderRow.height - App.Theme.quitButtonHeight - 2 * App.Theme.rowSpacing
-        property int bodyViewportHeight: viewportHeight - App.Theme.dayLabelHeight - App.Theme.rowSpacing
-        property int rowStep: App.Theme.boxSize + App.Theme.rowSpacing
-        property int scrollRows: Math.max(1, Math.floor(bodyViewportHeight / rowStep) - 1)
-        property int maxScrollY: Math.max(0, (gridLoader.item ? gridLoader.item.bodyContentHeight : 0) - bodyViewportHeight)
-        property bool canScrollY: maxScrollY > 0
-        property int scrollY: 0
-
-        onMaxScrollYChanged: if (scrollY > maxScrollY)
-            scrollY = maxScrollY
-
-        Item {
-            id: gridView
+        Loader {
+            id: gridLoader
             anchors.fill: parent
-            visible: landscape.currentView === "grid"
-
-            // Hide keyboard if clicked outside of input
-            MouseArea {
-                anchors.fill: parent
-                z: -1
-                onClicked: Qt.inputMethod.hide()
-            }
-
-            Column {
-                anchors.fill: parent
-                anchors.margins: App.Theme.margin
-                spacing: App.Theme.rowSpacing
-
-                App.MonthNavHeader {
-                    id: monthHeaderRow
-                    date: landscape.viewDate
-                    isCurrentMonth: landscape.isCurrentMonth
-                    warn: suspendCanvas.lastRenderFailed
-                    disabled: landscape.dataLoading
-                    onPreviousRequested: landscape.goToPreviousMonth()
-                    onNextRequested: landscape.goToNextMonth()
-                    onCurrentRequested: landscape.goToCurrentMonth()
-                }
-
-                Row {
-                    spacing: App.Theme.buttonGap
-
-                    App.HabitsColumn {
-                        habits: habitsStore.habits
-                        editing: landscape.editing
-                        showPrivateHabits: settingsStore.showPrivateHabits
-                        rowWidth: landscape.habitsRowWidth
-                        viewportHeight: landscape.viewportHeight
-                        scrollY: landscape.scrollY
-                        onRemoveRequested: landscape.pendingDeleteIndex = index
-                        onPolarityToggled: habitsStore.togglePolarity(index)
-                        onPrivateToggled: habitsStore.togglePrivate(index)
-                        onNameEdited: habitsStore.setName(index, newName)
-                        onMoveRequested: habitsStore.move(from, to)
-                        onAddRequested: habitsStore.add(name, polarity)
-                    }
-
-                    App.SideScrollButton {
-                        text: "‹"
-                        disabled: landscape.loading || landscape.scrollX <= 0
-                        contentHeight: landscape.viewportHeight
-                        onClicked: landscape.scrollX = Scroll.scrollByBoxes(landscape.scrollX, -7, landscape.step, landscape.maxScrollX)
-                    }
-
-                    // Async + gated + hidden-until-Ready: builds the ~600-item
-                    // subtree off the main thread against a populated model, and
-                    // never exposes partial e-ink state. Canvas paint chains off
-                    // onLoaded to avoid main-thread contention with the build.
-                    Loader {
-                        id: gridLoader
-                        width: landscape.viewportWidth
-                        height: landscape.viewportHeight
-                        asynchronous: true
-                        active: habitsStore.isLoaded
-                        visible: status === Loader.Ready
-                        onLoaded: if (landscape.canRenderSuspend)
-                            suspendCanvas.renderAsync()
-
-                        sourceComponent: Component {
-                            App.HabitsGrid {
-                                width: landscape.viewportWidth
-                                viewportHeight: landscape.viewportHeight
-                                habits: habitsStore.habits
-                                showPrivateHabits: settingsStore.showPrivateHabits
-                                daysInMonth: landscape.daysInMonth
-                                highlightDay: landscape.highlightDay
-                                lastNonFutureDay: landscape.lastNonFutureDay
-                                year: landscape.viewYear
-                                month: landscape.viewMonth
-                                editing: landscape.editing
-                                scrollX: landscape.scrollX
-                                scrollY: landscape.scrollY
-                                onEntryToggled: habitsStore.toggleEntry(index, dateKey)
-                            }
-                        }
-                    }
-
-                    // Occupies the grid's exact footprint while the async Loader
-                    // builds, so the invisible Loader doesn't collapse the Row and
-                    // jam the ‹ / › buttons together.
-                    App.AppButton {
-                        width: landscape.viewportWidth
-                        height: landscape.viewportHeight
-                        visible: !landscape.gridReady
-                        text: "Loading…"
-                        fontSize: App.Theme.titleFont
-                        disabled: true
-                    }
-
-                    App.SideScrollButton {
-                        text: "›"
-                        disabled: landscape.loading || landscape.scrollX >= landscape.maxScrollX
-                        contentHeight: landscape.viewportHeight
-                        onClicked: landscape.scrollX = Scroll.scrollByBoxes(landscape.scrollX, 7, landscape.step, landscape.maxScrollX)
-                    }
-
-                    // Vertical ↑ / ↓ buttons scroll a page of habits; shown only when they overflow the height.
-                    App.VerticalScrollButtons {
-                        visible: landscape.canScrollY
-                        buttonHeight: (landscape.bodyViewportHeight - App.Theme.rowSpacing) / 2
-                        upDisabled: landscape.loading || landscape.scrollY <= 0
-                        downDisabled: landscape.loading || landscape.scrollY >= landscape.maxScrollY
-                        onScrollUp: landscape.scrollY = Scroll.scrollByBoxes(landscape.scrollY, -landscape.scrollRows, landscape.rowStep, landscape.maxScrollY)
-                        onScrollDown: landscape.scrollY = Scroll.scrollByBoxes(landscape.scrollY, landscape.scrollRows, landscape.rowStep, landscape.maxScrollY)
-                    }
-                }
-            }
-
-            App.GridBottomBar {
-                anchors.fill: parent
-                editing: landscape.editing
-                loading: landscape.loading
+            asynchronous: true
+            active: habitsStore.isLoaded
+            visible: status === Loader.Ready && landscape.currentView === "grid"
+            onLoaded: if (landscape.canRenderSuspend && !landscape.editing) suspendCanvas.renderAsync()
+            sourceComponent: App.TrackerPage {
+                habits: habitsStore.habits
+                showPrivateHabits: settingsStore.showPrivateHabits
+                date: landscape.viewDate
+                isCurrentMonth: landscape.isCurrentMonth
+                daysInMonth: landscape.daysInMonth
+                highlightDay: landscape.highlightDay
+                lastNonFutureDay: landscape.lastNonFutureDay
+                year: landscape.viewYear
+                month: landscape.viewMonth
                 suspendStatusText: root.suspendStatusText
                 syncStatusText: syncStore.statusText
-                onEditToggled: landscape.editing = !landscape.editing
+                onPreviousRequested: landscape.goToPreviousMonth()
+                onNextRequested: landscape.goToNextMonth()
+                onCurrentRequested: landscape.goToCurrentMonth()
+                onEditRequested: landscape.beginEditing()
                 onSettingsRequested: landscape.currentView = "settings"
-                onQuitRequested: quit()
+                onQuitRequested: root.quit()
+                onEntryToggled: habitsStore.toggleEntry(index, dateKey)
             }
+        }
 
-            App.ConfirmDialog {
-                visible: landscape.pendingDeleteIndex >= 0
-                message: visible ? "Delete “" + habitsStore.habits.get(landscape.pendingDeleteIndex).name + "”?" : ""
-                confirmText: "Delete"
-                onConfirmed: {
-                    habitsStore.remove(landscape.pendingDeleteIndex);
-                    landscape.pendingDeleteIndex = -1;
-                }
-                onCancelled: landscape.pendingDeleteIndex = -1
+        Item {
+            anchors.fill: parent
+            visible: !landscape.gridReady && landscape.currentView === "grid"
+            App.MonthNavHeader {
+                x: App.Theme.margin
+                y: App.Theme.margin
+                date: landscape.viewDate
+                isCurrentMonth: landscape.isCurrentMonth
+                disabled: !habitsStore.hasLoadedOnce
+                onPreviousRequested: landscape.goToPreviousMonth()
+                onNextRequested: landscape.goToNextMonth()
+                onCurrentRequested: landscape.goToCurrentMonth()
+            }
+            Text {
+                anchors.centerIn: parent
+                text: "Loading…"
+                font.pixelSize: App.Theme.titleFont
+                color: App.Theme.fg
+            }
+        }
+
+        App.HabitEditorPage {
+            anchors.fill: parent
+            visible: landscape.editing
+            habits: editSession.habits
+            syncStatusText: syncStore.statusText
+            suspendStatusText: root.suspendStatusText
+            onNameEdited: editSession.setName(index, name)
+            onPolarityToggled: editSession.togglePolarity(index)
+            onPrivateToggled: editSession.togglePrivate(index)
+            onMoveRequested: editSession.move(index, direction)
+            onRemoveRequested: editSession.remove(index)
+            onAddRequested: editSession.add(name, polarity)
+            onDoneRequested: landscape.finishEditing()
+            onCancelRequested: {
+                landscape.currentView = "grid";
+                editSession.finish();
             }
         }
 
@@ -425,6 +349,7 @@ Rectangle {
             anchors.fill: parent
             visible: landscape.currentView === "settings"
             suspendImageEnabled: settingsStore.suspendImageEnabled
+            suspendImageBusy: suspendCanvas.busy
             showPrivateHabits: settingsStore.showPrivateHabits
             serverUrl: settingsStore.serverUrl
             syncStatusText: syncStore.statusText
