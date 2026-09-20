@@ -5,28 +5,31 @@
         <file>src/Theme.qml</file>
         <file>src/JsonStore.qml</file>
         <file>src/HabitsStore.qml</file>
+        <file>src/HabitEditSession.qml</file>
         <file>src/SettingsStore.qml</file>
         <file>src/SyncStore.qml</file>
         <file>src/PairingStore.qml</file>
+        <file>src/testing/qmldir</file>
+        <file>src/testing/DeveloperTools.qml</file>
+        <file>src/testing/DeveloperPage.qml</file>
+        <file>src/testing/SuspendController.qml</file>
         <file>src/components/qmldir</file>
         <file>src/components/AppButton.qml</file>
-        <file>src/components/MonthHeader.qml</file>
+        <file>src/components/TrackerPage.qml</file>
+        <file>src/components/HabitEditorPage.qml</file>
+        <file>src/components/ScreenStatus.qml</file>
         <file>src/components/MonthNavHeader.qml</file>
-        <file>src/components/HabitRow.qml</file>
         <file>src/components/HabitAddRow.qml</file>
         <file>src/components/DayLabelsRow.qml</file>
         <file>src/components/HabitGridRow.qml</file>
         <file>src/components/ConfirmDialog.qml</file>
-        <file>src/components/SideScrollButton.qml</file>
         <file>src/components/VerticalScrollButtons.qml</file>
         <file>src/components/HabitsColumn.qml</file>
         <file>src/components/HabitsGrid.qml</file>
         <file>src/components/SuspendCanvas.qml</file>
-        <file>src/components/StatusText.qml</file>
         <file>src/components/SegmentedToggle.qml</file>
         <file>src/components/SettingsPage.qml</file>
         <file>src/components/QrCode.qml</file>
-        <file>src/components/GridBottomBar.qml</file>
         <file>src/js/DateUtils.js</file>
         <file>src/js/Entries.js</file>
         <file>src/js/habits.js</file>
@@ -35,6 +38,8 @@
         <file>src/js/Polarity.js</file>
         <file>src/js/Ids.js</file>
         <file>src/js/Storage.js</file>
+        <file>src/js/BinaryFiles.js</file>
+        <file>src/js/BuildProfile.js</file>
         <file>src/js/SuspendRender.js</file>
         <file>src/js/SuspendDraw.js</file>
         <file>src/js/SuspendStatus.js</file>
@@ -45,5 +50,7 @@
         <file>src/js/vendor/qrcode-generator.js</file>
         <file>src/js/vendor/qrcode-generator.LICENSE</file>
         <file>src/js/Scroll.js</file>
+        <file>src/js/HabitLayout.js</file>
+        <file>src/js/HabitEdits.js</file>
     </qresource>
 </RCC>

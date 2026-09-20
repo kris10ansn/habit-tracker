@@ -26,7 +26,7 @@ export function HabitListItem({ habit, outcome, streak, onToggle }: Props) {
     const displayed = displayStreak(streak);
 
     return (
-        <Card className="mb-3 flex-row items-center gap-3.5">
+        <Card className="mb-3 flex-row items-center gap-3.5 border-0 py-3.5 shadow-sm">
             <View className="flex-1 gap-1">
                 <Text
                     numberOfLines={1}
@@ -35,7 +35,13 @@ export function HabitListItem({ habit, outcome, streak, onToggle }: Props) {
                     {habit.name}
                 </Text>
                 <View className="mt-1 h-6 flex-row items-center gap-1.5">
-                    {habit.polarity === "Negative" && <Pill label="avoid" />}
+                    {habit.polarity === "Negative" && (
+                        <Pill
+                            label="avoid"
+                            className="px-2 py-0.5"
+                            labelClassName="text-sm"
+                        />
+                    )}
 
                     {displayed > 1 ? (
                         <StreakPill streak={displayed} success={success} />

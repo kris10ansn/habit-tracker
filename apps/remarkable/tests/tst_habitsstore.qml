@@ -3,6 +3,7 @@ import QtTest 1.2
 import "../src" as App
 import "../src/js/Storage.js" as Storage
 import "../src/js/Entries.js" as Entries
+import "../src/js/HabitEdits.js" as HabitEdits
 import "../src/js/Polarity.js" as Polarity
 import "TestPaths.js" as TestPaths
 import "Fixtures.js" as Fixtures
@@ -575,4 +576,53 @@ TestCase {
         const onDisk = Storage.readJson(rosterPath(workingDir));
         compare(onDisk.habits[0].name, "Alpha");
     }
+    function test_applyDraftUsesIdsAndPreservesConcurrentEntriesAndFields() {
+        writeAndSettle(rosterPath(workingDir), {
+            habits: [Fixtures.rosterRow({ id: "a", name: "Alpha" }), Fixtures.rosterRow({ id: "b", name: "Beta" })]
+        });
+        makeStore(workingDir, 2040, 0);
+        const original = HabitEdits.snapshot(store.habits);
+        const draft = original.map(row => Object.assign({}, row));
+        draft[0].isPrivate = true;
+        draft[1].name = "Edited Beta";
+        store.toggleEntry(0, "2040-01-01");
+        store.setName(0, "Newer Alpha");
+        store.move(1, 0);
+
+        store.applyHabitEdits(original, draft);
+
+        compare(store.habits.get(0).id, "b");
+        compare(store.habits.get(0).name, "Edited Beta");
+        compare(store.habits.get(1).id, "a");
+        compare(store.habits.get(1).name, "Newer Alpha");
+        compare(store.habits.get(1).isPrivate, true);
+        compare(store.habits.get(1).entriesByDate["2040-01-01"].outcome, Entries.X);
+        store.flushPendingSave();
+        tryVerify(() => Storage.readJson(rosterPath(workingDir)).habits[1].isPrivate === true);
+    }
+
+    function test_applyDraftAddsReordersDeletesAndDoesNotReviveRemoteDeletion() {
+        writeAndSettle(rosterPath(workingDir), {
+            habits: [Fixtures.rosterRow({ id: "a" }), Fixtures.rosterRow({ id: "b" }), Fixtures.rosterRow({ id: "c" })]
+        });
+        makeStore(workingDir, 2040, 1);
+        const original = HabitEdits.snapshot(store.habits);
+        const draft = [
+            { id: "draft-1", name: "New private habit", polarity: "Negative", isPrivate: true },
+            Object.assign({}, original[2], { name: "Edited but remotely deleted" }),
+            original[0]
+        ];
+        store.remove(2);
+        store.applyHabitEdits(original, draft);
+
+        compare(store.habits.count, 2);
+        compare(store.habits.get(0).name, "New private habit");
+        verify(store.habits.get(0).id !== "draft-1");
+        compare(store.habits.get(0).polarity, "Negative");
+        compare(store.habits.get(0).isPrivate, true);
+        compare(store.habits.get(1).id, "a");
+        verify(store.habits.get(1).editedAt > Fixtures.EPOCH);
+        compare(store.habitTombstones.map(row => row.id).sort(), ["b", "c"]);
+    }
+
 }

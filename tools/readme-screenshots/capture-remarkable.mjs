@@ -122,6 +122,8 @@ try {
                     fixture.today,
                     "--out",
                     deviceOutputPath,
+                    "--state",
+                    scenario.state ?? "sleep",
                 ],
             );
             // The actual suspend file is portrait pixels containing a 90-degree scene, matching

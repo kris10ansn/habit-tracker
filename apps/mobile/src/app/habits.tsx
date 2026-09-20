@@ -38,7 +38,7 @@ export default function HabitsScreen() {
                             reorder.mutate({ habitId, toIndex })
                         }
                         renderRow={HabitRow}
-                        rowClassName="pb-2.5"
+                        rowClassName="pb-3"
                     />
 
                     <AddHabitRow />
@@ -49,9 +49,9 @@ export default function HabitsScreen() {
 }
 
 const HabitRow = (habit: Habit) => (
-    <Card className="flex-row items-center gap-3">
+    <Card className="flex-row items-center gap-3 py-4">
         <SortableListHandle className="-m-3 p-3">
-            <CommunityIcon name="drag" />
+            <CommunityIcon name="drag" size={18} className="text-ink-3" />
         </SortableListHandle>
 
         <EditHabitRow habit={habit} />

@@ -5,6 +5,7 @@
     "description": "Thin wrapper: this app is built with the .NET SDK, not node. Scripts shell out to dotnet/docker.",
     "scripts": {
         "build": "dotnet build",
+        "build:prod": "dotnet publish src/HabitTracker.Api -c Release -r linux-x64 --no-self-contained -p:PublishReadyToRun=true -p:OpenApiGenerateDocuments=false -o dist",
         "start": "dotnet run --project src/HabitTracker.Api",
 		"watch": "dotnet watch run --project src/HabitTracker.Api",
         "test": "dotnet test",

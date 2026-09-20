@@ -7,7 +7,7 @@
 
 function copyFile(srcPath, dstPath, onDone) {
     const buffer = Storage.readBinary(srcPath);
-    if (buffer === null) {
+    if (!buffer || !buffer.byteLength) {
         console.warn("SuspendRender: could not read", srcPath);
         onDone(false);
         return;
@@ -39,4 +39,57 @@ function writeSignature(path, signature, onDone) {
         console.warn("SuspendRender: could not write signature", path, "-", e);
         report(false);
     }
+}
+
+function imageTargets(directory) {
+    return [
+        { state: "sleep", filename: "suspended.png" },
+        { state: "off", filename: "poweroff.png" },
+        { state: "empty", filename: "batteryempty.png" },
+    ].map((target) =>
+        Object.assign({}, target, {
+            path: `${directory}/${target.filename}`,
+            backup: `${directory}/${target.filename}.bak`,
+        }),
+    );
+}
+
+// Existing backups survive retries, upgrades from suspend-only writing, and re-enabling.
+// Back up every target before any image is replaced.
+function backupImages(targets, onDone) {
+    const next = (index) => {
+        if (index === targets.length) return onDone(true, "");
+
+        const target = targets[index];
+        const existing = Storage.readBinary(target.backup);
+        if (existing !== null) {
+            if (!existing.byteLength) return onDone(false, target.backup);
+            next(index + 1);
+            return;
+        }
+        copyFile(target.path, target.backup, (ok) => {
+            if (!ok) return onDone(false, target.path);
+            next(index + 1);
+        });
+    };
+    next(0);
+}
+
+function restoreImages(targets, onDone) {
+    const missing = targets.find((target) => {
+        const backup = Storage.readBinary(target.backup);
+        return !backup || !backup.byteLength;
+    });
+    if (missing) return onDone(false, missing.backup);
+
+    const next = (index) => {
+        if (index === targets.length) return onDone(true, "");
+
+        const target = targets[index];
+        copyFile(target.backup, target.path, (ok) => {
+            if (!ok) return onDone(false, target.path);
+            next(index + 1);
+        });
+    };
+    next(0);
 }

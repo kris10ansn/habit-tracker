@@ -3,39 +3,34 @@
 > Part of the **habit-tracker** monorepo — this is the `apps/remarkable/` client. Run the
 > `make` commands below from this directory. The sibling expo client lives in `apps/mobile/`.
 
-A small habit tracker for the **reMarkable 1** e-ink tablet. The reMarkable has no app ecosystem and no official way to run third-party software, but a community modding stack ([XOVI](https://github.com/asivery/xovi) + [rm-appload](https://github.com/asivery/rm-appload)) lets you load custom QML scenes inside the stock UI process. This is one such scene — a calendar grid of habits × days of the month (with arrows to step back and forth through months), persisted to disk, with a twist: it can overwrite the tablet's **suspend image** (the full-screen image shown while the device sleeps) with today's grid, so the habits are the first thing you see when you wake the device. That overwrite is opt-in — you turn it on in **Settings**.
+A small habit tracker for the **reMarkable 1** e-ink tablet. The reMarkable has no app ecosystem and no official way to run third-party software, but a community modding stack ([XOVI](https://github.com/asivery/xovi) + [rm-appload](https://github.com/asivery/rm-appload)) lets you load custom QML scenes inside the stock UI process. This is one such scene — a calendar grid of habits × days of the month (with arrows to step back and forth through months), persisted to disk, with a twist: it can overwrite the tablet's **power-state images** (sleeping, powered off, and battery empty) with today's grid, so the habits are the first thing you see when you wake the device. That overwrite is opt-in — you turn it on in **Settings**.
 
 No account UI on the tablet itself, no telemetry. It runs fully standalone and offline by default — just a QML scene drawn by the same Qt process that already runs the device's UI. Optionally, point it at a self-hosted server (Settings → **Sync server**) to sync your habits across devices; leave it blank and nothing ever leaves the tablet. If that server requires an account, the tablet shows a QR code and a short manual code for approval from your phone (Settings → **Connect**) — it never has a login form of its own.
 
 ## What it looks like
 
-```
-‹  June 2026  ›
-   30 days · today is the 5th
+![Adaptive habit grid with eleven habits](../../docs/assets/screenshots/remarkable-grid-eleven.png)
 
-                         1  2  3  4  [5] 6  7  8  9  10 …
-Read 20 pages           ▢ ▢ ▢ ▢ ▣ ▢ ▢ ▢ ▢ ▢ …
-Exercise                ▢ ▢ ▢ ▢ ▣ ▢ ▢ ▢ ▢ ▢ …
-Meditate                ▢ ▢ ▢ ▢ ▣ ▢ ▢ ▢ ▢ ▢ …
-No screens after 22:00  ▢ ▢ ▢ ▢ ▣ ▢ ▢ ▢ ▢ ▢ …
-Journal                 ▢ ▢ ▢ ▢ ▣ ▢ ▢ ▢ ▢ ▢ …
+[Roomy grid](../../docs/assets/screenshots/remarkable-grid.png) ·
+[Scrolling roster](../../docs/assets/screenshots/remarkable-grid-overflow.png) ·
+[Edit habits](../../docs/assets/screenshots/remarkable-edit.png) ·
+[Settings and QR pairing](../../docs/assets/screenshots/remarkable-pairing.png)
 
-[ Edit ]                            [ Settings ] [ Quit ]
-```
+These are native Qt 5.15 renders at the tablet's landscape resolution, **1872 × 1404**.
 
 ## Features
 
-- **Calendar grid layout.** One row per habit, one column per day of the month, today's column highlighted in inverted ink. Horizontal `‹` / `›` buttons scroll a week at a time when the month doesn't fit; the view opens centered on today. Vertical `↑` / `↓` buttons scroll a page of habits at a time when the list is taller than the screen; the day-of-month header stays fixed while the rows scroll. The grid builds asynchronously on launch — until it's ready a `Loading…` placeholder fills its place and the `‹` / `›` buttons stay disabled.
-- **Month navigation.** `‹` / `›` arrows either side of the month header step back and forth through months — unbounded in both directions, so you can review any past month or peek ahead. Any month is fully editable: tap cells to backfill a month you never tracked (its file is written lazily, only once you mark something). Only the current month highlights today and feeds the suspend image; other months show no highlight. A **Today** button appears in the header while you're off the current month and jumps straight back. Switching months shows the same `Loading…` screen as first open while the grid rebuilds; the month arrows stay live so you can keep hopping.
+- **Calendar grid layout.** One row per habit, one column per day of the month, today's date inverted and its cells shaded gray. Rows grow from 72px to 128px as space allows, with 12px gaps. Eleven visible habits fit on the standard landscape screen; larger rosters keep readable rows and enable page scrolling. Horizontal `‹` / `›` buttons scroll a week at a time when the month doesn't fit; the view opens centered on today. Vertical `↑` / `↓` buttons scroll a page of habits at a time when the list is taller than the screen; the day-of-month header stays fixed while the rows scroll. The grid builds asynchronously on launch — until it's ready a `Loading…` placeholder fills its place and the `‹` / `›` buttons stay disabled.
+- **Month navigation.** `‹` / `›` arrows either side of the month header step back and forth through months — unbounded in both directions, so you can review any past month or peek ahead. Any month is fully editable: tap cells to backfill a month you never tracked (its file is written lazily, only once you mark something). Only the current month highlights today and feeds the power-state images; other months show no highlight. The **Today** button jumps straight back from another month. Switching months shows the same `Loading…` screen as first open while the grid rebuilds; the month arrows stay live so you can keep hopping.
 - **Two habit modes.**
     - _Positive_ habits cycle empty → X → O → empty. X = done, O = explicitly not done.
     - _Negative_ habits invert it: every day is implicitly X ("didn't slip up today"), tap to flip to O when you do slip. Future days render muted and the name carries a `(−)` suffix.
-- **Private habits.** Per-habit `P` toggles, always available in edit mode, mark a habit private. A private habit never appears on the suspend image, and it also drops out of the main grid — including edit mode — unless **Show private habits** is on in Settings. The private flag syncs across devices like a rename or reorder; the "show private habits on this device" setting stays local and never syncs.
-- **Suspend-image overlay (opt-in).** Off by default; enable it on the **Settings** page. While on, the latest habit grid is the suspend image, always excluding private habits. Enabling backs up the original `suspended.png` first; disabling restores it.
-- **Settings.** A small settings page (button next to **Quit**) with the suspend-image-writing `On` / `Off` toggle, a **Show private habits** `On` / `Off` toggle, and a **Sync server** address field. Changes are staged and applied on **Done**, which returns to the grid and runs the backup/restore — its progress shows in the grid's status line. **Back** discards staged changes (with a confirmation if you've changed anything).
-- **Optional offline-first sync.** Leave the **Sync server** blank and the app is fully local. Enter a server address and it syncs your roster and the month you're viewing with that server — on open, whenever you navigate to a month, a few seconds after edits, and via a **Sync now** button. Conflicts resolve last-write-wins per habit and per day; deletes propagate as tombstones. It's offline-tolerant: when the server is unreachable you keep working and a quiet status line (below the suspend status) counts the debounce down ("Syncing in 3s" → "Syncing…"), tracks the request as it runs ("Connecting…" → "Receiving…"), and then shows the outcome ("Synced to server" / "Sync failed: offline" / "Not connected" once paired if the server no longer recognises the token — never a lost habit, just a status line to fix in Settings).
+- **Private habits.** The editor's **Public / Private** button marks a habit private. Private habits never appear on power-state images and stay out of the grid unless **Show private habits** is on in Settings. A row made private during editing remains visible until **Done** applies the changes. Existing private habits must be revealed in Settings before editing them. The private flag syncs; the reveal setting stays local.
+- **Power-state images (opt-in).** **Power-state habit images** in Settings draws the Quiet ledger layout on the suspend, power-off, and battery-empty images, always excluding private habits. A compact icon, state label, and instruction distinguish each state. All three originals are backed up before any image is replaced; disabling restores them. Existing backups are preserved. The date is explicitly a snapshot, not a live clock.
+- **Settings.** A two-column settings page (button next to **Quit**) with the power-state-image-writing `On` / `Off` toggle, a **Show private habits** `On` / `Off` toggle, and a **Sync server** address field. Changes are staged and applied on **Done**, which returns to the grid and runs the backup/restore — its progress shows in the grid's status line. **Back** discards staged changes (with a confirmation if you've changed anything).
+- **Optional offline-first sync.** Leave the **Sync server** blank and the app is fully local. Enter a server address and it syncs your roster and the month you're viewing with that server — on open, whenever you navigate to a month, a few seconds after edits, and via a **Sync now** button. Conflicts resolve last-write-wins per habit and per day; deletes propagate as tombstones. It's offline-tolerant: when the server is unreachable you keep working and a quiet status line (alongside the power-state image status) counts the debounce down ("Syncing in 3s" → "Syncing…"), tracks the request as it runs ("Connecting…" → "Receiving…"), and then shows the outcome ("Synced to server" / "Sync failed: offline" / "Not connected" once paired if the server no longer recognises the token — never a lost habit, just a status line to fix in Settings).
 - **Tablet pairing.** Syncing against an authenticated server needs this device to hold a bearer token — there's no account UI here, by design. Settings → **Connect** requests a short pairing code from the server and displays it beside a high-contrast QR code. Scan it from the phone's linked-devices flow, or enter the same code manually, review the requesting device, and approve it; the tablet stores the token on its next poll. The code is unambiguous on purpose (no `0`/`O`/`1`/`I`) and expires after 5 minutes; polling only happens while the Settings page is open, so it never runs unattended. **Disconnect** drops the token from this device only — revoke it for good from the phone.
-- **In-app editing.** Reorder, rename, delete, toggle positive/negative, toggle private, add new habits — all from the device. No editing JSON by SSH.
+- **In-app editing.** Reorder, rename, delete, toggle positive/negative, toggle private, add new habits — all from the device. Changes stay in a draft until **Done**; **Cancel** discards them after confirmation. **Negative** and **Private** buttons invert to show their state.
 - **Local persistence.** Habit data lives under a `data/` folder on the device: `roster.json` (the habit list + config) plus one `YYYY-MM.json` per month (that month's entries, one row per marked day); `sync.json` holds sync bookkeeping. App preferences stay in `settings.json`. A single tap rewrites only the current month, not all of history. Saves fail loudly — if `data/` is missing, a dialog says so rather than dropping your entries silently. The app reads exactly one storage format and refuses anything else: a file it can't read is never treated as empty, so nothing gets overwritten by the next tap. Format changes are handled by a script you run on your computer, not by the app (see [Upgrading across a storage-format change](#upgrading-across-a-storage-format-change)).
 
 ## Install
@@ -49,21 +44,21 @@ Then build and deploy this app:
 
 ```sh
 make build      # produces build/resources.rcc + staged icon/manifest
-make deploy     # scps build/* to /home/root/xovi/exthome/appload/habit-tracker/
+make deploy CONFIRM_STABLE=1  # scps build/* to /home/root/xovi/exthome/appload/habit-tracker/
 ```
 
-(`make deploy` needs `ssh remarkable` to resolve to the tablet — set it up in `~/.ssh/config`, or use `make REMARKABLE_HOST=<host> deploy`. If the tablet's address moves — a phone hotspot re-leases every session — `make find-hotspot-ip` locates it and updates the config; see [below](#finding-the-tablet-after-its-address-changes).)
+(`make deploy` needs `ssh remarkable` to resolve to the tablet — set it up in `~/.ssh/config`, or use `make REMARKABLE_HOST=<host> deploy CONFIRM_STABLE=1`. If the tablet's address moves — a phone hotspot re-leases every session — `make find-hotspot-ip` locates it and updates the config; see [below](#finding-the-tablet-after-its-address-changes).)
 
 On the tablet, hold the middle button for ~3 seconds to open apploader, then tap the **reMarkable habit tracker** tile.
 
 ## Daily use
 
 - **Tap a cell** to cycle its state.
-- **`‹` / `›` beside the month title** move to the previous / next month; **Today** (appears once you're off the current month) jumps back. Editing works in any month, so you can backfill a month you missed.
-- **Edit** (bottom-left) enters edit mode. Each row gains `↑` / `↓` (reorder), `×` (delete with confirmation), `−` (toggle polarity), `P` (toggle private — always available), and the name becomes a text input. An empty row at the bottom of the list takes a new habit name; tap `+` or press Enter to add. With **Show private habits** off, a private row disappears from the list entirely (including here in edit mode) — reveal it first if you need to reorder or edit it, since reordering past a hidden row moves it without visibly moving anything.
-- **Done** leaves edit mode.
-- **Settings** (bottom-right, left of Quit) opens the settings page. Toggle suspend-image writing `On` / `Off`, toggle **Show private habits** `On` / `Off`, and/or type a **Sync server** address (e.g. `http://192.168.1.50:5137`; blank = offline). **Done** applies and returns to the grid — enabling suspend writing backs up your current suspend image and starts drawing the grid there; disabling restores the backup; a non-blank server triggers a sync. **Sync now** forces an immediate sync. **Back** returns without applying. If the server requires an account, **Connect** (under **Tablet pairing**, enabled once a server address is set) shows a QR code and its short manual code — scan either way from your phone to approve this device; **Disconnect** signs it out locally.
-- **Quit** (bottom-right) unloads the app and restores the normal xochitl UI.
+- **`‹` / `›` beside the month title** move to the previous / next month; **Today** jumps back. Editing works in any month, so you can backfill a month you missed.
+- **Edit habits** (top-right) opens a separate editor. Rename, reorder with `↑` / `↓`, delete with `×`, and toggle **Positive / Negative** or **Public / Private**. The add row stays below the scrolling list; tap `+` or press Enter to add a habit to the draft. Reorder arrows skip habits hidden by the privacy setting.
+- **Done** applies all habit edits and returns to tracking. Newly private rows disappear only now if **Show private habits** is off. **Cancel** discards the draft after confirmation.
+- **Settings** (top-right, left of Quit) opens the settings page. Toggle power-state-image writing `On` / `Off`, toggle **Show private habits** `On` / `Off`, and/or type a **Sync server** address (e.g. `http://192.168.1.50:5137`; blank = offline). **Done** applies and returns to the grid — enabling power-state-image writing backs up all three originals and starts drawing the grid there; disabling restores the backups; a non-blank server triggers a sync. **Sync now** forces an immediate sync. **Back** returns without applying. If the server requires an account, **Connect** (under **Tablet pairing**, enabled once a server address is set) shows a QR code and its short manual code — scan either way from your phone to approve this device; **Disconnect** signs it out locally.
+- **Quit** (top-right) unloads the app and restores the normal xochitl UI.
 
 State is saved under `/home/root/xovi/exthome/appload/habit-tracker/data/` — `roster.json` plus a `YYYY-MM.json` per month. First launch seeds the roster from the defaults in `src/js/habits.js`. The `data/` folder must exist (the deploy creates it); if it's missing, saves surface a visible error instead of failing silently. Back up before resetting or removing the app; deleting local files removes local history and does not delete the server's copy.
 
@@ -94,28 +89,34 @@ make backup     # copies data/ into .backup/<timestamp>/ on your computer
 ```
 
 This includes the roster, month files, and sync bookkeeping. It does **not** include the app's
-`settings.json` (preferences and pairing token) or the system suspend-image backup. Keep the backup
-directory somewhere safe. Sync propagates deletions and is not a substitute for a backup.
+`settings.json` (preferences and pairing token) or the system power-state image backups. Keep
+the backup directory somewhere safe. Sync propagates deletions and is not a substitute for a backup.
 
-For a normal update, close the app and run `make deploy`; it replaces application assets while
-preserving data and settings. If the storage format changed, follow the
+For a normal stable update, close the app and run `make deploy CONFIRM_STABLE=1`; it replaces
+application assets while preserving data and settings. If the storage format changed, follow the
 [migration procedure](#upgrading-across-a-storage-format-change) first.
 
-Before uninstalling, turn suspend-image writing **Off** and apply with **Done** to restore the
-original sleep image, then quit and back up. `make remove` deletes the entire installed app
-directory, **including local data and settings**, and does not restore the sleep image or revoke
-the server session. Revoke that session separately from mobile if retiring the tablet.
+Before uninstalling the stable app, turn **Power-state habit images** **Off** and apply with
+**Done**. Wait for all three original images to be restored successfully, then quit and back up.
+`make remove` deletes the entire installed app directory, **including local data and settings**,
+and does not restore the power-state images or revoke the server session. Revoke that session
+separately from mobile if retiring the tablet.
+
+For test installs, use `make backup-test` and `make remove-test`. If you used **Write suspend
+image once**, restore the original from **Settings → Developer options** before removing the
+test install; its backup lives inside that directory. See
+[Testing alongside your working app](#testing-alongside-your-working-app).
 
 ### Troubleshooting
 
-| Symptom                          | What to check                                                                                                                           |
-| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| Sync fails offline               | Confirm the server URL, network connection, and backend availability. Local tracking still works.                                       |
-| Not connected                    | Pair again; the server may have revoked the token or lost its sessions.                                                                 |
-| A private habit disappeared      | Enable **Show private habits** in Settings and apply with **Done** before editing it.                                                   |
-| Sleep image looks stale          | Enable suspend-image writing and return to the current month. Other months do not update it. Wait for the saved status before sleeping. |
-| Storage file is refused          | Keep the original file and backup. Follow the relevant migration; deleting it to silence the error would discard data.                  |
-| Saves report a missing directory | Deployment creates `data/`. Check the installed path before continuing to enter data; unsaved changes remain only in memory.            |
+| Symptom                          | What to check                                                                                                                                                                |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Sync fails offline               | Confirm the server URL, network connection, and backend availability. Local tracking still works.                                                                            |
+| Not connected                    | Pair again; the server may have revoked the token or lost its sessions.                                                                                                      |
+| A private habit disappeared      | Enable **Show private habits** in Settings and apply with **Done** before editing it.                                                                                        |
+| Power-state images look stale    | Enable **Power-state habit images** and return to the current month. Other months do not update them. Wait for **Power-state images saved** before sleeping or powering off. |
+| Storage file is refused          | Keep the original file and backup. Follow the relevant migration; deleting it to silence the error would discard data.                                                       |
+| Saves report a missing directory | Deployment creates `data/`. Check the installed path before continuing to enter data; unsaved changes remain only in memory.                                                 |
 
 ## How it's built
 
@@ -138,9 +139,13 @@ This app is the QML scene. It's packaged as a Qt binary resource (`.rcc`) plus a
 
 ### Interesting bits
 
-**Suspend-image rendering.** xochitl displays `/usr/share/remarkable/suspended.png` while the device sleeps. The app draws today's grid to a hidden Qt `Canvas`, exports it to PNG, and overwrites that file — but only while the opt-in feature is on. Enabling it (Settings → Done) backs the original up to `suspended.png.bak` first; disabling restores the backup. (Uninstalling does not restore it — toggle the feature off first, or copy `suspended.png.bak` back manually.) The result: glance at a sleeping tablet and the habits are right there.
+**Power-state-image rendering.** The app draws three 1404×1872 PNGs from one current-month snapshot: `/usr/share/remarkable/suspended.png`, `poweroff.png`, and `batteryempty.png`. Each contains the landscape Quiet ledger layout and its own state icon and instruction. The icon and regular-weight sans-serif label sit in a softly rounded badge with generous vertical padding. Sleeping uses a white badge with a black outline, powered off uses a black badge with white content, and battery empty uses a gray badge with a black outline. The rest of every screen stays white. Icons align with the label's visible height, with a compact gap; the battery is wider to retain that same height. No O marks are added, matching the previous suspend renderer. Long names are ellipsized, and larger rosters use tighter rows to keep the state footer clear.
 
-**Cheap re-renders.** Saving a 1404×1872 PNG for every trivial edit is wasteful, so renders are _debounced_ (a 3-second timer restarts after each change while editing) and _deduplicated_ via a content signature persisted alongside the PNG — if nothing visible changed, nothing is written. A small status line on the grid ("Saving suspend image in 3s…" → "Suspend image saved", and the backup/restore phases) makes the pipeline visible. On quit, the latest state is flushed synchronously so the suspend image never lags a tap behind.
+All originals must be readable and backed up to their adjacent `.bak` files before the first write. Existing backups are reused, including the original suspend backup on upgrade. Backup, restore, and save failures name the affected path. Disabling preflights every backup, restores all three, then commits the setting off; a failed restore pauses further rendering until retried. Uninstalling does not restore images: disable the feature successfully first. An already-enabled suspend setting now covers all three images, without changing the persisted settings shape.
+
+The images are prepared while the app is running; battery depletion does not need to launch the renderer. All three are dated snapshots and stay unchanged while the tablet is off. Device firmware activation and e-ink appearance still need checking on the tablet after deployment.
+
+**Cheap re-renders.** Saving a 1404×1872 PNG for every trivial edit is wasteful, so renders are _debounced_ (a 3-second timer restarts after saved changes) and _deduplicated_ via a content signature persisted alongside the PNG — if nothing visible changed, nothing is written. A small status line on the grid ("Saving power-state images in 3s" → "Power-state images saved", and the backup/restore phases) makes the pipeline visible. Quit waits for the latest image batch and backup operations. Unloading can synchronously save only after backups have been prepared; it never bypasses backup safety. The content signature includes the layout version and is committed only when all three saves succeed, so a partial failure is retried.
 
 **Pure QML + plain JS.** State lives in JSON-backed QML stores sharing a `JsonStore.qml` base for the load/debounced-save plumbing. `HabitsStore.qml` is a facade that splits persistence across two files — a `roster.json` (identity + config, plus tombstones for deleted habits) and a per-month file holding that month's entries as flat `(habitId, date)` rows — so a single toggle rewrites only the current month, not all history, and corruption is isolated to one month. The rows match the backend's shape exactly while the month partitioning keeps launch and per-tap cost bounded to one month, which matters on a 1 GHz device. Components forward signals upward; only the store mutates state. Updates are immutable (array spread, `Object.assign`) — the V4 engine handles re-bindings from there. Optional sync is a separate `SyncStore.qml` (the network engine + a `sync.json` sidecar) over a pure-JS `Sync.js` translation layer, sending `Authorization: Bearer <token>` once paired; the merge itself runs server-side, so the client just sends its state and accepts the authoritative result. Tablet pairing is `PairingStore.qml` (ephemeral — nothing it holds persists) over a pure-JS `Pairing.js` translation layer. Both stores share `ServerUrl.js`'s scheme-defaulting/endpoint-joining and `HttpError.js`, which displays the backend's `ProblemDetails.title` for server rejections; the stores only supply messages for device-side network and response failures.
 
@@ -152,7 +157,87 @@ This app is the QML scene. It's packaged as a Qt binary resource (`.rcc`) plus a
 
 ## Building from source
 
-You need Qt 5's `rcc` to match the app's Qt 5.15 runtime:
+### Testing alongside your working app
+
+From the worktree containing the feature you want to test, run these at the monorepo root:
+
+```sh
+pnpm remarkable:build:test       # local build only
+pnpm remarkable:deploy:test      # user-run: install Habit Tracker TEST on the tablet
+pnpm remarkable:backup:test      # user-run: copy test habits to apps/remarkable/.backup/test/<timestamp>/
+```
+
+Or use `make build-test`, `make deploy-test`, and `make backup-test` from `apps/remarkable`.
+Close **Habit Tracker TEST** before deploying it again, then reopen that launcher entry. Your
+ordinary app remains installed. These commands always use `habit-tracker-test`, including from a
+feature worktree; the test and stable bundles have separate local build directories too.
+
+The test install keeps its roster, month files, sync state, settings, and pairing token under
+`/home/root/xovi/exthome/appload/habit-tracker-test/`. First launch uses default habits and blank
+server/token settings. Deploying copies only the app bundle, manifest, and icon; it never copies
+production data or credentials, and later deploys preserve existing test data. There is one shared
+test slot on the tablet, so deploying another worktree replaces that test version.
+
+The grid and Settings display **TEST**. Ordinary test writes stay inside the test app directory,
+including when **Save local suspend preview** is enabled: automatic renders, edits, and quitting only
+update `suspend-preview.png`. The test profile leaves the powered-off and battery-empty device
+images untouched. Test builds refuse writes to production habit data, settings, and the
+stable suspend-image backup. The separate native device suspend-writer is unavailable in the test
+profile. Both apps run inside xochitl; this is not an operating-system sandbox. Keep the test
+directory as a normal directory, without symlinks to production files.
+
+#### Developer options (test builds only)
+
+From the current month's grid, open **Settings → Developer options**. Apply or discard staged
+settings before opening it. The page shows the test data, preview, and backup paths and offers:
+
+- **Render preview** regenerates `developer-preview.png` once, even if nothing changed. It leaves the
+  device's suspend image alone and works with automatic previews switched off.
+- **Write suspend image once** renders the current month's test habits and writes the device's
+  actual suspend image for this one button press. It never enables automatic device-image writes.
+  The first write saves and verifies the existing image as `device-suspend-original.png` inside
+  the test install before changing the device image. Later writes and app restarts preserve it.
+- **Restore original image** copies that verified original back, even when viewing another month
+  or when habit data cannot be read. Restore before removing the test install, which holds the
+  backup. The original is the image captured before the **first** test write, not necessarily the
+  stock reMarkable image or the latest stable habit grid.
+
+The developer UI, controller, and their own preview renderer live under `src/testing/`, behind
+`DeveloperTools.qml`. The app passes only the habit model, render eligibility, and data directory;
+the module handles its actions internally. Stable bundles omit every `src/testing/` resource.
+The ordinary suspend renderer exposes a reusable one-shot render operation, and binary file I/O is
+shared without giving ordinary test storage permission to write outside its app directory.
+
+Render actions require readable, loaded data for the current month. Private habits remain excluded.
+Failures are displayed on the developer page; a failed render or backup never proceeds to a device
+write. Close the stable app during suspend-image testing, since it can otherwise replace the shared
+device image with its own grid. The test app never changes the stable app's backup or signature.
+
+**Sync requires separate test data on both clients.** For pairing tests, use a separate backend
+account (or a separate backend), and a phone installation with separate local storage. A real
+account on either test client can sync test edits into real habits, even though tablet files are
+separate. Signing out of an existing phone app does not isolate the habits it already has locally.
+The tablet starts disconnected, but remembers the test server and token after you pair it.
+
+For device pairing: configure the same test server on both clients, sign in on the test phone app,
+then choose **Connect** in the tablet's test Settings. Enter its code and approve it from the phone's
+**Linked devices → Link a device** screen. Features added on other branches, such as QR scanning,
+can use the same test-install workflow once those changes are present in the worktree.
+
+Replacing the stable app requires an explicit choice:
+
+```sh
+make deploy CONFIRM_STABLE=1
+```
+
+Plain `make deploy` refuses before contacting the device. The confirmation also works from the
+monorepo root as `pnpm remarkable:deploy CONFIRM_STABLE=1`. Back up stable habits with
+`pnpm remarkable:backup` before a stable upgrade. Existing unreadable-file protection remains in
+place: incompatible or corrupt habit files block saves and sync.
+
+### Build tools
+
+You need Node.js to stage the build profile and Qt 5's `rcc` to match the app's Qt 5.15 runtime:
 
 - Arch/Manjaro: `pacman -S qt5-base` (binary is `rcc-qt5`)
 - Debian/Ubuntu: `apt install qtbase5-dev-tools`
@@ -163,7 +248,7 @@ Override the binary with `make RCC=<path>` if it isn't on `$PATH` as `rcc-qt5`.
 ```sh
 make build      # produces build/resources.rcc + staged icon/manifest
 make test       # runs the test suite (see below)
-make deploy     # scps build/* to the device
+make deploy CONFIRM_STABLE=1  # scps build/* to the device
 make remove     # uninstalls from the device
 make backup     # pulls the device's data/ into a timestamped .backup/ dir
 make find-hotspot-ip  # relocates the tablet on the current network (see below)
@@ -233,7 +318,7 @@ back and deploy:
 
 ```sh
 rsync -avz /tmp/migrated/ remarkable:/home/root/xovi/exthome/appload/habit-tracker/data/
-make deploy
+make deploy CONFIRM_STABLE=1
 ```
 
 Then reopen the app. If you get the order wrong, nothing is lost: the new build refuses files it
@@ -260,7 +345,7 @@ this before the final `make deploy` above, not after.
 │   ├── Theme.qml        # singleton: sizes, fonts, colors
 │   ├── JsonStore.qml    # base: deferred load + debounced save for the stores
 │   ├── HabitsStore.qml  # facade: roster + per-month entry files, sole source of mutation
-│   ├── SettingsStore.qml# JSON-backed app settings (suspend-image on/off, sync server URL, bearer token)
+│   ├── SettingsStore.qml# JSON-backed app settings (power-state images on/off, sync server URL, bearer token)
 │   ├── SyncStore.qml    # offline-first sync engine + sidecar (last-synced time)
 │   ├── PairingStore.qml # tablet device-code pairing (Connect flow); ephemeral, nothing persists
 │   ├── components/      # reusable QML pieces (AppButton, HabitsGrid, SuspendCanvas, SettingsPage, …)

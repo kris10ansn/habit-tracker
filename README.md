@@ -47,8 +47,8 @@ client keeps the storage and presentation model suited to its platform.
 Track habits you want to build and habits you want to avoid. On mobile, **Today** puts each habit's
 mark beside its streak. Positive habits cycle from unmarked to done to missed; negative habits
 start clean, and you mark a slip when one happens. On reMarkable, tap X/O cells directly in the
-month grid, with today's column highlighted. Both clients save locally and work offline without
-an account.
+month grid, with today's column highlighted. The tablet adjusts row height to fit the roster
+and provides paging for larger grids. Both clients save locally and work offline without an account.
 
 <table>
   <tr>
@@ -81,8 +81,9 @@ See [Pair a tablet](#pair-a-tablet) for setup instructions.
 ### Adjust your routines
 
 Add, rename, reorder, change polarity, and delete habits from either client. Use **Habits** on
-mobile or **Edit** on reMarkable. The tablet also has a **P** control for marking a habit private;
-see [Privacy and data ownership](#privacy-and-data-ownership) for how that affects its visibility.
+mobile or **Edit habits** on reMarkable. The tablet editor stages changes until **Done** and
+uses **Public / Private** to control habit privacy. See
+[Privacy and data ownership](#privacy-and-data-ownership) for how that affects visibility.
 
 <table>
   <tr>
@@ -91,7 +92,7 @@ see [Privacy and data ownership](#privacy-and-data-ownership) for how that affec
   </tr>
   <tr>
     <td align="center"><sub>On mobile, edit names and polarity, drag to reorder, or add a habit.</sub></td>
-    <td align="center"><sub>Tablet edit mode adds row controls, including the private-habit toggle.</sub></td>
+    <td align="center"><sub>The tablet editor stages names, order, polarity, and privacy until Done.</sub></td>
   </tr>
 </table>
 
@@ -160,11 +161,12 @@ on the tablet, then build and deploy the client from your computer:
 ```sh
 cd apps/remarkable
 make build
-make deploy
+make deploy CONFIRM_STABLE=1
 ```
 
 Open the tracker from the tablet's app launcher. It stores habits locally; Settings contains the
-optional sync and sleep-screen controls.
+optional sync and power-state habit image controls. For an isolated test installation, follow
+[Testing alongside your working app](apps/remarkable/README.md#testing-alongside-your-working-app).
 
 [Installation, SSH configuration, backups, and upgrades →](apps/remarkable/README.md)
 
@@ -214,7 +216,7 @@ This is a pnpm monorepo with independent clients and a shared backend contract:
 .
 ├── apps/
 │   ├── mobile/       Expo / React Native client
-│   ├── remarkable/   QML client and suspend-image renderer
+│   ├── remarkable/   QML client and power-state image renderer
 │   └── backend/      ASP.NET Core API and PostgreSQL persistence
 ├── docs/             Project documentation and screenshot assets
 ├── tools/            Screenshot capture, fixtures, and device framing
@@ -249,7 +251,7 @@ make -C apps/remarkable suspend-writer-test
 
 ### Updating screenshots
 
-The reMarkable captures render the production QML scene and sleep-screen drawing logic offscreen.
+The reMarkable captures render the production QML scene and power-state drawing logic offscreen.
 Android captures use an isolated Expo Go test project on a local emulator. Both use the same
 fictional fixture. With an emulator already running and compatible Expo Go installed, regenerate
 Android captures, device frames, and the linking illustration together:
@@ -272,9 +274,13 @@ configuration.
 
 ## Privacy and data ownership
 
-On reMarkable, enable suspend-image writing in **Settings** to keep the current habit grid visible
-while the tablet sleeps. Private habits are always excluded from that image. In this example,
-Medication appears in the app's grid above but is absent from the sleep screen:
+On reMarkable, enable **Power-state habit images** in **Settings** to show a dated snapshot of
+the current month while the tablet sleeps, is powered off, or has an empty battery. Each image
+identifies the state and how to wake or power the tablet; the snapshot stays unchanged while it
+is off. Private habits are excluded from all three images, even when revealed in the app.
+The app backs up all three originals before replacing them and restores them when you disable
+the setting. In this example, Medication appears in the app's grid above but is absent from
+the sleep screen:
 
 <p align="center">
   <a href="docs/assets/screenshots/remarkable-suspend.png"><img src="docs/assets/screenshots/framed/remarkable-suspend.png" alt="reMarkable sleep screen showing the month grid with the private Medication habit excluded" width="650"></a>
@@ -282,10 +288,21 @@ Medication appears in the app's grid above but is absent from the sleep screen:
   <sub>Only public habits appear on the sleep screen, even when private habits are revealed in the app.</sub>
 </p>
 
+<table>
+  <tr>
+    <td width="50%"><a href="docs/assets/screenshots/remarkable-poweroff.png"><img src="docs/assets/screenshots/framed/remarkable-poweroff.png" alt="Quiet ledger habit snapshot with power icon, Powered off label, and Hold power to turn on instruction" width="100%"></a></td>
+    <td width="50%"><a href="docs/assets/screenshots/remarkable-batteryempty.png"><img src="docs/assets/screenshots/framed/remarkable-batteryempty.png" alt="Quiet ledger habit snapshot with empty battery icon and Connect to power instruction" width="100%"></a></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>The powered-off snapshot shows how to turn the tablet on.</sub></td>
+    <td align="center"><sub>The battery-empty snapshot prompts you to connect power.</sub></td>
+  </tr>
+</table>
+
 - There is no telemetry.
 - Both clients keep habit data locally and continue working offline.
 - Sync is opt-in; the backend is self-hosted and keeps each account's records separate.
-- Private habits are excluded from the reMarkable sleep screen. Its main-grid reveal setting stays local to that tablet.
+- Private habits are excluded from every reMarkable power-state image. Its main-grid reveal setting stays local to that tablet.
 - The private flag controls visibility; private habits still participate in sync and remain visible on mobile.
 - Session tokens can be revoked from the linked-device list without deleting local habit data.
 - Sync propagates deletions, so it is not a backup. Keep tablet data backups and database backups before upgrades or resets; mobile currently has no in-app export or restore flow.

@@ -56,7 +56,8 @@ export function EditHabitRow({ habit }: Props) {
             <View className="flex-1">
                 <TextInput
                     value={draft}
-                    className="py-0.5 text-[15px] font-semibold text-ink"
+                    accessibilityLabel={`Rename ${habit.name}`}
+                    className="py-1 text-[15px] font-semibold text-ink"
                     onChangeText={setDraft}
                     onBlur={commitName}
                     onEndEditing={commitName}
@@ -80,19 +81,14 @@ export function EditHabitRow({ habit }: Props) {
 
             <Pressable
                 onPress={confirmDelete}
-                className="h-8 w-8 items-center justify-center rounded-full bg-slip-soft active:opacity-70"
+                accessibilityRole="button"
+                accessibilityLabel={`Delete ${habit.name}`}
+                className="h-[44px] w-[44px] items-center justify-center rounded-full bg-surface-2 active:bg-slip-soft"
             >
                 <CommunityIcon
-                    name="delete-forever"
+                    name="trash-can-outline"
                     size={16}
-                    className="text-slip"
-                />
-            </Pressable>
-            <Pressable className="h-8 w-8 items-center justify-center rounded-full bg-yellow-100 active:opacity-70">
-                <CommunityIcon
-                    name="archive-outline"
-                    size={16}
-                    className="text-yellow-300"
+                    className="text-ink-2"
                 />
             </Pressable>
         </>
