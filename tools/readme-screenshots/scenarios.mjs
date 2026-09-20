@@ -32,6 +32,7 @@ export const scenarios = Object.freeze({
         }),
         suspend: Object.freeze({
             output: "remarkable-suspend.png",
+            showcase: "remarkable-showcase.png",
             renderer: "suspend",
         }),
     }),

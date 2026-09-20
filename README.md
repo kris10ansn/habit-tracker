@@ -18,7 +18,7 @@ service to keep your habits up to date across devices.
   </tr>
   <tr>
     <td colspan="2" align="center">
-      <a href="docs/assets/screenshots/remarkable-suspend.png"><img src="docs/assets/screenshots/framed/remarkable-suspend.png" alt="reMarkable sleep screen showing the month grid with private habits excluded" width="480"></a>
+      <a href="docs/assets/screenshots/framed/remarkable-showcase.png"><img src="docs/assets/screenshots/framed/remarkable-showcase.png" alt="Real reMarkable sleep screen in a white tablet on an angled tan leather folio, with private habits excluded" width="640"></a>
       <br>
       <sub><b>Sleep screen</b> · Public habits visible while it sleeps</sub>
     </td>
