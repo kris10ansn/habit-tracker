@@ -32,7 +32,8 @@ type AppScreenProps = {
 };
 
 // Page scaffold shared by every tab: safe-area frame, header, and a body that
-// either scrolls (default) or fills. The bottom edge is owned by the tab bar.
+// either scrolls (default) or fills. Scroll content extends behind the floating
+// tab bar, with clearance only at the end so the last row remains reachable.
 export function AppScreen({
     title,
     eyebrow,
@@ -58,25 +59,40 @@ export function AppScreen({
                 avoidKeyboard ? (
                     <KeyboardAwareScrollView
                         className="flex-1"
-                        contentContainerClassName="px-4 pb-8"
+                        contentContainerClassName="px-5 pb-8"
                         keyboardShouldPersistTaps="handled"
                         bottomOffset={16}
                         refreshControl={refreshControl}
                     >
                         {children}
+                        <TabBarClearance />
                     </KeyboardAwareScrollView>
                 ) : (
                     <ScrollView
                         className="flex-1"
-                        contentContainerClassName="px-4 pb-8"
+                        contentContainerClassName="px-5 pb-8"
                         refreshControl={refreshControl}
                     >
                         {children}
+                        <TabBarClearance />
                     </ScrollView>
                 )
             ) : (
-                <View className="flex-1 px-4">{children}</View>
+                // A screen with its own scroll view owns its scroll-end clearance.
+                <View className="flex-1 px-5">{children}</View>
             )}
         </SafeAreaView>
+    );
+}
+
+// This spacer scrolls with the content instead of masking it with a fixed footer.
+// Include the home-indicator inset and room for the capsule at larger text sizes.
+export function TabBarClearance() {
+    return (
+        <SafeAreaView
+            className="pt-28"
+            edges={["bottom"]}
+            pointerEvents="none"
+        />
     );
 }
