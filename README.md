@@ -8,8 +8,8 @@ service to keep your habits up to date across devices.
 
 <table>
   <tr>
-    <td width="30%" align="center" valign="middle"><a href="docs/assets/screenshots/android-today.png"><img src="docs/assets/screenshots/framed/android-today.png" alt="Mobile Today view with daily habit progress, streaks, and a slip-up" width="150"></a></td>
-    <td width="70%" align="center" valign="middle"><a href="docs/assets/screenshots/remarkable-grid.png"><img src="docs/assets/screenshots/framed/remarkable-grid.png" alt="reMarkable month grid with habit entries and today's column highlighted" width="360"></a></td>
+    <td width="30%" align="center" valign="middle"><a href="docs/assets/screenshots/android-today.png"><img src="docs/assets/screenshots/framed/android-today.png" alt="Mobile Today view with daily habit progress, streaks, and a slip-up" width="220"></a></td>
+    <td width="70%" align="center" valign="middle"><a href="docs/assets/screenshots/remarkable-grid.png"><img src="docs/assets/screenshots/framed/remarkable-grid.png" alt="reMarkable month grid with habit entries and today's column highlighted" width="480"></a></td>
   </tr>
   <tr>
     <td align="center"><sub><b>Mobile</b> · Daily logging and streaks</sub></td>
@@ -17,7 +17,7 @@ service to keep your habits up to date across devices.
   </tr>
   <tr>
     <td colspan="2" align="center">
-      <a href="docs/assets/screenshots/remarkable-suspend.png"><img src="docs/assets/screenshots/framed/remarkable-suspend.png" alt="reMarkable sleep screen showing the month grid with private habits excluded" width="100%"></a>
+      <a href="docs/assets/screenshots/remarkable-suspend.png"><img src="docs/assets/screenshots/framed/remarkable-suspend.png" alt="reMarkable sleep screen showing the month grid with private habits excluded" width="480"></a>
       <br>
       <sub><b>Sleep screen</b> · Public habits visible while it sleeps</sub>
     </td>
