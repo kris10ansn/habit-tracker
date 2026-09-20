@@ -8,17 +8,22 @@ service to keep your habits up to date across devices.
 
 <table>
   <tr>
-    <td width="20%" align="center" valign="middle"><a href="docs/assets/screenshots/android-today.png"><img src="docs/assets/screenshots/framed/android-today.png" alt="Mobile Today view with daily habit progress, streaks, and a slip-up" width="150"></a></td>
-    <td width="40%" align="center" valign="middle"><a href="docs/assets/screenshots/remarkable-grid.png"><img src="docs/assets/screenshots/framed/remarkable-grid.png" alt="reMarkable month grid with habit entries and today's column highlighted" width="360"></a></td>
-    <td width="40%" align="center" valign="middle"><a href="docs/assets/screenshots/remarkable-suspend.png"><img src="docs/assets/screenshots/framed/remarkable-suspend.png" alt="reMarkable sleep screen showing the month grid with private habits excluded" width="360"></a></td>
+    <td width="30%" align="center" valign="middle"><a href="docs/assets/screenshots/android-today.png"><img src="docs/assets/screenshots/framed/android-today.png" alt="Mobile Today view with daily habit progress, streaks, and a slip-up" width="150"></a></td>
+    <td width="70%" align="center" valign="middle"><a href="docs/assets/screenshots/remarkable-grid.png"><img src="docs/assets/screenshots/framed/remarkable-grid.png" alt="reMarkable month grid with habit entries and today's column highlighted" width="360"></a></td>
   </tr>
   <tr>
     <td align="center"><sub><b>Mobile</b> · Daily logging and streaks</sub></td>
     <td align="center"><sub><b>reMarkable</b> · Habits at a glance on e-ink</sub></td>
-    <td align="center"><sub><b>Sleep screen</b> · Public habits visible while it sleeps</sub></td>
   </tr>
   <tr>
-    <td colspan="3" align="center">
+    <td colspan="2" align="center">
+      <a href="docs/assets/screenshots/remarkable-suspend.png"><img src="docs/assets/screenshots/framed/remarkable-suspend.png" alt="reMarkable sleep screen showing the month grid with private habits excluded" width="100%"></a>
+      <br>
+      <sub><b>Sleep screen</b> · Public habits visible while it sleeps</sub>
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2" align="center">
       <a href="docs/assets/screenshots/framed/device-linking.png"><img src="docs/assets/screenshots/framed/device-linking.png" alt="Pairing sequence: reMarkable displays code H7K9Q2, Android identifies the tablet for approval, and Linked devices lists the phone and tablet" width="100%"></a>
       <br>
       <sub><b>Link your devices</b> · Request a code on reMarkable, approve on mobile, and review linked devices</sub>
