@@ -2,7 +2,8 @@
 
 > Cross-platform, offline-first habit tracking for mobile and reMarkable.
 
-Track daily habits, review your history, and manage your routines from your phone or e-ink tablet.
+Inspired by *Atomic Habits* by James Clear, Habit Tracker helps you track daily
+habits, review your history, and manage your routines from your phone or e-ink tablet.
 Each client works independently with local storage. Connect either or both to a self-hosted sync
 service to keep your habits up to date across devices.
 
