@@ -74,11 +74,11 @@ client keeps the storage and presentation model suited to its platform.
 
 Each client presents the same habits in a way that fits its display:
 
-| Mobile                                                        | reMarkable                                                        |
-| ------------------------------------------------------------- | ----------------------------------------------------------------- |
-| Today view with progress, streaks, and slip tracking          | High-contrast month grid with X/O marks and today highlighting    |
-| Portrait month review with days as rows and habits as columns | Landscape layout with horizontal and vertical paging              |
-| Manual and pull-to-refresh sync                               | Optional habit grid on the sleep screen, excluding private habits |
+| Mobile                                                        | reMarkable                                                         |
+| ------------------------------------------------------------- | ------------------------------------------------------------------ |
+| Today view with progress, streaks, and slip tracking          | High-contrast month grid with X/O marks and today highlighting     |
+| Portrait month review with days as rows and habits as columns | Landscape layout with horizontal and vertical paging               |
+| Manual and pull-to-refresh sync                               | Optional habit grid while sleeping, powered off, or out of battery |
 
 ### Supported platforms
 
@@ -178,8 +178,8 @@ Review a month of entries, manage your habits, and see which changes are waiting
 
 ### reMarkable: edit and keep habits visible
 
-Edit habits directly on the tablet and optionally keep the month grid visible while it sleeps.
-Private habits stay off the sleep screen.
+Edit habits directly on the tablet and optionally keep a dated month snapshot visible while it sleeps,
+is powered off, or has an empty battery. Icons and instructions identify each state; private habits stay excluded.
 
 <table>
   <tr>
@@ -189,6 +189,13 @@ Private habits stay off the sleep screen.
   <tr>
     <td align="center"><sub>Rename, reorder, and set habit privacy</sub></td>
     <td align="center"><sub>Keep public habits visible while it sleeps</sub></td>
+  </tr>
+</table>
+
+<table>
+  <tr>
+    <td width="50%"><a href="docs/assets/screenshots/remarkable-poweroff.png"><img src="docs/assets/screenshots/framed/remarkable-poweroff.png" alt="Quiet ledger habit snapshot with power icon, Powered off label, and Hold power to turn on instruction" width="100%"></a></td>
+    <td width="50%"><a href="docs/assets/screenshots/remarkable-batteryempty.png"><img src="docs/assets/screenshots/framed/remarkable-batteryempty.png" alt="Quiet ledger habit snapshot with empty battery icon and Connect to power instruction" width="100%"></a></td>
   </tr>
 </table>
 
@@ -263,7 +270,7 @@ For mobile fixture setup, manual capture, and framing instructions, see the
 - There is no telemetry.
 - Both clients keep habit data locally and continue working offline.
 - Sync is opt-in; the backend is self-hosted and keeps each account's records separate.
-- Private habits are excluded from the reMarkable sleep screen. Its main-grid reveal setting stays local to that tablet.
+- Private habits are excluded from every reMarkable power-state image. Its main-grid reveal setting stays local to that tablet.
 - Session tokens can be revoked from the linked-device list without deleting local habit data.
 
 ## Contributing

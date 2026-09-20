@@ -57,7 +57,8 @@ pnpm screenshots:remarkable -- --scenario pairing
 ```
 
 The normal pages come from the live `apps/remarkable/src/Main.qml` scene through an offscreen Qt
-Quick host. The suspend image still comes from the production suspend renderer; the tool only
+Quick host. The `suspend`, `poweroff`, and `batteryempty` images come from the production
+power-state renderer; the tool only
 rotates its framebuffer-oriented result for readable README presentation. Each raw capture and its
 framed presentation copy are written together.
 

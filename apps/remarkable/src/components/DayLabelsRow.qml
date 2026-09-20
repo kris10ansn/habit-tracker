@@ -14,15 +14,16 @@ Row {
     Repeater {
         model: labels.daysInMonth
 
-        Text {
+        Rectangle {
             width: labels.boxSize
             height: App.Theme.dayLabelHeight
-            text: index + 1
-            font.pixelSize: App.Theme.dayLabelFont
-            font.bold: index + 1 === labels.highlightDay
-            color: App.Theme.fg
-            horizontalAlignment: Text.AlignHCenter
-            verticalAlignment: Text.AlignVCenter
+            color: index + 1 === labels.highlightDay ? App.Theme.fg : App.Theme.bg
+            Text {
+                anchors.centerIn: parent
+                text: index + 1
+                font.pixelSize: App.Theme.dayLabelFont
+                color: index + 1 === labels.highlightDay ? App.Theme.bg : App.Theme.fg
+            }
         }
     }
 }
