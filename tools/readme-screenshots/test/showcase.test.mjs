@@ -13,7 +13,7 @@ import {
 
 const sourcePath = fileURLToPath(
     new URL(
-        "../../../docs/assets/device-frames/remarkable-folio-front-source.png",
+        "../../../docs/assets/device-frames/remarkable-desk-close-source.png",
         import.meta.url,
     ),
 );
@@ -28,7 +28,7 @@ function pixels(imagePath) {
 }
 
 function pixel(bytes, x, y) {
-    const offset = (y * 1448 + x) * 3;
+    const offset = (y * 1536 + x) * 3;
     return [...bytes.subarray(offset, offset + 3)];
 }
 
@@ -82,8 +82,8 @@ test("folio fits the screenshot without rotation and preserves the surrounding a
             "remarkable-showcase.png",
         );
         assert.deepEqual(pngDimensions(await readFile(showcasePath)), {
-            width: 1448,
-            height: 1086,
+            width: 1536,
+            height: 1024,
         });
         assert.deepEqual(
             pngDimensions(
