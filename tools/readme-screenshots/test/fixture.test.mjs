@@ -13,6 +13,12 @@ import {
 } from "../lib/fixture.mjs";
 import { scenarios, selectScenarios } from "../scenarios.mjs";
 import { parseAdbDevices, validateEmulatorTarget } from "../lib/adb.mjs";
+import {
+    deviceFrames,
+    linkingScene,
+    pngDimensions,
+    validateScreenshotDimensions,
+} from "../lib/device-frames.mjs";
 
 const fixturePath = new URL("../fixture.json", import.meta.url);
 const require = createRequire(import.meta.url);
@@ -21,6 +27,7 @@ const {
 } = require("../../../apps/mobile/src/testMode/freezeDate.js");
 const {
     APP_PROVIDERS_IMPORT,
+    CAMERA_IMPORT,
     withTestTarget,
 } = require("../../../apps/mobile/src/testMode/metro.js");
 
@@ -74,7 +81,7 @@ test("validator rejects duplicate entry identities", async () => {
 });
 
 test("scenario selection is explicit", () => {
-    assert.equal(Object.keys(scenarios.remarkable).length, 5);
+    assert.equal(Object.keys(scenarios.remarkable).length, 7);
     assert.equal(Object.keys(scenarios.android).length, 6);
     assert.deepEqual(selectScenarios("android", "devices")[0][0], "devices");
     assert.equal("route" in scenarios.android.devices, false);
@@ -82,6 +89,79 @@ test("scenario selection is explicit", () => {
         () => selectScenarios("android", "grid"),
         /Unknown android scenario/,
     );
+});
+
+test("device-frame geometry stays inside its source crop", () => {
+    const layouts = [
+        ...Object.values(deviceFrames).map((frame) => ({
+            crop: frame.crop,
+            slots: [frame],
+        })),
+        { crop: linkingScene.crop, slots: Object.values(linkingScene.slots) },
+    ];
+
+    for (const layout of layouts) {
+        for (const slot of layout.slots) {
+            assert.ok(slot.screen.x >= 0);
+            assert.ok(slot.screen.y >= 0);
+            assert.ok(slot.screen.x + slot.screen.width <= layout.crop.width);
+            assert.ok(slot.screen.y + slot.screen.height <= layout.crop.height);
+        }
+    }
+});
+
+test("device frames accept expected screenshot orientations", () => {
+    assert.doesNotThrow(() =>
+        validateScreenshotDimensions("remarkable", {
+            width: 1872,
+            height: 1404,
+        }),
+    );
+    assert.doesNotThrow(() =>
+        validateScreenshotDimensions("android", {
+            width: 1080,
+            height: 2424,
+        }),
+    );
+    assert.throws(
+        () =>
+            validateScreenshotDimensions("android", {
+                width: 2400,
+                height: 1080,
+            }),
+        /must be portrait/,
+    );
+});
+
+test("device-frame windows exactly match native capture proportions", () => {
+    const captureDimensions = {
+        remarkable: { width: 1872, height: 1404 },
+        android: { width: 1080, height: 2424 },
+    };
+    const slots = [
+        ...Object.entries(deviceFrames).map(([client, frame]) => ({
+            client,
+            screen: frame.screen,
+        })),
+        ...Object.values(linkingScene.slots),
+    ];
+
+    for (const slot of slots) {
+        const capture = captureDimensions[slot.client];
+        assert.equal(
+            slot.screen.width * capture.height,
+            slot.screen.height * capture.width,
+        );
+    }
+});
+
+test("PNG dimensions come from the image header", () => {
+    const header = Buffer.alloc(24);
+    Buffer.from("89504e470d0a1a0a", "hex").copy(header);
+    header.writeUInt32BE(930, 16);
+    header.writeUInt32BE(690, 20);
+    assert.deepEqual(pngDimensions(header), { width: 930, height: 690 });
+    assert.throws(() => pngDimensions(Buffer.from("not a png")), /not a PNG/);
 });
 
 test("adb parser distinguishes target states", () => {
@@ -115,6 +195,7 @@ test("emulator validation rejects physical, offline, and non-QEMU targets", () =
 });
 
 test("test app identity leaves ordinary Expo config unchanged", async () => {
+    const fixture = await loadFixture(fixturePath);
     const appConfig = require("../../../apps/mobile/app.config.js");
     const appJson = JSON.parse(
         await readFile(
@@ -127,6 +208,10 @@ test("test app identity leaves ordinary Expo config unchanged", async () => {
     try {
         delete process.env.APP_TEST_MODE;
         assert.deepEqual(appConfig({ config: appJson }), appJson);
+        assert.equal(
+            appConfig({ config: appJson }).extra.testPairingCode,
+            undefined,
+        );
 
         process.env.APP_TEST_MODE = "1";
         const testConfig = appConfig({ config: appJson });
@@ -140,6 +225,10 @@ test("test app identity leaves ordinary Expo config unchanged", async () => {
         );
         assert.equal("eas" in testConfig.extra, false);
         assert.deepEqual(testConfig.extra.router, {});
+        assert.equal(testConfig.extra.testPairingCode, fixture.pairing.code);
+
+        process.env.APP_TEST_MODE = "0";
+        assert.deepEqual(appConfig({ config: appJson }), appJson);
     } finally {
         if (previous === undefined) delete process.env.APP_TEST_MODE;
         else process.env.APP_TEST_MODE = previous;
@@ -185,7 +274,7 @@ test("test mode leaves the normal entry and resolver unchanged", async () => {
     }
 });
 
-test("test target substitutes only the root provider import", () => {
+test("test target substitutes providers and camera while delegating other imports", () => {
     const previous = process.env.APP_TEST_MODE;
     const delegated = { type: "sourceFile", filePath: "/default.ts" };
     const context = {
@@ -220,6 +309,49 @@ test("test target substitutes only the root provider import", () => {
             ),
             delegated,
         );
+        assert.deepEqual(
+            config.resolver.resolveRequest(context, CAMERA_IMPORT, "ios"),
+            {
+                type: "sourceFile",
+                filePath: path.join("/mobile", "src/testMode/TestCamera.tsx"),
+            },
+        );
+        assert.equal(
+            config.resolver.resolveRequest(context, "expo-image", "ios"),
+            delegated,
+        );
+    } finally {
+        if (previous === undefined) delete process.env.APP_TEST_MODE;
+        else process.env.APP_TEST_MODE = previous;
+    }
+});
+
+test("ordinary mode keeps the real camera resolver for unset and false flags", () => {
+    const previous = process.env.APP_TEST_MODE;
+    const realCamera = {
+        type: "sourceFile",
+        filePath: "/expo-camera/index.ts",
+    };
+    const resolveRequest = (_context, moduleName) => {
+        assert.equal(moduleName, CAMERA_IMPORT);
+        return realCamera;
+    };
+
+    try {
+        for (const mode of [undefined, "0"]) {
+            if (mode === undefined) delete process.env.APP_TEST_MODE;
+            else process.env.APP_TEST_MODE = mode;
+
+            const config = withTestTarget(
+                { resolver: { resolveRequest } },
+                "/mobile",
+            );
+            assert.equal(config.resolver.resolveRequest, resolveRequest);
+            assert.equal(
+                config.resolver.resolveRequest({}, CAMERA_IMPORT, "android"),
+                realCamera,
+            );
+        }
     } finally {
         if (previous === undefined) delete process.env.APP_TEST_MODE;
         else process.env.APP_TEST_MODE = previous;

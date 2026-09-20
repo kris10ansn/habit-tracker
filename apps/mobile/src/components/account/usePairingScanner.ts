@@ -1,64 +1,109 @@
 import { useFocusEffect, useIsFocused } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
+import { AppState, Linking } from "react-native";
 
 import { useCameraPermissionRequest } from "@/lib/useCameraPermissionRequest";
 
 export function usePairingScanner() {
     const isFocused = useIsFocused();
-    const [scannerOpen, setScannerOpen] = useState(false);
-    const [cameraPermissionMessage, setCameraPermissionMessage] = useState<
-        string | null
-    >(null);
     const {
         cancelPendingRequest,
+        hasCameraPermission,
+        needsCameraSettings,
+        refreshPermission,
         requestPermission,
-        requesting: requestingCamera,
+        requesting: isRequestingCameraPermission,
     } = useCameraPermissionRequest();
+    const [isScannerOpen, setIsScannerOpen] = useState(true);
+    const [cameraPermissionError, setCameraPermissionError] = useState<
+        string | null
+    >(null);
+    // Ignore errors from permission and Settings requests after the scanner is closed or reopened.
+    const latestScannerSessionId = useRef(0);
 
     const closeScanner = useCallback(() => {
+        latestScannerSessionId.current += 1;
         cancelPendingRequest();
-        setScannerOpen(false);
-        setCameraPermissionMessage(null);
+        setIsScannerOpen(false);
+        setCameraPermissionError(null);
     }, [cancelPendingRequest]);
 
-    useFocusEffect(
-        useCallback(() => {
-            return closeScanner;
-        }, [closeScanner]),
-    );
-
     const openScanner = useCallback(async () => {
-        if (!isFocused) {
-            return;
-        }
-
-        setCameraPermissionMessage(null);
+        const scannerSessionId = latestScannerSessionId.current + 1;
+        latestScannerSessionId.current = scannerSessionId;
+        setIsScannerOpen(true);
+        setCameraPermissionError(null);
 
         const permissionOutcome = await requestPermission();
-        if (permissionOutcome === "granted") {
-            setScannerOpen(true);
-            return;
-        }
-
-        if (permissionOutcome === "denied") {
-            setCameraPermissionMessage(
-                "Camera access wasn’t granted. Enter the code manually, or enable camera access in system settings.",
-            );
-            return;
-        }
-
-        if (permissionOutcome === "error") {
-            setCameraPermissionMessage(
+        if (
+            permissionOutcome === "error" &&
+            scannerSessionId === latestScannerSessionId.current
+        ) {
+            setCameraPermissionError(
                 "Camera access couldn’t be requested. Enter the code manually instead.",
             );
         }
-    }, [isFocused, requestPermission]);
+    }, [requestPermission]);
+
+    useFocusEffect(
+        useCallback(() => {
+            void openScanner();
+            return closeScanner;
+        }, [closeScanner, openScanner]),
+    );
+
+    useFocusEffect(
+        useCallback(() => {
+            if (!isScannerOpen || isRequestingCameraPermission) {
+                return;
+            }
+
+            // Returning from Settings can grant or revoke access without remounting the route.
+            let cancelled = false;
+            const subscription = AppState.addEventListener(
+                "change",
+                (state) => {
+                    if (state !== "active") {
+                        return;
+                    }
+                    void refreshPermission().catch(() => {
+                        if (!cancelled) {
+                            setCameraPermissionError(
+                                "Camera access couldn’t be checked. Try again or enter the code manually.",
+                            );
+                        }
+                    });
+                },
+            );
+            return () => {
+                cancelled = true;
+                subscription.remove();
+            };
+        }, [refreshPermission, isRequestingCameraPermission, isScannerOpen]),
+    );
+
+    const openCameraSettings = async () => {
+        const scannerSessionId = latestScannerSessionId.current;
+        setCameraPermissionError(null);
+        try {
+            await Linking.openSettings();
+        } catch {
+            if (scannerSessionId === latestScannerSessionId.current) {
+                setCameraPermissionError(
+                    "Settings couldn’t be opened. Enable camera access in your phone’s settings, or enter the code manually.",
+                );
+            }
+        }
+    };
 
     return {
-        cameraPermissionMessage,
+        cameraPermissionError,
         closeScanner,
         openScanner,
-        requestingCamera,
-        scannerOpen: scannerOpen && isFocused,
+        openCameraSettings,
+        hasCameraPermission,
+        needsCameraSettings,
+        isRequestingCameraPermission,
+        isScannerVisible: isScannerOpen && isFocused,
     };
 }

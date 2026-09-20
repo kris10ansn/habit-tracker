@@ -8,8 +8,10 @@ type CameraPermissionRequestOutcome =
     | "cancelled";
 
 export function useCameraPermissionRequest() {
-    const [cameraPermission, requestCameraPermission] = useCameraPermissions();
-    const [requesting, setRequesting] = useState(false);
+    const [cameraPermission, requestCameraPermission, getCameraPermission] =
+        useCameraPermissions({ get: false });
+    // The caller starts the initial check when its screen becomes focused.
+    const [requesting, setRequesting] = useState(true);
     const requestGeneration = useRef(0);
 
     // Native permission prompts cannot be dismissed programmatically. Cancelling invalidates the
@@ -30,13 +32,18 @@ export function useCameraPermissionRequest() {
             const currentRequestGeneration = requestGeneration.current + 1;
             requestGeneration.current = currentRequestGeneration;
 
-            if (cameraPermission?.granted) {
-                return "granted";
-            }
-
             setRequesting(true);
             try {
-                const permission = await requestCameraPermission();
+                // Access may have changed in Settings since the last render.
+                let permission = await getCameraPermission();
+                if (currentRequestGeneration !== requestGeneration.current) {
+                    return "cancelled";
+                }
+
+                if (!permission.granted && permission.canAskAgain) {
+                    permission = await requestCameraPermission();
+                }
+
                 if (currentRequestGeneration !== requestGeneration.current) {
                     return "cancelled";
                 }
@@ -51,10 +58,17 @@ export function useCameraPermissionRequest() {
                     setRequesting(false);
                 }
             }
-        }, [cameraPermission?.granted, requestCameraPermission]);
+        }, [getCameraPermission, requestCameraPermission]);
+
+    const refreshPermission = useCallback(async () => {
+        await getCameraPermission();
+    }, [getCameraPermission]);
 
     return {
         cancelPendingRequest,
+        hasCameraPermission: cameraPermission?.granted === true,
+        needsCameraSettings: cameraPermission?.canAskAgain === false,
+        refreshPermission,
         requestPermission,
         requesting,
     };

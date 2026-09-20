@@ -1,18 +1,22 @@
 const LABELS = {
-    "saving": "Saving suspend image...",
-    "saved": "Suspend image saved",
-    "backing-up": "Backing up suspend image...",
-    "backed-up": "Backed up suspend image",
-    "restoring": "Restoring suspend image...",
-    "restored": "Restored suspend image",
-    "backup-failed": "Could not back up suspend image",
-    "restore-failed": "Could not restore suspend image"
+    saving: "Saving power-state images...",
+    "save-failed": "Could not save power-state images",
+    saved: "Power-state images saved",
+    "backing-up": "Backing up power-state images...",
+    "backed-up": "Backed up power-state images",
+    restoring: "Restoring power-state images...",
+    restored: "Restored power-state images",
+    "backup-failed": "Could not back up power-state images",
+    "restore-failed": "Could not restore power-state images",
 };
 
-function text(phase, remainingSeconds) {
+function text(phase, remainingSeconds, failedPath = "") {
     if (phase === "pending") {
-        return remainingSeconds > 0 ? `Saving suspend image in ${remainingSeconds}s` : "Saving suspend image...";
+        return remainingSeconds > 0
+            ? `Saving power-state images in ${remainingSeconds}s`
+            : "Saving power-state images...";
     }
 
-    return LABELS[phase] || "";
+    const label = LABELS[phase] || "";
+    return label && failedPath ? `${label}: ${failedPath}` : label;
 }

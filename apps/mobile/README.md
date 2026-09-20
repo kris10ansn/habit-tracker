@@ -6,7 +6,7 @@
 > the [root `CONTEXT.md`](../../CONTEXT.md), the sync terms in the
 > [backend glossary](../backend/CONTEXT.md).
 
-The mobile client of the habit tracker: an [Expo](https://expo.dev) (SDK 56) app built with
+The mobile client of the habit tracker: an [Expo](https://expo.dev) (SDK 57) app built with
 expo-router and TypeScript, styled with [NativeWind](https://www.nativewind.dev) (Tailwind for
 React Native).
 
@@ -34,6 +34,8 @@ camera or enter its six-character code manually, review the requesting device, a
 
 ## Run it
 
+Use Node.js 22.13 or newer. After an SDK upgrade, rebuild any installed native development or preview app before testing.
+
 Install workspace deps once from the monorepo root (`pnpm install`), then from the root:
 
 ```sh
@@ -46,8 +48,9 @@ Or run scripts directly from this directory with `pnpm start` / `pnpm android` /
 There is deliberately no web target. The dev server prints options to open the app in a development build, a simulator, or
 [Expo Go](https://expo.dev/go).
 
-QR pairing uses the device camera and therefore needs a physical Android or iOS device; manual code
-entry remains available when camera access is unavailable or denied.
+QR pairing opens the scanner automatically and requests camera access when needed. If access is
+denied, the scanner shows an action to allow it or open system settings. Manual code entry remains
+available below it. Scanning needs a physical Android or iOS device.
 
 Checks:
 
