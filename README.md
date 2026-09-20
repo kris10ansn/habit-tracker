@@ -2,7 +2,7 @@
 
 > Cross-platform, offline-first habit tracking for mobile and reMarkable.
 
-Inspired by *Atomic Habits* by James Clear, Habit Tracker helps you track daily
+Inspired by _Atomic Habits_ by James Clear, Habit Tracker helps you track daily
 habits, review your history, and manage your routines from your phone or e-ink tablet.
 Each client works independently with local storage. Connect either or both to a self-hosted sync
 service to keep your habits up to date across devices.
@@ -60,11 +60,11 @@ flowchart LR
     API --> DB[(PostgreSQL)]
 ```
 
-| Component         | Stack                                           | Documentation                                 |
-| ----------------- | ----------------------------------------------- | --------------------------------------------- |
+| Component         | Stack                                                  | Documentation                                 |
+| ----------------- | ------------------------------------------------------ | --------------------------------------------- |
 | Mobile client     | Expo SDK 57, React Native, TypeScript, SQLite, Drizzle | [Mobile guide](apps/mobile/README.md)         |
-| reMarkable client | QML, Qt 5.15, JavaScript, XOVI, rm-appload      | [reMarkable guide](apps/remarkable/README.md) |
-| Sync service      | ASP.NET Core 10, EF Core, PostgreSQL            | [Backend guide](apps/backend/README.md)       |
+| reMarkable client | QML, Qt 5.15, JavaScript, XOVI, rm-appload             | [reMarkable guide](apps/remarkable/README.md) |
+| Sync service      | ASP.NET Core 10, EF Core, PostgreSQL                   | [Backend guide](apps/backend/README.md)       |
 
 The backend defines the shared contract through a committed [OpenAPI document](apps/backend/openapi.json).
 It merges timestamped changes and deletion records using last-write-wins reconciliation; each
@@ -229,7 +229,6 @@ See the [backend setup guide](apps/backend/README.md#accounts-and-first-sync) fo
 and the [mobile guide](apps/mobile/README.md#troubleshooting) for connection problems.
 
 [Backend configuration and API documentation →](apps/backend/README.md)
-
 
 ## Development
 
