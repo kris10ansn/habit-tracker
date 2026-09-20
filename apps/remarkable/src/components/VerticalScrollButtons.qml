@@ -17,7 +17,7 @@ Column {
 
     Item {
         width: App.Theme.buttonWidth
-        height: App.Theme.dayLabelHeight
+        height: App.Theme.dayLabelHeight - verticalScroll.spacing
     }
 
     AppButton {
