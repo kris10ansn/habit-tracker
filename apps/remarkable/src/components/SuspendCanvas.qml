@@ -2,13 +2,17 @@ import QtQuick 2.15
 import "../js/SuspendRender.js" as SuspendRender
 import "../js/SuspendDraw.js" as SuspendDraw
 import "../js/HabitsModel.js" as HabitsModel
+import "../js/BuildProfile.js" as BuildProfile
 
 Canvas {
     id: canvas
 
     property string imageDirectory: "/usr/share/remarkable"
-    property string signaturePath: "/home/root/xovi/exthome/appload/habit-tracker/.sleep-sig"
-    readonly property var targets: SuspendRender.imageTargets(imageDirectory)
+    property string signaturePath: BuildProfile.signaturePath
+    property string targetPath: BuildProfile.suspendPath
+    readonly property var targets: BuildProfile.isTest
+        ? [{ state: "sleep", path: canvas.targetPath, backup: BuildProfile.suspendBackupPath }]
+        : SuspendRender.imageTargets(imageDirectory)
     property var habits: []
     property date today: new Date()
     property bool renderAllowed: false
@@ -19,7 +23,7 @@ Canvas {
     property string lastRenderedSignature: ""
     property bool busy: false
     property bool restorationPending: false
-    property bool _backupsReady: false
+    property bool _backupsReady: BuildProfile.isTest
     property int _generation: 0
 
     width: 1404
@@ -84,6 +88,29 @@ Canvas {
             canvas.phase = "saving";
             Qt.callLater(canvas._renderAll);
         });
+    }
+
+    function renderOnce(onDone) {
+        if (canvas.busy) {
+            onDone(false);
+            return;
+        }
+        canvas.cancelPending();
+        canvas.busy = true;
+        canvas.phase = "saving";
+        Qt.callLater(() => {
+            const ok = canvas._renderTarget({ state: "sleep", path: canvas.targetPath }, HabitsModel.toSuspendHabits(canvas.habits), canvas.today);
+            canvas.busy = false;
+            canvas.lastRenderFailed = !ok;
+            canvas.failedPath = ok ? "" : canvas.targetPath;
+            canvas.phase = ok ? "saved" : "save-failed";
+            onDone(ok);
+        });
+    }
+
+    function _renderTarget(target, snapshot, date) {
+        SuspendDraw.draw(canvas.getContext("2d"), canvas.width, canvas.height, snapshot, date, { fg: "#000000", bg: "#ffffff" }, target.state);
+        return BuildProfile.canWrite(target.path) && canvas.save(target.path);
     }
 
     function renderSync() {
@@ -162,11 +189,9 @@ Canvas {
         const snapshot = HabitsModel.toSuspendHabits(canvas.habits);
         const snapshotDate = new Date(canvas.today.getTime());
         const signature = SuspendDraw.computeSignature(snapshot, snapshotDate);
-        const context = canvas.getContext("2d");
         for (let index = 0; index < canvas.targets.length; index++) {
             const target = canvas.targets[index];
-            SuspendDraw.draw(context, canvas.width, canvas.height, snapshot, snapshotDate, { fg: "#000000", bg: "#ffffff" }, target.state);
-            if (!canvas.save(target.path)) {
+            if (!canvas._renderTarget(target, snapshot, snapshotDate)) {
                 canvas.busy = false;
                 canvas.failedPath = target.path;
                 canvas.lastRenderFailed = true;

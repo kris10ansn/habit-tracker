@@ -9,6 +9,10 @@
         <file>src/SettingsStore.qml</file>
         <file>src/SyncStore.qml</file>
         <file>src/PairingStore.qml</file>
+        <file>src/testing/qmldir</file>
+        <file>src/testing/DeveloperTools.qml</file>
+        <file>src/testing/DeveloperPage.qml</file>
+        <file>src/testing/SuspendController.qml</file>
         <file>src/components/qmldir</file>
         <file>src/components/AppButton.qml</file>
         <file>src/components/TrackerPage.qml</file>
@@ -34,6 +38,8 @@
         <file>src/js/Polarity.js</file>
         <file>src/js/Ids.js</file>
         <file>src/js/Storage.js</file>
+        <file>src/js/BinaryFiles.js</file>
+        <file>src/js/BuildProfile.js</file>
         <file>src/js/SuspendRender.js</file>
         <file>src/js/SuspendDraw.js</file>
         <file>src/js/SuspendStatus.js</file>

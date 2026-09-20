@@ -1,9 +1,10 @@
 import QtQuick 2.15
+import "js/BuildProfile.js" as BuildProfile
 
 JsonStore {
     id: settingsStore
 
-    filePath: "/home/root/xovi/exthome/appload/habit-tracker/settings.json"
+    filePath: BuildProfile.settingsPath
 
     // Whether the app writes the grid to all three power-state images.
     // Retain the persisted setting name; this is an extension of the existing opt-in.

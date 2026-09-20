@@ -6,6 +6,7 @@ import "js/DateUtils.js" as DateUtils
 import "js/Entries.js" as Entries
 import "js/Polarity.js" as Polarity
 import "js/Ids.js" as Ids
+import "js/BuildProfile.js" as BuildProfile
 import "js/HabitEdits.js" as HabitEdits
 
 // Facade over month-partitioned persistence. Keeps the public store API
@@ -18,7 +19,7 @@ QtObject {
     id: store
 
     // Assignable only so the tests can point a store at a scratch dir; the app never sets it.
-    property string dataDir: "/home/root/xovi/exthome/appload/habit-tracker/data"
+    property string dataDir: BuildProfile.dataDirectory
     property date today: new Date()
 
     // The month the grid is currently viewing. Starts on the real current month;

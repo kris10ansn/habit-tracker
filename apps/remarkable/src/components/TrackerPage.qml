@@ -18,6 +18,7 @@ Item {
     property bool disabled: false
     property string suspendStatusText: ""
     property string syncStatusText: ""
+    property string buildLabel: ""
     property real scrollX: 0
     property real scrollY: 0
     readonly property int visibleCount: HabitLayout.visibleCount(habits, showPrivateHabits)
@@ -101,7 +102,7 @@ Item {
     Text {
         x: App.Theme.margin
         y: 194
-        text: page.isCurrentMonth ? Qt.formatDate(page.date, "dddd, d MMMM") : page.daysInMonth + " days · " + page.year
+        text: (page.buildLabel ? page.buildLabel + " · " : "") + (page.isCurrentMonth ? Qt.formatDate(page.date, "dddd, d MMMM") : page.daysInMonth + " days · " + page.year)
         color: App.Theme.muted
         font.pixelSize: App.Theme.subtitleFont
     }

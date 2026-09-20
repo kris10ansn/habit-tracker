@@ -2,6 +2,7 @@ import QtQuick 2.15
 import "." as App
 import "components" as App
 import "js/DateUtils.js" as DateUtils
+import "js/BuildProfile.js" as BuildProfile
 import "js/HabitEdits.js" as HabitEdits
 import "js/SuspendStatus.js" as SuspendStatus
 
@@ -13,8 +14,8 @@ Rectangle {
     // Host-only screenshot inputs. Their defaults are the production paths and behavior; the
     // off-device capture tool overrides them before Main is constructed.
     property date today: new Date()
-    property string dataDir: "/home/root/xovi/exthome/appload/habit-tracker/data"
-    property string settingsFilePath: "/home/root/xovi/exthome/appload/habit-tracker/settings.json"
+    property string dataDir: BuildProfile.dataDirectory
+    property string settingsFilePath: BuildProfile.settingsPath
     property string syncFilePath: dataDir + "/sync.json"
     property string initialView: "grid"
     property bool initialEditing: false
@@ -81,6 +82,11 @@ Rectangle {
     }
 
     function applySuspendSetting(enabled) {
+        if (BuildProfile.isTest) {
+            settingsStore.setSuspendImageEnabled(enabled);
+            return;
+        }
+
         suspendCanvas.backup(ok => {
             if (!ok) return;
             if (enabled) {
@@ -285,6 +291,7 @@ Rectangle {
             onLoaded: if (landscape.canRenderSuspend && !landscape.editing) suspendCanvas.renderAsync()
             sourceComponent: App.TrackerPage {
                 habits: habitsStore.habits
+                buildLabel: BuildProfile.isTest ? "TEST · separate local data" : ""
                 showPrivateHabits: settingsStore.showPrivateHabits
                 date: landscape.viewDate
                 isCurrentMonth: landscape.isCurrentMonth
@@ -357,6 +364,7 @@ Rectangle {
             pairingStatus: root.screenshotMode ? root.screenshotPairingStatus : pairingStore.status
             pairingCode: root.screenshotMode ? root.screenshotPairingCode : pairingStore.code
             pairingErrorMessage: pairingStore.errorMessage
+            onDeveloperRequested: landscape.currentView = "developer"
             onApplyRequested: root.applySuspendSetting(value)
             onShowPrivateHabitsApplied: settingsStore.setShowPrivateHabits(value)
             onServerUrlApplied: {
@@ -367,6 +375,24 @@ Rectangle {
             onConnectRequested: pairingStore.requestCode()
             onDisconnectRequested: pairingStore.disconnect()
             onBackRequested: landscape.currentView = "grid"
+        }
+
+        Loader {
+            id: developerTools
+            anchors.fill: parent
+            active: BuildProfile.isTest && landscape.currentView === "developer"
+            visible: landscape.currentView === "developer"
+            source: "testing/DeveloperTools.qml"
+            onLoaded: {
+                item.habits = Qt.binding(() => habitsStore.habits);
+                item.canRender = Qt.binding(() => !root.screenshotMode && landscape.isCurrentMonth && habitsStore.isLoaded && !habitsStore.hasUnreadableData);
+                item.dataDirectory = Qt.binding(() => root.dataDir);
+            }
+        }
+
+        Connections {
+            target: developerTools.item
+            function onBackRequested() { landscape.currentView = "settings"; }
         }
 
         App.ConfirmDialog {

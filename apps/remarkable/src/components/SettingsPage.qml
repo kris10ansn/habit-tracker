@@ -1,5 +1,6 @@
 import QtQuick 2.15
 import ".." as App
+import "../js/BuildProfile.js" as BuildProfile
 
 Item {
     id: settingsPage
@@ -34,6 +35,7 @@ Item {
     signal syncNowRequested()
     signal connectRequested()
     signal disconnectRequested()
+    signal developerRequested()
     signal backRequested()
 
     function _resync() {
@@ -99,7 +101,7 @@ Item {
     Text {
         x: App.Theme.margin
         y: App.Theme.margin
-        text: "Settings"
+        text: BuildProfile.isTest ? "Settings · TEST" : "Settings"
         font.pixelSize: App.Theme.titleFont
         color: App.Theme.fg
     }
@@ -146,7 +148,7 @@ Item {
 
                     Text {
                         width: parent.width
-                        text: "Power-state habit images"
+                        text: BuildProfile.isTest ? "Save local suspend preview" : "Power-state habit images"
                         font.pixelSize: 32
                         color: App.Theme.fg
                         wrapMode: Text.WordWrap
@@ -154,7 +156,7 @@ Item {
 
                     Text {
                         width: parent.width
-                        text: "Sleeping, powered off, and battery empty."
+                        text: BuildProfile.isTest ? "Preview file inside the test app only." : "Sleeping, powered off, and battery empty."
                         font.pixelSize: 26
                         color: App.Theme.muted
                         wrapMode: Text.WordWrap
@@ -175,7 +177,7 @@ Item {
 
             Text {
                 width: parent.width
-                text: "Original images are backed up before replacement. Turn this off to restore them."
+                text: BuildProfile.isTest ? "Use Developer options to write the device’s suspend image once, or restore it." : "Original images are backed up before replacement. Turn this off to restore them."
                 font.pixelSize: 26
                 color: App.Theme.muted
                 wrapMode: Text.WordWrap
@@ -289,6 +291,15 @@ Item {
             Text {
                 width: parent.width
                 text: settingsPage.urlDirty ? "Save with Done before connecting. Leave blank to work offline." : "Leave blank to use this tablet offline."
+                font.pixelSize: 26
+                color: App.Theme.muted
+                wrapMode: Text.WordWrap
+            }
+
+            Text {
+                visible: BuildProfile.isTest
+                width: parent.width
+                text: "Use a separate test account or server. Sync changes the connected account’s habits."
                 font.pixelSize: 26
                 color: App.Theme.muted
                 wrapMode: Text.WordWrap
@@ -446,6 +457,7 @@ Item {
     }
 
     Text {
+        visible: !BuildProfile.isTest
         anchors.horizontalCenter: parent.horizontalCenter
         y: parent.height - 134
         text: settingsPage.dirty ? "Unsaved changes" : "Changes apply on Done"
@@ -463,6 +475,17 @@ Item {
         active: true
         disabled: settingsPage.suspendImageBusy
         onClicked: settingsPage._commit()
+    }
+
+    AppButton {
+        anchors.horizontalCenter: parent.horizontalCenter
+        y: parent.height - 154
+        width: 360
+        height: 72
+        visible: BuildProfile.isTest
+        disabled: settingsPage.dirty
+        text: "Developer options"
+        onClicked: settingsPage.developerRequested()
     }
 
     ScreenStatus {
