@@ -17,15 +17,16 @@ Only the tablet region was replaced; the phone artwork and calibrated display wi
 
 ## Folio showcase source
 
-`remarkable-folio-front-source.png` is the selected frame for the README's opening sleep-screen
-showcase: a larger front-facing white tablet over an angled tan leather folio. Its display is blank.
-The 1448x1086 artwork has an exact 944x708 (4:3) screen window at x=228, y=176. Keep these dimensions
+`remarkable-desk-close-source.png` is the selected frame for the README's opening sleep-screen
+showcase: a front-facing white tablet and angled tan leather folio filling a sunlit oak desk scene,
+with coffee, a notebook, greenery, and a stylus around the edges. Its display is blank.
+The 1536x1024 artwork uses a 780x585 (4:3) screenshot window at x=322, y=215. Keep these dimensions
 stable unless recalibrating `remarkableShowcase` in `tools/readme-screenshots/lib/device-frames.mjs`.
 
 `composeRemarkableShowcase` uniformly scales the real capture into that window without stretching
 or cropping. Multiplication retains the blank screen's shading; all displayed text and marks come
-from the application screenshot. The frame was prepared with the built-in imagegen tool and its
-height calibrated to the native display ratio before screenshot insertion.
+from the application screenshot. The frame was prepared with the built-in imagegen tool. The
+[prompt and composition notes](remarkable-desk-close-scene.md) document its preparation.
 
 `pnpm screenshots:showcase` regenerates the showcase from the current raw sleep-screen capture;
 the normal capture and frame workflows also refresh it when processing the sleep screen.

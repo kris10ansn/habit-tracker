@@ -15,14 +15,14 @@ const PNG_SIGNATURE = "89504e470d0a1a0a";
 
 // The selected front-facing frame has an exact 4:3 display window.
 export const remarkableShowcase = Object.freeze({
-    width: 1448,
-    height: 1086,
-    screen: Object.freeze({ x: 228, y: 176, width: 944, height: 708 }),
+    width: 1536,
+    height: 1024,
+    screen: Object.freeze({ x: 322, y: 215, width: 780, height: 585 }),
 });
 
 const folioSourcePath = fileURLToPath(
     new URL(
-        "../../../docs/assets/device-frames/remarkable-folio-front-source.png",
+        "../../../docs/assets/device-frames/remarkable-desk-close-source.png",
         import.meta.url,
     ),
 );
@@ -48,7 +48,7 @@ export async function composeRemarkableShowcase({
         source.height !== remarkableShowcase.height
     ) {
         throw new Error(
-            "Folio source must be 1448x1086; recalibrate its screen window if it changes",
+            "Folio source must be 1536x1024; recalibrate its screen window if it changes",
         );
     }
     const screen = remarkableShowcase.screen;
