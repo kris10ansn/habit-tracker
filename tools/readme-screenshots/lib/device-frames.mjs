@@ -9,8 +9,86 @@ import {
 } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { fileURLToPath } from "node:url";
 
 const PNG_SIGNATURE = "89504e470d0a1a0a";
+
+// The selected front-facing frame has an exact 4:3 display window.
+export const remarkableShowcase = Object.freeze({
+    width: 1448,
+    height: 1086,
+    screen: Object.freeze({ x: 228, y: 176, width: 944, height: 708 }),
+});
+
+const folioSourcePath = fileURLToPath(
+    new URL(
+        "../../../docs/assets/device-frames/remarkable-folio-front-source.png",
+        import.meta.url,
+    ),
+);
+
+export async function composeRemarkableShowcase({
+    inputPath,
+    outputPath,
+    frameSourcePath = folioSourcePath,
+}) {
+    const input = pngDimensions(await readFile(inputPath), inputPath);
+    validateScreenshotDimensions("remarkable", input);
+    if (input.width * 3 !== input.height * 4) {
+        throw new Error(
+            "Folio screenshot must have a 4:3 landscape aspect ratio",
+        );
+    }
+    const source = pngDimensions(
+        await readFile(frameSourcePath),
+        frameSourcePath,
+    );
+    if (
+        source.width !== remarkableShowcase.width ||
+        source.height !== remarkableShowcase.height
+    ) {
+        throw new Error(
+            "Folio source must be 1448x1086; recalibrate its screen window if it changes",
+        );
+    }
+    const screen = remarkableShowcase.screen;
+    const temporaryDirectory = await mkdtemp(
+        path.join(os.tmpdir(), "habit-folio-frame-"),
+    );
+    const stagedOutputPath = path.join(temporaryDirectory, "output.png");
+    try {
+        executeMagick([
+            frameSourcePath,
+            "(",
+            inputPath,
+            "-background",
+            "white",
+            "-alpha",
+            "remove",
+            "-resize",
+            `${screen.width}x${screen.height}`,
+            ")",
+            "-geometry",
+            `+${screen.x}+${screen.y}`,
+            // White screenshot pixels retain the blank display's photographic lighting.
+            // All text and marks come from the real capture, never the generated preview.
+            "-compose",
+            "Multiply",
+            "-composite",
+            "-alpha",
+            "off",
+            "-strip",
+            "-define",
+            "png:exclude-chunks=date,time",
+            stagedOutputPath,
+        ]);
+        await mkdir(path.dirname(outputPath), { recursive: true });
+        await copyFile(stagedOutputPath, `${outputPath}.new`);
+        await rename(`${outputPath}.new`, outputPath);
+    } finally {
+        await rm(temporaryDirectory, { recursive: true, force: true });
+    }
+}
 
 export const deviceFrames = Object.freeze({
     remarkable: Object.freeze({

@@ -44,6 +44,7 @@
         "screenshots:fixtures:test": "node --test tools/readme-screenshots/test/*.test.mjs && node tools/readme-screenshots/generate-mobile-test-fixture.mjs --check",
         "screenshots:remarkable": "node tools/readme-screenshots/capture-remarkable.mjs",
         "screenshots:frame": "node tools/readme-screenshots/frame-screenshots.mjs",
+        "screenshots:showcase": "node tools/readme-screenshots/compose-showcase.mjs",
         "screenshots:linking": "node tools/readme-screenshots/compose-linking-scene.mjs"
     },
     "devDependencies": {

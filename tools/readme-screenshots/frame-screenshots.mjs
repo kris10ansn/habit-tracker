@@ -4,7 +4,10 @@ import { access } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { frameScreenshot } from "./lib/device-frames.mjs";
+import {
+    composeRemarkableShowcase,
+    frameScreenshot,
+} from "./lib/device-frames.mjs";
 import { scenarios, selectScenarios } from "./scenarios.mjs";
 
 const scriptDirectory = path.dirname(fileURLToPath(import.meta.url));
@@ -114,6 +117,19 @@ if (options.input) {
                 `wrote ${path.relative(repositoryRoot, outputPath)}\n`,
             );
             written += 1;
+            if (scenario.showcase) {
+                const showcasePath = path.join(
+                    options.outDir,
+                    scenario.showcase,
+                );
+                await composeRemarkableShowcase({
+                    inputPath,
+                    outputPath: showcasePath,
+                });
+                process.stdout.write(
+                    `wrote ${path.relative(repositoryRoot, showcasePath)}\n`,
+                );
+            }
         }
     }
 
