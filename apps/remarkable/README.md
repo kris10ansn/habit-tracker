@@ -47,7 +47,7 @@ make build      # produces build/resources.rcc + staged icon/manifest
 make deploy CONFIRM_STABLE=1  # scps build/* to /home/root/xovi/exthome/appload/habit-tracker/
 ```
 
-(`make deploy` needs `ssh remarkable` to resolve to the tablet — set it up in `~/.ssh/config`, or use `make REMARKABLE_HOST=<host> deploy`. If the tablet's address moves — a phone hotspot re-leases every session — `make find-hotspot-ip` locates it and updates the config; see [below](#finding-the-tablet-after-its-address-changes).)
+(`make deploy` needs `ssh remarkable` to resolve to the tablet — set it up in `~/.ssh/config`, or use `make REMARKABLE_HOST=<host> deploy CONFIRM_STABLE=1`. If the tablet's address moves — a phone hotspot re-leases every session — `make find-hotspot-ip` locates it and updates the config; see [below](#finding-the-tablet-after-its-address-changes).)
 
 On the tablet, hold the middle button for ~3 seconds to open apploader, then tap the **reMarkable habit tracker** tile.
 
@@ -60,9 +60,63 @@ On the tablet, hold the middle button for ~3 seconds to open apploader, then tap
 - **Settings** (top-right, left of Quit) opens the settings page. Toggle power-state-image writing `On` / `Off`, toggle **Show private habits** `On` / `Off`, and/or type a **Sync server** address (e.g. `http://192.168.1.50:5137`; blank = offline). **Done** applies and returns to the grid — enabling power-state-image writing backs up all three originals and starts drawing the grid there; disabling restores the backups; a non-blank server triggers a sync. **Sync now** forces an immediate sync. **Back** returns without applying. If the server requires an account, **Connect** (under **Tablet pairing**, enabled once a server address is set) shows a QR code and its short manual code — scan either way from your phone to approve this device; **Disconnect** signs it out locally.
 - **Quit** (top-right) unloads the app and restores the normal xochitl UI.
 
-State is saved under `/home/root/xovi/exthome/appload/habit-tracker/data/` — `roster.json` plus a `YYYY-MM.json` per month. First launch seeds the roster from the defaults in `src/js/habits.js`. The `data/` folder must exist (the deploy creates it); if it's missing, saves surface a visible error instead of failing silently. To reset, delete the files and relaunch.
+State is saved under `/home/root/xovi/exthome/appload/habit-tracker/data/` — `roster.json` plus a `YYYY-MM.json` per month. First launch seeds the roster from the defaults in `src/js/habits.js`. The `data/` folder must exist (the deploy creates it); if it's missing, saves surface a visible error instead of failing silently. Back up before resetting or removing the app; deleting local files removes local history and does not delete the server's copy.
 
 A habit is stored as `{ id, name, polarity, isPrivate, createdAt, editedAt, deletedAt }` and a month as `{ "month": "2026-07", "entries": [ { habitId, date, outcome, editedAt, deletedAt }, … ] }` — the same row shape the sync server speaks, so the only thing translated on the way out is the X/O mark, which the server calls `Success` / `Failure`. Files written in an older shape are refused, not converted: see [Upgrading across a storage-format change](#upgrading-across-a-storage-format-change).
+
+## Connect to the sync service
+
+1. Set up the [backend](../backend/README.md#run-it) and sign in on mobile. The included backend
+   requires authentication for all habit and sync requests.
+2. In tablet **Settings**, enter the server's base URL (without `/api/sync`) and apply it with
+   **Done**. For local development, use the computer's LAN address, such as
+   `http://192.168.1.50:5137`; `localhost` would refer to the tablet itself.
+3. Reopen **Settings → Connect**, then use mobile's **Sync → Linked devices → Link a device**
+   to scan or enter the code and approve the requesting tablet.
+4. Keep Settings open until the tablet receives its token, then use **Sync now**. If the code
+   expires after five minutes, request a new one.
+
+Sync includes the roster and the month currently being viewed. Visit each older month you want to
+upload or retrieve; a single sync does not transfer the tablet's entire history. **Disconnect**
+removes this tablet's token locally. To revoke its server session, use mobile's **Linked devices**.
+
+## Backups, upgrades, and removal
+
+Close the app with **Quit** before backing up so pending saves reach disk. From this directory:
+
+```sh
+make backup     # copies data/ into .backup/<timestamp>/ on your computer
+```
+
+This includes the roster, month files, and sync bookkeeping. It does **not** include the app's
+`settings.json` (preferences and pairing token) or the system power-state image backups. Keep
+the backup directory somewhere safe. Sync propagates deletions and is not a substitute for a backup.
+
+For a normal stable update, close the app and run `make deploy CONFIRM_STABLE=1`; it replaces
+application assets while preserving data and settings. If the storage format changed, follow the
+[migration procedure](#upgrading-across-a-storage-format-change) first.
+
+Before uninstalling the stable app, turn **Power-state habit images** **Off** and apply with
+**Done**. Wait for all three original images to be restored successfully, then quit and back up.
+`make remove` deletes the entire installed app directory, **including local data and settings**,
+and does not restore the power-state images or revoke the server session. Revoke that session
+separately from mobile if retiring the tablet.
+
+For test installs, use `make backup-test` and `make remove-test`. If you used **Write suspend
+image once**, restore the original from **Settings → Developer options** before removing the
+test install; its backup lives inside that directory. See
+[Testing alongside your working app](#testing-alongside-your-working-app).
+
+### Troubleshooting
+
+| Symptom                          | What to check                                                                                                                                                                |
+| -------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Sync fails offline               | Confirm the server URL, network connection, and backend availability. Local tracking still works.                                                                            |
+| Not connected                    | Pair again; the server may have revoked the token or lost its sessions.                                                                                                      |
+| A private habit disappeared      | Enable **Show private habits** in Settings and apply with **Done** before editing it.                                                                                        |
+| Power-state images look stale    | Enable **Power-state habit images** and return to the current month. Other months do not update them. Wait for **Power-state images saved** before sleeping or powering off. |
+| Storage file is refused          | Keep the original file and backup. Follow the relevant migration; deleting it to silence the error would discard data.                                                       |
+| Saves report a missing directory | Deployment creates `data/`. Check the installed path before continuing to enter data; unsaved changes remain only in memory.                                                 |
 
 ## How it's built
 
@@ -183,7 +237,7 @@ place: incompatible or corrupt habit files block saves and sync.
 
 ### Build tools
 
-You need Node.js (to stage the build profile) and Qt 5's `rcc` (Qt 6's works too for `--binary`, but the device runtime is Qt 5.15 — stay on 5 to avoid surprises):
+You need Node.js to stage the build profile and Qt 5's `rcc` to match the app's Qt 5.15 runtime:
 
 - Arch/Manjaro: `pacman -S qt5-base` (binary is `rcc-qt5`)
 - Debian/Ubuntu: `apt install qtbase5-dev-tools`

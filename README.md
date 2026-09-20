@@ -8,17 +8,22 @@ service to keep your habits up to date across devices.
 
 <table>
   <tr>
-    <td width="20%" align="center" valign="middle"><a href="docs/assets/screenshots/android-today.png"><img src="docs/assets/screenshots/framed/android-today.png" alt="Mobile Today view with daily habit progress, streaks, and a slip-up" width="150"></a></td>
-    <td width="40%" align="center" valign="middle"><a href="docs/assets/screenshots/remarkable-grid.png"><img src="docs/assets/screenshots/framed/remarkable-grid.png" alt="reMarkable month grid with habit entries and today's column highlighted" width="360"></a></td>
-    <td width="40%" align="center" valign="middle"><a href="docs/assets/screenshots/remarkable-suspend.png"><img src="docs/assets/screenshots/framed/remarkable-suspend.png" alt="reMarkable sleep screen showing the month grid with private habits excluded" width="360"></a></td>
+    <td width="30%" align="center" valign="middle"><a href="docs/assets/screenshots/android-today.png"><img src="docs/assets/screenshots/framed/android-today.png" alt="Mobile Today view with daily habit progress, streaks, and a slip-up" width="150"></a></td>
+    <td width="70%" align="center" valign="middle"><a href="docs/assets/screenshots/remarkable-grid.png"><img src="docs/assets/screenshots/framed/remarkable-grid.png" alt="reMarkable month grid with habit entries and today's column highlighted" width="360"></a></td>
   </tr>
   <tr>
     <td align="center"><sub><b>Mobile</b> · Daily logging and streaks</sub></td>
     <td align="center"><sub><b>reMarkable</b> · Habits at a glance on e-ink</sub></td>
-    <td align="center"><sub><b>Sleep screen</b> · Public habits visible while it sleeps</sub></td>
   </tr>
   <tr>
-    <td colspan="3" align="center">
+    <td colspan="2" align="center">
+      <a href="docs/assets/screenshots/remarkable-suspend.png"><img src="docs/assets/screenshots/framed/remarkable-suspend.png" alt="reMarkable sleep screen showing the month grid with private habits excluded" width="100%"></a>
+      <br>
+      <sub><b>Sleep screen</b> · Public habits visible while it sleeps</sub>
+    </td>
+  </tr>
+  <tr>
+    <td colspan="2" align="center">
       <a href="docs/assets/screenshots/framed/device-linking.png"><img src="docs/assets/screenshots/framed/device-linking.png" alt="Pairing sequence: reMarkable displays code H7K9Q2, Android identifies the tablet for approval, and Linked devices lists the phone and tablet" width="100%"></a>
       <br>
       <sub><b>Link your devices</b> · Request a code on reMarkable, approve on mobile, and review linked devices</sub>
@@ -137,7 +142,8 @@ make deploy CONFIRM_STABLE=1
 ```
 
 Open the tracker from the tablet's app launcher. It stores habits locally; Settings contains the
-optional sync and sleep-screen controls.
+optional sync and power-state habit image controls. For an isolated test installation, follow
+[Testing alongside your working app](apps/remarkable/README.md#testing-alongside-your-working-app).
 
 [Installation, SSH configuration, backups, and upgrades →](apps/remarkable/README.md)
 
@@ -151,9 +157,22 @@ pnpm backend:migrate
 pnpm backend:start
 ```
 
-The development API listens on `http://localhost:5137`. Configure each client's server address
-using a hostname or IP reachable from that device, then sign up or log in on mobile. To link a
-tablet, request a code in its Settings and approve it from the phone's Linked devices page.
+The development API listens on port `5137`, including your computer's network interfaces.
+On mobile, enter its reachable base address in **Sync → Server URL** and tap **Save**.
+Use `http://10.0.2.2:5137` for a local Android emulator, or your computer's LAN address
+(for example, `http://192.168.1.50:5137`) for a phone or tablet on the same network.
+`localhost` on a device refers to that device, not the computer running the API.
+
+Sign up or log in on mobile, then tap **Sync now**. The first account on a new server becomes
+its administrator; later signups require an administrator-issued invite.
+
+To link a tablet, save the same server's address in its Settings, request a code with **Connect**,
+and approve it from **Sync → Linked devices → Link a device** on the phone. Review the requesting
+device before approving, and keep tablet Settings open until pairing completes. **Linked devices**
+then lets you review or revoke its session.
+
+See the [backend setup guide](apps/backend/README.md#accounts-and-first-sync) for account creation
+and the [mobile guide](apps/mobile/README.md#troubleshooting) for connection problems.
 
 [Backend configuration and API documentation →](apps/backend/README.md)
 
@@ -218,7 +237,7 @@ This is a pnpm monorepo with independent clients and a shared backend contract:
 .
 ├── apps/
 │   ├── mobile/       Expo / React Native client
-│   ├── remarkable/   QML client and suspend-image renderer
+│   ├── remarkable/   QML client and power-state image renderer
 │   └── backend/      ASP.NET Core API and PostgreSQL persistence
 ├── docs/             Project documentation and screenshot assets
 ├── tools/            Screenshot capture, fixtures, and device framing
@@ -253,17 +272,26 @@ make -C apps/remarkable suspend-writer-test
 
 ### Updating screenshots
 
-The reMarkable captures render the production QML scene and sleep-screen drawing logic offscreen.
-Android captures come from an isolated native test project. Both use the same fictional fixture.
+The reMarkable captures render the production QML scene and power-state drawing logic offscreen.
+Android captures use an isolated Expo Go test project on a local emulator. Both use the same
+fictional fixture. With an emulator already running and compatible Expo Go installed, regenerate
+Android captures, device frames, and the linking illustration together:
+
+```sh
+pnpm mobile:test:readme
+```
+
+To update the tablet images, then refresh the linking illustration with the latest captures:
 
 ```sh
 pnpm screenshots:remarkable
-pnpm screenshots:frame
 pnpm screenshots:linking
 ```
 
-For mobile fixture setup, manual capture, and framing instructions, see the
-[screenshot workflow](tools/readme-screenshots/README.md).
+For automated Expo Go capture prerequisites, fixture setup, manual capture, and separate framing
+commands, see the [screenshot workflow](tools/readme-screenshots/README.md).
+Review that workflow and the README images after changes to mobile screens, fixtures, or native
+configuration.
 
 ## Privacy and data ownership
 
@@ -271,7 +299,9 @@ For mobile fixture setup, manual capture, and framing instructions, see the
 - Both clients keep habit data locally and continue working offline.
 - Sync is opt-in; the backend is self-hosted and keeps each account's records separate.
 - Private habits are excluded from every reMarkable power-state image. Its main-grid reveal setting stays local to that tablet.
+- The private flag controls visibility; private habits still participate in sync and remain visible on mobile.
 - Session tokens can be revoked from the linked-device list without deleting local habit data.
+- Sync propagates deletions, so it is not a backup. Keep tablet data backups and database backups before upgrades or resets; mobile currently has no in-app export or restore flow.
 
 ## Contributing
 
