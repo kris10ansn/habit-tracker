@@ -13,7 +13,7 @@ src/HabitTracker.Api/        single Web API project, folder layers:
   Services/                  app logic (talks to DbContext directly)
   Entities/                  EF entities + domain enums (Polarity, Outcome, PairingStatus)
   Authentication/            bearer-token auth handler, claim names, OpenAPI security scheme
-  Data/                      DbContext, model config, seed, timestamp stamping
+  Data/                      DbContext, model config, timestamp stamping
   Dtos/                      request/response records
   Migrations/                EF Core migrations (schema source of truth)
 tests/HabitTracker.Api.Tests/  xUnit tests (EF in-memory)
@@ -41,10 +41,64 @@ pnpm migrate      # apply EF migrations to the database
 pnpm start        # run the API (http://localhost:5137)
 ```
 
-`src/HabitTracker.Api/HabitTracker.Api.http` has ready-to-run requests for the Habits endpoints. In
-Development, the OpenAPI document is served at `/openapi/v1.json`.
+The default HTTP launch profile binds `http://0.0.0.0:5137`, so clients on your LAN can use your
+computer's address. A local Android emulator can use `http://10.0.2.2:5137`; a phone or tablet
+needs the computer's LAN address. Allow port 5137 through your firewall as needed. Use these
+development defaults on a trusted network.
 
-Production deployment (GCP e2-micro + Cloudflare Tunnel) is documented in [`DEPLOY.md`](./DEPLOY.md).
+In Development, browse `http://localhost:5137/scalar/v1` for the interactive API reference or
+`http://localhost:5137/openapi/v1.json` for OpenAPI. Neither endpoint is mapped in Production.
+[`HabitTracker.Api.http`](src/HabitTracker.Api/HabitTracker.Api.http) contains sample requests;
+set its token variable after signing in before running protected requests.
+
+### Configuration and database lifecycle
+
+The checked-in development connection string matches [`docker-compose.yml`](docker-compose.yml):
+PostgreSQL 17 on port 5432, database/user/password all `habittracker`. Override it for another
+database with the `ConnectionStrings__HabitTracker` environment variable. These credentials are
+for local development. `ASPNETCORE_URLS` controls bindings when running without a launch profile
+(for example, `dotnet run --no-launch-profile --project src/HabitTracker.Api`).
+
+`pnpm db:down` stops the local database container and retains its named volume. `pnpm db:clear`
+**drops the database and reapplies migrations**, removing accounts, sessions, invites, habits,
+and entries. Migrations are explicit: starting the API does not apply them.
+
+### Accounts and first sync
+
+Create the first account while a new server is still reachable only by you. It needs no invite
+and becomes the administrator. In mobile, save the server URL, create an account, then tap
+**Sync now**. The API seeds no habits; clients can upload their local roster after authentication.
+
+For API access, send `POST /api/auth/signup` (or `/api/auth/login` for an existing account) with:
+
+```json
+{
+    "email": "you@example.com",
+    "password": "<at-least-10-characters>",
+    "deviceName": "API client"
+}
+```
+
+Use the returned `token` as `Authorization: Bearer <token>` on protected endpoints. Subsequent
+signups also need `inviteCode`: an administrator creates one with authenticated
+`POST /api/invites`. Invites are single-use and expire after seven days.
+
+The tablet pairs with an existing account through mobile's **Linked devices** page; it does not
+create an account. Both clients must point to this same server. An anonymous `GET /api/habits`
+returning `401` is expected and confirms the authentication gate, not a sync failure.
+
+### Backups and recovery
+
+Back up PostgreSQL before migrations or resets. Sync is not a database backup: clients do not
+hold accounts, sessions, or invites, and may hold only some months of history. The tablet syncs
+the viewed month; mobile sends locally changed months plus the viewed month. Neither automatically
+downloads the server's entire history. After restoring a database, verify accounts and history
+before reconnecting clients; do not assume a normal incremental sync can reconstruct a lost database.
+
+For production, use a separate database and connection string, create the first account before
+exposing signup publicly, apply migrations explicitly, and serve the API through HTTPS. Set
+`ASPNETCORE_ENVIRONMENT=Production`. Enable `Network__TrustProxyHeaders=true` only when a trusted
+reverse proxy is the only path to the API; this setting trusts incoming forwarded headers.
 
 ### The OpenAPI document
 
@@ -81,8 +135,8 @@ pnpm migrate      # = dotnet ef database update
 > a database that predates auth drops **every habit and entry** in it. That is intended: those rows
 > belong to an identity that no longer exists, and there is no honest way to guess which real
 > account should inherit them. Take a `pg_dump` first if a pre-auth deployment holds anything worth
-> keeping; a client that still has its local copy will repopulate the store on its first Sync after
-> signing in.
+> keeping. A client can upload the history it still holds, but a single sync may cover only some
+> months. See [Backups and recovery](#backups-and-recovery).
 
 ## API
 

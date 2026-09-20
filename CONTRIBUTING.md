@@ -51,7 +51,7 @@ The application-specific guides describe additional prerequisites and targeted c
 - Backend API shape changes must include a rebuilt `apps/backend/openapi.json`.
 - Mobile's `src/api/gen/` is generated from that OpenAPI document; do not edit it by hand.
 - Mobile database schema changes must include regenerated Drizzle migrations.
-- Committed README images are maintained separately from runtime assets. The intended regeneration workflow is documented in [`docs/readme-screenshot-plan.md`](docs/readme-screenshot-plan.md).
+- Committed README images are maintained separately from runtime assets. Follow the current [screenshot workflow](tools/readme-screenshots/README.md) for capture, fixture validation, and framing; [`docs/readme-screenshot-plan.md`](docs/readme-screenshot-plan.md) records the design background.
 
 ## Pull requests
 

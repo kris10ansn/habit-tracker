@@ -1,12 +1,16 @@
 @HabitTracker.Api_HostAddress = http://localhost:5137
+# Paste the token returned by signup or login. Never commit a real token.
+@HabitTracker.Api_Token = <token>
 
 ### List the current user's habits (ordered by Position)
 GET {{HabitTracker.Api_HostAddress}}/api/habits
+Authorization: Bearer {{HabitTracker.Api_Token}}
 Accept: application/json
 
 ### Create a habit
 # @name createHabit
 POST {{HabitTracker.Api_HostAddress}}/api/habits
+Authorization: Bearer {{HabitTracker.Api_Token}}
 Content-Type: application/json
 
 {
@@ -16,10 +20,12 @@ Content-Type: application/json
 
 ### Get a single habit (paste an id from a create/list response)
 GET {{HabitTracker.Api_HostAddress}}/api/habits/{{createHabit.response.body.$.id}}
+Authorization: Bearer {{HabitTracker.Api_Token}}
 Accept: application/json
 
 ### Update a habit
 PUT {{HabitTracker.Api_HostAddress}}/api/habits/{{createHabit.response.body.$.id}}
+Authorization: Bearer {{HabitTracker.Api_Token}}
 Content-Type: application/json
 
 {
@@ -30,6 +36,7 @@ Content-Type: application/json
 
 ### Delete a habit
 DELETE {{HabitTracker.Api_HostAddress}}/api/habits/{{createHabit.response.body.$.id}}
+Authorization: Bearer {{HabitTracker.Api_Token}}
 
 ### Sync: merge the client's roster + month(s) and get the authoritative alive state back.
 # Every timestamp is the client's own clock in epoch milliseconds UTC: `createdAt`, the `editedAt`
@@ -37,6 +44,7 @@ DELETE {{HabitTracker.Api_HostAddress}}/api/habits/{{createHabit.response.body.$
 # stamp is a separate field that never appears here. An editedAt more than five minutes ahead of the
 # server clock is rejected with 400, so bump these when replaying this sample.
 POST {{HabitTracker.Api_HostAddress}}/api/sync
+Authorization: Bearer {{HabitTracker.Api_Token}}
 Content-Type: application/json
 
 {
@@ -46,6 +54,7 @@ Content-Type: application/json
       "name": "Read",
       "polarity": "Positive",
       "position": 0,
+      "isPrivate": false,
       "createdAt": 1750600000000,
       "editedAt": 1750680000000,
       "deletedAt": null
