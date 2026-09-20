@@ -10,7 +10,7 @@ Raw captures remain under `docs/assets/screenshots/` so they can be inspected wi
 effects. Their README-ready copies live under `docs/assets/screenshots/framed/`.
 
 The frame source is the retained AI-generated
-`docs/assets/device-frames/device-family-source.png`, combining the selected original-inspired
+`docs/assets/device-frames/device-family-source.png`, combining the selected minimal white Paper Pro-inspired
 reMarkable frame and minimal graphite phone frame. Its calibrated windows exactly match the native
 captures: 4:3 for reMarkable and 45:101 for 1080x2424 Android screenshots. The compositor crops the
 tablet or phone shell, blanks its screen pixels, fits the current capture without cropping,
