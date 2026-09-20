@@ -40,8 +40,8 @@ Select an image for a larger view.
 
 - [Architecture](#architecture)
 - [Features](#features)
-- [Getting started](#getting-started)
 - [Screenshots](#screenshots)
+- [Getting started](#getting-started)
 - [Development](#development)
 - [Privacy and data ownership](#privacy-and-data-ownership)
 - [Contributing](#contributing)
@@ -96,6 +96,59 @@ Each client presents the same habits in a way that fits its display:
 | Web          | Not supported                                |
 
 The project is currently distributed as source and internal builds; there is no app-store release.
+
+## Screenshots
+
+### Mobile: review, manage, and sync
+
+Review a month of entries, manage your habits, and see which changes are waiting to sync.
+
+<table>
+  <tr>
+    <td width="33%" align="center"><a href="docs/assets/screenshots/android-month.png"><img src="docs/assets/screenshots/framed/android-month.png" alt="Android Month view with days as rows, habits as columns, and September 9 highlighted" width="270"></a></td>
+    <td width="33%" align="center"><a href="docs/assets/screenshots/android-habits.png"><img src="docs/assets/screenshots/framed/android-habits.png" alt="Android Habits view with positive and negative polarity controls and a new-habit field" width="270"></a></td>
+    <td width="33%" align="center"><a href="docs/assets/screenshots/android-sync.png"><img src="docs/assets/screenshots/framed/android-sync.png" alt="Android Sync view showing pending changes, a configured server, and the signed-in sample account" width="270"></a></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Review the month</sub></td>
+    <td align="center"><sub>Manage habits and polarity</sub></td>
+    <td align="center"><sub>Sync and account controls</sub></td>
+  </tr>
+</table>
+
+### reMarkable: edit and keep habits visible
+
+Edit habits directly on the tablet and optionally keep a dated month snapshot visible while it sleeps,
+is powered off, or has an empty battery. Icons and instructions identify each state; private habits stay excluded.
+
+<table>
+  <tr>
+    <td width="50%"><a href="docs/assets/screenshots/remarkable-edit.png"><img src="docs/assets/screenshots/framed/remarkable-edit.png" alt="reMarkable editing controls for habit names, order, polarity, and privacy" width="100%"></a></td>
+    <td width="50%"><a href="docs/assets/screenshots/remarkable-suspend.png"><img src="docs/assets/screenshots/framed/remarkable-suspend.png" alt="reMarkable sleep screen showing the month grid with the private Medication habit excluded" width="100%"></a></td>
+  </tr>
+  <tr>
+    <td align="center"><sub>Rename, reorder, and set habit privacy</sub></td>
+    <td align="center"><sub>Keep public habits visible while it sleeps</sub></td>
+  </tr>
+</table>
+
+<table>
+  <tr>
+    <td width="50%"><a href="docs/assets/screenshots/remarkable-poweroff.png"><img src="docs/assets/screenshots/framed/remarkable-poweroff.png" alt="Quiet ledger habit snapshot with power icon, Powered off label, and Hold power to turn on instruction" width="100%"></a></td>
+    <td width="50%"><a href="docs/assets/screenshots/remarkable-batteryempty.png"><img src="docs/assets/screenshots/framed/remarkable-batteryempty.png" alt="Quiet ledger habit snapshot with empty battery icon and Connect to power instruction" width="100%"></a></td>
+  </tr>
+</table>
+
+### Linking devices
+
+The phone identifies the requesting tablet before you approve it. Linked devices lists your
+sessions so you can review or revoke access.
+
+<p align="center">
+  <a href="docs/assets/screenshots/framed/device-linking.png"><img src="docs/assets/screenshots/framed/device-linking.png" alt="Pairing sequence: reMarkable displays code H7K9Q2, Android identifies the tablet for approval, and Linked devices lists the phone and tablet" width="100%"></a>
+  <br>
+  <sub>1. Request a code on reMarkable · 2. Approve on mobile · 3. Review linked devices</sub>
+</p>
 
 ## Getting started
 
@@ -177,58 +230,6 @@ and the [mobile guide](apps/mobile/README.md#troubleshooting) for connection pro
 
 [Backend configuration and API documentation →](apps/backend/README.md)
 
-## Screenshots
-
-### Mobile: review, manage, and sync
-
-Review a month of entries, manage your habits, and see which changes are waiting to sync.
-
-<table>
-  <tr>
-    <td width="33%" align="center"><a href="docs/assets/screenshots/android-month.png"><img src="docs/assets/screenshots/framed/android-month.png" alt="Android Month view with days as rows, habits as columns, and September 9 highlighted" width="270"></a></td>
-    <td width="33%" align="center"><a href="docs/assets/screenshots/android-habits.png"><img src="docs/assets/screenshots/framed/android-habits.png" alt="Android Habits view with positive and negative polarity controls and a new-habit field" width="270"></a></td>
-    <td width="33%" align="center"><a href="docs/assets/screenshots/android-sync.png"><img src="docs/assets/screenshots/framed/android-sync.png" alt="Android Sync view showing pending changes, a configured server, and the signed-in sample account" width="270"></a></td>
-  </tr>
-  <tr>
-    <td align="center"><sub>Review the month</sub></td>
-    <td align="center"><sub>Manage habits and polarity</sub></td>
-    <td align="center"><sub>Sync and account controls</sub></td>
-  </tr>
-</table>
-
-### reMarkable: edit and keep habits visible
-
-Edit habits directly on the tablet and optionally keep a dated month snapshot visible while it sleeps,
-is powered off, or has an empty battery. Icons and instructions identify each state; private habits stay excluded.
-
-<table>
-  <tr>
-    <td width="50%"><a href="docs/assets/screenshots/remarkable-edit.png"><img src="docs/assets/screenshots/framed/remarkable-edit.png" alt="reMarkable editing controls for habit names, order, polarity, and privacy" width="100%"></a></td>
-    <td width="50%"><a href="docs/assets/screenshots/remarkable-suspend.png"><img src="docs/assets/screenshots/framed/remarkable-suspend.png" alt="reMarkable sleep screen showing the month grid with the private Medication habit excluded" width="100%"></a></td>
-  </tr>
-  <tr>
-    <td align="center"><sub>Rename, reorder, and set habit privacy</sub></td>
-    <td align="center"><sub>Keep public habits visible while it sleeps</sub></td>
-  </tr>
-</table>
-
-<table>
-  <tr>
-    <td width="50%"><a href="docs/assets/screenshots/remarkable-poweroff.png"><img src="docs/assets/screenshots/framed/remarkable-poweroff.png" alt="Quiet ledger habit snapshot with power icon, Powered off label, and Hold power to turn on instruction" width="100%"></a></td>
-    <td width="50%"><a href="docs/assets/screenshots/remarkable-batteryempty.png"><img src="docs/assets/screenshots/framed/remarkable-batteryempty.png" alt="Quiet ledger habit snapshot with empty battery icon and Connect to power instruction" width="100%"></a></td>
-  </tr>
-</table>
-
-### Linking devices
-
-The phone identifies the requesting tablet before you approve it. Linked devices lists your
-sessions so you can review or revoke access.
-
-<p align="center">
-  <a href="docs/assets/screenshots/framed/device-linking.png"><img src="docs/assets/screenshots/framed/device-linking.png" alt="Pairing sequence: reMarkable displays code H7K9Q2, Android identifies the tablet for approval, and Linked devices lists the phone and tablet" width="100%"></a>
-  <br>
-  <sub>1. Request a code on reMarkable · 2. Approve on mobile · 3. Review linked devices</sub>
-</p>
 
 ## Development
 
