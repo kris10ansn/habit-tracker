@@ -1,56 +1,49 @@
-import { useCameraPermissions } from "expo-camera";
 import { useFocusEffect, useIsFocused } from "expo-router";
 import { useCallback, useRef, useState } from "react";
 import { AppState, Linking } from "react-native";
 
+import { useCameraPermissionRequest } from "@/lib/useCameraPermissionRequest";
+
 export function usePairingScanner() {
     const isFocused = useIsFocused();
-    const [cameraPermission, requestCameraPermission, getCameraPermission] =
-        useCameraPermissions({ get: false });
+    const {
+        cancelPendingRequest,
+        hasCameraPermission,
+        needsCameraSettings,
+        refreshPermission,
+        requestPermission,
+        requesting: isRequestingCameraPermission,
+    } = useCameraPermissionRequest();
     const [isScannerOpen, setIsScannerOpen] = useState(true);
     const [cameraPermissionError, setCameraPermissionError] = useState<
         string | null
     >(null);
-    const [isRequestingCameraPermission, setIsRequestingCameraPermission] =
-        useState(true);
-    // Permission prompts can resolve after navigation. Advancing this token makes those late
-    // results no-ops instead of reopening the camera when the route is visited again.
-    const latestPermissionRequestId = useRef(0);
+    // Ignore errors from permission and Settings requests after the scanner is closed or reopened.
+    const latestScannerSessionId = useRef(0);
 
     const closeScanner = useCallback(() => {
-        latestPermissionRequestId.current += 1;
+        latestScannerSessionId.current += 1;
+        cancelPendingRequest();
         setIsScannerOpen(false);
-        setIsRequestingCameraPermission(false);
         setCameraPermissionError(null);
-    }, []);
+    }, [cancelPendingRequest]);
 
     const openScanner = useCallback(async () => {
-        const requestId = latestPermissionRequestId.current + 1;
-        latestPermissionRequestId.current = requestId;
+        const scannerSessionId = latestScannerSessionId.current + 1;
+        latestScannerSessionId.current = scannerSessionId;
         setIsScannerOpen(true);
         setCameraPermissionError(null);
-        setIsRequestingCameraPermission(true);
-        try {
-            const permission = await getCameraPermission();
-            if (requestId !== latestPermissionRequestId.current) {
-                return;
-            }
 
-            if (!permission.granted && permission.canAskAgain) {
-                await requestCameraPermission();
-            }
-        } catch {
-            if (requestId === latestPermissionRequestId.current) {
-                setCameraPermissionError(
-                    "Camera access couldn’t be requested. Enter the code manually instead.",
-                );
-            }
-        } finally {
-            if (requestId === latestPermissionRequestId.current) {
-                setIsRequestingCameraPermission(false);
-            }
+        const permissionOutcome = await requestPermission();
+        if (
+            permissionOutcome === "error" &&
+            scannerSessionId === latestScannerSessionId.current
+        ) {
+            setCameraPermissionError(
+                "Camera access couldn’t be requested. Enter the code manually instead.",
+            );
         }
-    }, [getCameraPermission, requestCameraPermission]);
+    }, [requestPermission]);
 
     useFocusEffect(
         useCallback(() => {
@@ -73,7 +66,7 @@ export function usePairingScanner() {
                     if (state !== "active") {
                         return;
                     }
-                    void getCameraPermission().catch(() => {
+                    void refreshPermission().catch(() => {
                         if (!cancelled) {
                             setCameraPermissionError(
                                 "Camera access couldn’t be checked. Try again or enter the code manually.",
@@ -86,16 +79,16 @@ export function usePairingScanner() {
                 cancelled = true;
                 subscription.remove();
             };
-        }, [getCameraPermission, isRequestingCameraPermission, isScannerOpen]),
+        }, [refreshPermission, isRequestingCameraPermission, isScannerOpen]),
     );
 
     const openCameraSettings = async () => {
-        const requestId = latestPermissionRequestId.current;
+        const scannerSessionId = latestScannerSessionId.current;
         setCameraPermissionError(null);
         try {
             await Linking.openSettings();
         } catch {
-            if (requestId === latestPermissionRequestId.current) {
+            if (scannerSessionId === latestScannerSessionId.current) {
                 setCameraPermissionError(
                     "Settings couldn’t be opened. Enable camera access in your phone’s settings, or enter the code manually.",
                 );
@@ -108,8 +101,8 @@ export function usePairingScanner() {
         closeScanner,
         openScanner,
         openCameraSettings,
-        hasCameraPermission: cameraPermission?.granted === true,
-        needsCameraSettings: cameraPermission?.canAskAgain === false,
+        hasCameraPermission,
+        needsCameraSettings,
         isRequestingCameraPermission,
         isScannerVisible: isScannerOpen && isFocused,
     };
