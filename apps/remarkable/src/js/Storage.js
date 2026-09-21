@@ -94,7 +94,7 @@ function writeJson(path, value, onDone) {
 
 function isMissing(result) { return result === MISSING; }
 function isCorrupt(result) { return result === CORRUPT; }
-function readBinary(path) { return BinaryFiles.read(path); }
+function readBinary(path, onDone) { BinaryFiles.read(path, onDone); }
 function writeBinary(path, buffer, onDone) {
     if (!BuildProfile.canWrite(path)) {
         reportWrite(onDone, `Test build: refusing write outside its app directory: ${path}`);

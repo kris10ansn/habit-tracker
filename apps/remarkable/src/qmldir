@@ -1,1 +1,3 @@
 singleton Theme 1.0 Theme.qml
+PowerImageStore 1.0 PowerImageStore.qml
+PowerImageClient 1.0 PowerImageClient.qml

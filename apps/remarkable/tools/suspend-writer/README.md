@@ -5,7 +5,7 @@ Renders the reMarkable suspend image **outside** the QML app. It hosts the app's
 same renderer the app uses produces a PNG — no QML runtime needed. It runs both on your machine (for
 previewing) and on the device (headless, to write the real suspend image).
 
-The same binary also runs the power-image service (`--serve`) and its isolated job
+The same binary also runs the production power-image service (`--serve`) and its isolated job
 workers (`--worker`). Plain `--roster ... --out ...` remains a preview CLI; only service jobs own
 backup, restore, and deduplication.
 
@@ -91,10 +91,12 @@ Qt5/Qt6, so this needs no source changes.
 ### 3. Deploy
 
 ```sh
-make suspend-writer-deploy                     # cross-builds, then scps to the device
+make suspend-writer-device                     # user-run cross-build
+make deploy-test                               # install isolated TEST app and helper
+# make deploy CONFIRM_STABLE=1                  # replace stable app and helper
 ```
 
-This copies, into `…/appload/habit-tracker/suspend-writer/` on the device:
+This copies, into `…/appload/<app-id>/suspend-writer/` on the device:
 
 - `suspend-writer-arm` — the binary, and
 - `SuspendDraw.js`, `DateUtils.js`, `Entries.js`, `Polarity.js`, `HabitsModel.js` — **the five JS
@@ -120,11 +122,11 @@ QT_QPA_PLATFORM=offscreen ./suspend-writer-arm \
 The plain preview CLI writes exactly the `--out` path and does not manage originals. Use a scratch
 path for previews. Production uses the service lifecycle below.
 
-## Background service (not yet connected to the app)
+## Production service
 
-The helper can run with `--serve`, but the app and normal deployment still use the existing
-Canvas image path. A follow-up PR connects the frontend and installs the systemd service.
-Stable uses loopback port
+`deploy` stops the previous helper before replacing its executable, then installs and starts
+`<app-id>-images.service` with the ARM binary and shared renderer modules. Close the frontend before updating.
+The service has a low scheduling priority and runs outside xochitl. Stable uses loopback port
 47831; test uses 47832. A newly generated owner-only `power-image-token.json` in the app directory
 authenticates requests. There is no browser CORS access and no network listener beyond loopback.
 
@@ -154,8 +156,8 @@ failures (or a client timeout); no fallback draws or encodes in QML.
 Host integration tests can override `--app-dir`, `--image-dir`, `--js-dir`, and `--port` to use
 temporary directories. Host builds include a test-only FIFO gate controlled by
 `HABIT_TRACKER_TEST_GATE`; ARM builds omit that hook. `make responsiveness-test` proves the
-service remains responsive with the worker held at that gate. QML integration and timing benchmarks
-land with the frontend switch and the performance follow-up.
+service and QML remain responsive with the worker held at that gate. A follow-up adds the
+seven-image timing benchmark.
 
 ## Input JSON shapes
 

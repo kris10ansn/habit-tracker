@@ -73,18 +73,26 @@ TestCase {
         verify(aborted);
         tryCompare(closed, "count", 1);
     }
-    function test_quitWaitsForImageOperationAndItsSettingSave() {
+    function test_quitWaitsForBackupAndItsSettingSave() {
+        const jobs = [];
         const saves = [];
         settings.suspendImageEnabled = false;
+        images.sendRequest = function (operation, payload, onDone) { jobs.push(onDone); };
         settings.writeJson = function (path, value, onDone) { saves.push(onDone); };
-        images.busy = true;
+        app.applySuspendSetting(true);
         app.quit();
         compare(closed.count, 0);
-        settings.setSuspendImageEnabled(true);
-        images.busy = false;
+        jobs[0]({ ok: true });
         tryCompare(saves, "length", 1);
         compare(closed.count, 0);
         saves[0](null);
         tryCompare(closed, "count", 1);
+    }
+    function test_unloadingNeverStartsAnImageRender() {
+        let requested = false;
+        images.renderAllowed = true;
+        images.sendRequest = function () { requested = true; };
+        app.unloading();
+        verify(!requested);
     }
 }

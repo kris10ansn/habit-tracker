@@ -38,3 +38,15 @@ writeFileSync(
         ? resources
         : resources.replace(/^.*<file>src\/testing\/.*\n/gm, ""),
 );
+
+const applicationDirectory = `/home/root/xovi/exthome/appload/${manifest.id}`;
+const service = readFileSync(
+    "tools/suspend-writer/power-images.service.in",
+    "utf8",
+)
+    .replaceAll("@PROFILE@", profile)
+    .replaceAll("@APP_DIRECTORY@", applicationDirectory);
+writeFileSync(
+    path.join(buildDirectory, `${manifest.id}-images.service`),
+    service,
+);
