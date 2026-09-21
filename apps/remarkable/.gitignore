@@ -12,3 +12,6 @@ tools/suspend-writer/sample-data/
 # The reMarkable SDK (huge, user-installed locally) and its installers.
 tools/suspend-writer/sdk/
 tools/suspend-writer/*-toolchain.sh
+
+# Host Python test runner caches.
+__pycache__/

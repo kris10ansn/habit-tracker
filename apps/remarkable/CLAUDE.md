@@ -8,7 +8,7 @@ Update CLAUDE.md as you learn the user's preferences for code style, workflow, o
 
 ## What this is
 
-A pure-QML **habit tracker** for **reMarkable 1**, launched via **apploader** — specifically the XOVI extension `asivery/rm-appload`. apploader's frontend runtime is QML, loaded inside xochitl's process. The shipped app is QML + plain JS with no native component; the one C++ thing in the tree, `tools/suspend-writer/`, is a dev tool that hosts the app's own JS modules outside QML and is never part of a build or deploy. Renders a landscape grid of habits × days-of-the-current-month with the current day highlighted.
+A pure-QML **habit tracker** for **reMarkable 1**, launched via **apploader** — specifically the XOVI extension `asivery/rm-appload`. apploader's frontend runtime is QML, loaded inside xochitl's process. The shipped app is QML + plain JS with no native component; the one C++ thing in the tree, `tools/suspend-writer/`, is a dev tool that hosts the app's own JS modules outside QML and is not part of normal app build or deploy. It now also supports an isolated background job service, not yet connected to the frontend. Renders a landscape grid of habits × days-of-the-current-month with the current day highlighted.
 
 This is the `apps/remarkable/` app in the habit-tracker monorepo (pnpm workspaces). It runs fully standalone by default and _optionally_ syncs to the monorepo's backend (`apps/backend/`, ASP.NET Core + EF Core + PostgreSQL) when the user sets a Server URL. See the monorepo-root `CLAUDE.md` for cross-app conventions.
 
@@ -42,6 +42,7 @@ Local (agent-runnable):
 - `make lint` — runs `qmllint-qt5` over every `src/**/*.qml`. Best-effort to a fault: the recipe is `command -v … && $(QMLLINT) … || echo "not installed; skipping"`, so **a missing linter _and_ a failing lint both print the skip notice and exit 0**. `make lint` can never fail the build — read its output, don't trust its exit code.
 - `make test` — Qt Quick Test over `tests/tst_*.qml`, headless on host Qt 5.15 (the device's Qt), against live `src/`. Covers the JS modules and the stores. **Unlike `lint`, this target fails properly** — never give it the `|| echo skipping` treatment. See the testing section below.
 - `make suspend-writer-test` — builds the host suspend-writer and smoke-tests it against `tests/fixtures/`. Separate from `make test` because it needs a C++ build.
+- `make responsiveness-test` — host helper integration tests with temporary files and loopback sockets; no device access.
 - `make clean` — removes local `build/`.
 - `make suspend-writer-host` / `suspend-writer-clean` — host build of the off-device renderer against host Qt5, for previewing a render as a PNG; no device or SDK needed (see below).
 
