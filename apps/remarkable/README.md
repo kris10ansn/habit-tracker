@@ -7,6 +7,12 @@ A small habit tracker for the **reMarkable 1** e-ink tablet. The reMarkable has 
 
 No account UI on the tablet itself, no telemetry. It runs fully standalone and offline by default — just a QML scene drawn by the same Qt process that already runs the device's UI. Optionally, point it at a self-hosted server (Settings → **Sync server**) to sync your habits across devices; leave it blank and nothing ever leaves the tablet. If that server requires an account, the tablet shows a QR code and a short manual code for approval from your phone (Settings → **Connect**) — it never has a login form of its own.
 
+JSON loads and save verification run asynchronously. Month navigation discards stale loads, and
+Quit waits for confirmed local saves; a failed save keeps the app open for retry. Quit cancels
+network sync and uses completion signals rather than polling the event loop. Image encoding still
+uses the existing Canvas path until the separate image-helper change lands. Forced apploader
+unloading cannot await asynchronous saves; use Quit after editing.
+
 ## What it looks like
 
 ![Adaptive habit grid with eleven habits](../../docs/assets/screenshots/remarkable-grid-eleven.png)

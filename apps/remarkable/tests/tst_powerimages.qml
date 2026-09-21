@@ -4,7 +4,7 @@ import "../src/components" as Components
 import "../src/js/SuspendRender.js" as SuspendRender
 import "../src/js/SuspendDraw.js" as SuspendDraw
 import "../src/js/HabitsModel.js" as HabitsModel
-import "../src/js/Storage.js" as Storage
+import "Storage.js" as Storage
 import "TestPaths.js" as TestPaths
 import "Fixtures.js" as Fixtures
 

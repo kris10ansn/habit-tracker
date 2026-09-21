@@ -21,9 +21,8 @@ function copyFile(srcPath, dstPath, onDone) {
     });
 }
 
-function readSignature(path) {
-    const sig = Storage.readJson(path);
-    return typeof sig === "string" ? sig : "";
+function readSignature(path, onDone) {
+    Storage.readJson(path, sig => onDone(typeof sig === "string" ? sig : ""));
 }
 
 function writeSignature(path, signature, onDone) {

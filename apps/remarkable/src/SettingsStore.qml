@@ -3,6 +3,7 @@ import "js/BuildProfile.js" as BuildProfile
 
 JsonStore {
     id: settingsStore
+    saveDelayMs: 0
 
     filePath: BuildProfile.settingsPath
 
@@ -51,13 +52,10 @@ JsonStore {
         }
     }
 
-    // Settings write through immediately rather than on JsonStore's debounce — a change the
-    // user just committed should survive an immediate quit. But the settings commit applies
-    // every dirty field in one tick, and overlapping async writes to the same file interleave
-    // and corrupt it, so same-tick setter calls coalesce into a single write of the final
-    // state (Qt.callLater collapses repeated calls to the same function).
+    // A zero-delay save coalesces same-tick setters while remaining visible to Quit's
+    // pending-save guard before the event loop runs the write.
     function _saveCoalesced() {
-        Qt.callLater(settingsStore._doSave);
+        settingsStore.scheduleSave();
     }
 
     function setSuspendImageEnabled(value) {

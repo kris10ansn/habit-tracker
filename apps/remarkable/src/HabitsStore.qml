@@ -54,6 +54,9 @@ QtObject {
     onIsLoadedChanged: if (store.isLoaded)
         store.hasLoadedOnce = true
 
+    readonly property bool hasPendingSave: _roster.hasPendingSave || _month.hasPendingSave
+    readonly property string lastSaveError: _roster.lastSaveError || _month.lastSaveError
+
     signal saved
 
     property string saveError: ""
@@ -422,7 +425,7 @@ QtObject {
 
     // Tear the grid Loader down now (drop the month store's isLoaded) so the
     // "Loading…" screen paints this frame — the instant half of a month switch.
-    // The blocking read is deferred by the caller and runs in loadMonth (ADR 0004).
+    // loadMonth starts the asynchronous read after navigation has coalesced (ADR 0004).
     function beginLoadMonth() {
         store._month.isLoaded = false;
     }
@@ -432,9 +435,8 @@ QtObject {
     // change), then re-point and re-read, folding the new month's entry rows onto the
     // roster. The roster (identity/config) is month-independent and stays put.
     //
-    // This holds the blocking read, so the caller defers it past the teardown paint
-    // (see Main.goToMonth). reload restores isLoaded to true, rebuilding the grid
-    // async against the new month. No same-month early-return: after a teardown the
+    // reload restores isLoaded when the asynchronous read finishes, rebuilding the grid
+    // against the new month. No same-month early-return: after a teardown the
     // read must run to restore isLoaded even when the viewed month is unchanged
     // (e.g. hopping forward then back before the deferred load fires).
     function loadMonth(year, month) {

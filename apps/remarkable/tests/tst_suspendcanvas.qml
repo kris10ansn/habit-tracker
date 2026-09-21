@@ -1,7 +1,7 @@
 import QtQuick 2.15
 import QtTest 1.2
 import "../src/components" as App
-import "../src/js/Storage.js" as Storage
+import "Storage.js" as Storage
 import "Fixtures.js" as Fixtures
 import "TestPaths.js" as TestPaths
 

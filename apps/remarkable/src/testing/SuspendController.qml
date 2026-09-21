@@ -47,11 +47,16 @@ QtObject {
 
     function _backupAndPublish() {
         // Keep the original across repeated writes and app restarts, separate from stable's backup.
-        if (Storage.readJson(controller.backupPath + ".verified") === true) {
-            controller._publishWithExistingBackup();
-            return;
-        }
+        Storage.readJson(controller.backupPath + ".verified", verified => {
+            if (verified === true) {
+                controller._publishWithExistingBackup();
+                return;
+            }
+            controller._backupOriginal();
+        });
+    }
 
+    function _backupOriginal() {
         controller.statusText = "Backing up original image…";
         SuspendRender.copyFile(controller.deviceImagePath, controller.backupPath, ok => {
             if (!ok) {
@@ -88,13 +93,14 @@ QtObject {
         if (!controller.enabled || controller.busy)
             return;
 
-        if (Storage.readJson(controller.backupPath + ".verified") !== true) {
-            controller.statusText = "No verified original backup. Write a test image first.";
-            return;
-        }
-
         controller.busy = true;
-        controller._writeImage(controller.backupPath, "Original suspend image restored.");
+        Storage.readJson(controller.backupPath + ".verified", verified => {
+            if (verified !== true) {
+                controller._finish("No verified original backup. Write a test image first.");
+                return;
+            }
+            controller._writeImage(controller.backupPath, "Original suspend image restored.");
+        });
     }
 
     function _writeImage(path, successMessage) {

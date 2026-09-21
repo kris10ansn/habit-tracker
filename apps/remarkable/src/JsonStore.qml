@@ -9,12 +9,30 @@ QtObject {
 
     property string filePath: ""
     property bool isLoaded: false
+    property int saveDelayMs: 200
+    property int _loadGeneration: 0
+    property int _writesInFlight: 0
+    readonly property bool hasPendingSave: _saveTimer.running || _writesInFlight > 0
+    property string lastSaveError: ""
+    property var _failedWrites: ({})
+    property var _unwritablePaths: ({})
+    property bool _alive: true
+    Component.onDestruction: { _alive = false; _loadGeneration++; }
+    property var readJson: Storage.readJson
+    property var writeJson: Storage.writeJson
 
     // Set by applyLoaded when the file holds something this version cannot read. What is in memory
     // is then not what is on disk, so a write would destroy the real data — saves stay off until
     // the file is replaced off-device. The rejecting store reports the cause; this base only
     // enforces the block.
     property bool isUnwritable: false
+    onIsUnwritableChanged: {
+        if (isUnwritable) {
+            const refused = Object.assign({}, _unwritablePaths);
+            refused[filePath] = true;
+            _unwritablePaths = refused;
+        }
+    }
 
     signal saved
     signal saveFailed(string message)
@@ -29,7 +47,7 @@ QtObject {
     property var applyLoaded: (function (data) {})
 
     property Timer _saveTimer: Timer {
-        interval: 200
+        interval: jsonStore.saveDelayMs
         repeat: false
         onTriggered: jsonStore._doSave()
     }
@@ -43,9 +61,20 @@ QtObject {
     // calling (see HabitsStore.loadMonth). Every read re-decides isUnwritable, so navigating off
     // an unreadable file and back onto a readable one lifts the block.
     function reload() {
+        const generation = ++jsonStore._loadGeneration;
+        const path = jsonStore.filePath;
+        jsonStore.isLoaded = false;
         jsonStore.isUnwritable = false;
-        jsonStore.applyLoaded(Storage.readJson(jsonStore.filePath));
-        jsonStore.isLoaded = true;
+        jsonStore.readJson(path, data => {
+            if (!jsonStore || !jsonStore._alive || generation !== jsonStore._loadGeneration || path !== jsonStore.filePath) return;
+            jsonStore.applyLoaded(data);
+            if (!jsonStore.isUnwritable) {
+                const refused = Object.assign({}, jsonStore._unwritablePaths);
+                delete refused[path];
+                jsonStore._unwritablePaths = refused;
+            }
+            jsonStore.isLoaded = true;
+        });
     }
 
     function scheduleSave() {
@@ -53,31 +82,52 @@ QtObject {
     }
 
     function flushPendingSave() {
-        if (!jsonStore._saveTimer.running) {
-            return;
-        }
-
+        const failed = jsonStore._failedWrites;
+        Object.keys(failed).forEach(path => jsonStore._writeSnapshot(path, failed[path].value));
+        if (!jsonStore._saveTimer.running) return;
         jsonStore._saveTimer.stop();
         jsonStore._doSave();
     }
 
     function _doSave() {
         if (jsonStore.isUnwritable) {
+            jsonStore.lastSaveError = "The file is unreadable";
             jsonStore.saveFailed("Nothing is written to " + jsonStore.filePath + " while its contents are unreadable.");
             return;
         }
 
-        try {
-            Storage.writeJson(jsonStore.filePath, jsonStore.serialize(), jsonStore._onWriteDone);
-        } catch (e) {
-            jsonStore._onWriteDone(String(e));
+        let value;
+        try { value = jsonStore.serialize(); }
+        catch (error) { jsonStore._onWriteDone(String(error)); return; }
+        jsonStore._writeSnapshot(jsonStore.filePath, value);
+    }
+
+    function _writeSnapshot(path, value) {
+        if (jsonStore._unwritablePaths[path]) {
+            jsonStore._onWriteDone("Nothing is written to " + path + " while its contents are unreadable.");
+            return;
         }
+        jsonStore._writesInFlight++;
+        const done = error => {
+            if (!jsonStore || !jsonStore._alive) return;
+            const failed = Object.assign({}, jsonStore._failedWrites);
+            if (error) failed[path] = { value: value, error: error };
+            else delete failed[path];
+            jsonStore._failedWrites = failed;
+            jsonStore._onWriteDone(error);
+            const remaining = Object.keys(failed);
+            jsonStore.lastSaveError = remaining.length ? failed[remaining[0]].error : "";
+            jsonStore._writesInFlight--;
+        };
+        try { jsonStore.writeJson(path, value, done); }
+        catch (error) { done(String(error)); }
     }
 
     // The write only reports once it has landed, so `saved` means the bytes are on disk rather
     // than merely queued — which is what makes a missing data/ dir a visible modal instead of a
     // silent no-op the session then believes it persisted.
     function _onWriteDone(error) {
+        jsonStore.lastSaveError = error || "";
         if (error) {
             console.warn("JsonStore: save failed for", jsonStore.filePath, "-", error);
             jsonStore.saveFailed("Check that the data/ folder exists on the device.\n\n" + error);
