@@ -29,9 +29,9 @@ JsonStore {
     property int remainingSeconds: 0
     property bool hasSyncedSuccessfully: false
 
-    // True while a request is on the wire, across every readyState phase. The syncing guards key on
-    // this rather than a single status string so the finer phases don't slip past them.
-    readonly property bool isRequestInFlight: ["syncing", "connecting", "headers-received", "loading"].indexOf(status) !== -1
+    readonly property bool isRequestInFlight: _activeXhr !== null
+    property bool _syncRequested: false
+    property var createRequest: function () { return new XMLHttpRequest(); }
 
     // Text for the ambient status line. Quiet by design: empty while standalone (no
     // server configured), a brief phrase otherwise. Loud misconfig errors are a modal in Main.
@@ -77,6 +77,10 @@ JsonStore {
             return;
         }
 
+        if (syncStore.isRequestInFlight) {
+            syncStore._syncRequested = true;
+            return;
+        }
         syncStore.status = "pending";
         syncStore.remainingSeconds = syncStore._syncTimer.interval / 1000;
         syncStore._syncTimer.restart();
@@ -90,6 +94,7 @@ JsonStore {
             return;
         }
         if (syncStore.isRequestInFlight) {
+            syncStore._syncRequested = true;
             return;
         }
         if (!syncStore.habitsStore || !syncStore.habitsStore.isLoaded) {
@@ -102,6 +107,7 @@ JsonStore {
         syncStore._syncTimer.stop();
         syncStore._tickTimer.stop();
         syncStore.remainingSeconds = 0;
+        syncStore._syncRequested = false;
         syncStore.status = "syncing";
 
         const roster = HabitsModel.toRoster(syncStore.habitsStore.habits);
@@ -113,7 +119,7 @@ JsonStore {
     }
 
     function _send(endpoint, request, requestMonthKey) {
-        const xhr = new XMLHttpRequest();
+        const xhr = syncStore.createRequest();
         syncStore._activeXhr = xhr;
 
         xhr.onreadystatechange = function () {
@@ -129,16 +135,21 @@ JsonStore {
             syncStore._activeXhr = null;
             syncStore._timeoutTimer.stop();
             syncStore._handleDone(xhr, request, requestMonthKey);
+            if (syncStore._syncRequested) syncStore.scheduleSync();
         };
 
-        xhr.open("POST", endpoint);
-        xhr.setRequestHeader("Content-Type", "application/json");
-        const token = syncStore.settingsStore ? syncStore.settingsStore.token : "";
-        if (token) {
-            xhr.setRequestHeader("Authorization", "Bearer " + token);
+        try {
+            xhr.open("POST", endpoint, true);
+            xhr.setRequestHeader("Content-Type", "application/json");
+            const token = syncStore.settingsStore ? syncStore.settingsStore.token : "";
+            if (token) xhr.setRequestHeader("Authorization", "Bearer " + token);
+            syncStore._timeoutTimer.restart();
+            xhr.send(JSON.stringify(request));
+        } catch (error) {
+            syncStore._activeXhr = null;
+            syncStore._timeoutTimer.stop();
+            syncStore._fail("error", "Could not start sync: " + error);
         }
-        syncStore._timeoutTimer.restart();
-        xhr.send(JSON.stringify(request));
     }
 
     function _statusForReadyState(readyState) {
@@ -181,6 +192,18 @@ JsonStore {
         // the now-viewed month reconciles, and unpushed tombstones resend next round.
         if (syncStore.monthKey !== requestMonthKey) {
             syncStore.status = "";
+            syncStore._syncRequested = true;
+            return;
+        }
+
+        // The backend owns reconciliation. If local state changed during the request, resend
+        // it rather than overwriting those edits with a response to an older snapshot.
+        const current = Sync.buildRequest(HabitsModel.toRoster(syncStore.habitsStore.habits),
+            syncStore.habitsStore.habitTombstones,
+            HabitsModel.toMonthEntryRows(syncStore.habitsStore.habits), syncStore.monthKey);
+        if (JSON.stringify(current) !== JSON.stringify(request)) {
+            syncStore._syncRequested = true;
+            syncStore.status = "pending";
             return;
         }
 
@@ -202,6 +225,7 @@ JsonStore {
     }
 
     function abortSync() {
+        syncStore._syncRequested = false;
         syncStore._syncTimer.stop();
         syncStore._tickTimer.stop();
         syncStore._timeoutTimer.stop();
@@ -213,7 +237,7 @@ JsonStore {
             xhr.abort();
         }
 
-        if (syncStore.isRequestInFlight || syncStore.status === "pending") {
+        if (xhr || syncStore.status === "pending") {
             syncStore.status = "";
         }
     }

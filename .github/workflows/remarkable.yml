@@ -1,0 +1,31 @@
+name: reMarkable responsiveness
+on:
+    pull_request:
+        paths:
+            - "apps/remarkable/**"
+            - ".github/workflows/remarkable.yml"
+    push:
+        branches: [main]
+        paths:
+            - "apps/remarkable/**"
+            - ".github/workflows/remarkable.yml"
+    workflow_dispatch:
+jobs:
+    test:
+        runs-on: ubuntu-24.04
+        defaults:
+            run:
+                working-directory: apps/remarkable
+        env:
+            QMLTESTRUNNER: qmltestrunner
+            QML_IMPORT_PATH: /usr/lib/x86_64-linux-gnu/qt5/qml
+            QT_SELECT: qt5
+        steps:
+            - uses: actions/checkout@v4
+            - uses: actions/setup-node@v4
+              with:
+                  node-version: "22"
+            - run: sudo apt-get update && sudo apt-get install -y qtbase5-dev qtdeclarative5-dev qtdeclarative5-dev-tools qml-module-qttest qml-module-qtquick2 qml-module-qtquick-window2 qml-module-qtquick-layouts
+            - run: make test
+            - run: make build build-test RCC=rcc
+            - run: make suspend-writer-test
