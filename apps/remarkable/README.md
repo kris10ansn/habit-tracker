@@ -405,3 +405,5 @@ apploader prefixes its messages with `[AppLoad]:` / `[QTFB]:`. `[QTFB]: Unregist
 4. **No hardcoded root size.** apploader sizes the container; use `anchors.fill: parent`. Hardcoded `width: 1404; height: 1872` is silently ignored.
 
 Sync updates existing habit rows in place so unchanged grid delegates survive reconciliation. Edits made while a request is in flight are retained and sent in one follow-up request.
+
+The standalone [image helper](tools/suspend-writer/README.md) also supports queued background jobs. `make responsiveness-test` checks its job lifecycle on the host; the app still uses Canvas until the frontend integration lands.

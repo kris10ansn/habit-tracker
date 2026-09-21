@@ -144,3 +144,8 @@ readme-screenshot-host:
 
 readme-screenshot-clean:
 	rm -rf $(SCREENSHOT_DIR)/build
+
+# Host-only integration tests exercise an isolated helper against temporary images.
+.PHONY: responsiveness-test
+responsiveness-test: suspend-writer-host
+	python3 tests/power-image-service-test.py

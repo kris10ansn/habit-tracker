@@ -19,13 +19,13 @@ ENV_SETUP=sdk/environment-setup-cortexa9hf-neon-remarkable-linux-gnueabi
 
 mkdir -p build
 MOC="$OECORE_NATIVE_SYSROOT/usr/libexec/moc"
-QT_CFLAGS="$(pkg-config --cflags Qt6Core Qt6Gui Qt6Qml)"
-QT_LIBS="$(pkg-config --libs Qt6Core Qt6Gui Qt6Qml)"
+QT_CFLAGS="$(pkg-config --cflags Qt6Core Qt6Gui Qt6Qml Qt6Network)"
+QT_LIBS="$(pkg-config --libs Qt6Core Qt6Gui Qt6Qml Qt6Network)"
 
-"$MOC" main.cpp -o build/main.moc
+"$MOC" Renderer.cpp -o build/Renderer.moc
 # Default JS_DIR is irrelevant on-device; pass --js-dir at runtime.
 $CXX -std=c++17 -fPIC $CXXFLAGS $QT_CFLAGS -Ibuild -DJS_DIR='"."' \
-    main.cpp -o build/suspend-writer-arm $QT_LIBS $LDFLAGS
+    main.cpp Renderer.cpp PowerImageService.cpp -o build/suspend-writer-arm $QT_LIBS $LDFLAGS
 
 echo "built ./build/suspend-writer-arm"
 file build/suspend-writer-arm
