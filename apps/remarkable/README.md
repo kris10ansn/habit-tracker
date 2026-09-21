@@ -397,3 +397,5 @@ apploader prefixes its messages with `[AppLoad]:` / `[QTFB]:`. `[QTFB]: Unregist
 2. **`entry` in `manifest.json` must start with `/`.** apploader concatenates the entry onto `qrc:/<nonce>` with no separator; without the leading slash you get `qrc:/NONCEMain.qml` and "No such file."
 3. **Root QML conventions.** The root must declare `signal close` and `function unloading() { ... }`. Emit `close()` from the Quit handler — `Qt.quit()` is a no-op (the Qt process is xochitl, you don't own it).
 4. **No hardcoded root size.** apploader sizes the container; use `anchors.fill: parent`. Hardcoded `width: 1404; height: 1872` is silently ignored.
+
+Sync updates existing habit rows in place so unchanged grid delegates survive reconciliation. Edits made while a request is in flight are retained and sent in one follow-up request.

@@ -467,6 +467,33 @@ TestCase {
         verify(store.habits.get(0).editedAt > before);
     }
 
+    Component {
+        id: delegateView
+        Repeater {
+            delegate: Item { property string habitId: model.id }
+        }
+    }
+
+    function test_syncUpdatesPreserveUnchangedAndMovedDelegates() {
+        const first = Fixtures.rosterRow({ id: "first", name: "First" });
+        const second = Fixtures.rosterRow({ id: "second", name: "Second" });
+        writeAndSettle(rosterPath(workingDir), { habits: [first, second] });
+        makeStore(workingDir, 2024, 0);
+        const view = createTemporaryObject(delegateView, testCase, { model: store.habits });
+        compare(view.count, 2);
+        const firstDelegate = view.itemAt(0);
+        const secondDelegate = view.itemAt(1);
+        store.applySynced([first, Object.assign({}, second, { name: "Updated", editedAt: second.editedAt + 1 })], {});
+        compare(view.itemAt(0), firstDelegate);
+        compare(view.itemAt(1), secondDelegate);
+        store.applySynced([second, first], {});
+        compare(view.itemAt(0), secondDelegate);
+        compare(view.itemAt(1), firstDelegate);
+        store.applySynced([first], {});
+        compare(view.count, 1);
+        compare(view.itemAt(0), firstDelegate);
+    }
+
     // --- applySynced -----------------------------------------------------------------------------
 
     // isPrivate is backend-owned now, so the response's copy always wins — a local flag no longer

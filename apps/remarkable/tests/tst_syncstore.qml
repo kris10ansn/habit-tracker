@@ -2,6 +2,7 @@ import QtQuick 2.15
 import QtTest 1.2
 import "../src" as App
 import "../src/js/Sync.js" as Sync
+import "../src/js/HabitsModel.js" as HabitsModel
 import "../src/js/Entries.js" as Entries
 import "TestPaths.js" as TestPaths
 import "Fixtures.js" as Fixtures
@@ -169,18 +170,25 @@ TestCase {
 
     // The guards key on this rather than a single status string, so the finer readyState phases
     // cannot slip a second request past them.
-    function test_isRequestInFlightCoversEveryPhase() {
+    function test_inFlightIdentitySurvivesSchedulingAndStatusChanges() {
         makeStore();
+        const xhr = { abort: function () {} };
+        store._activeXhr = xhr;
+        store.status = "loading";
+        store.scheduleSync();
+        verify(store.isRequestInFlight);
+        compare(store.status, "loading");
+        verify(store._syncRequested);
+        store.status = "pending";
+        verify(store.isRequestInFlight);
+        store.abortSync();
+        verify(!store.isRequestInFlight);
+    }
 
-        ["syncing", "connecting", "headers-received", "loading"].forEach(phase => {
-            store.status = phase;
-            verify(store.isRequestInFlight, `${phase} should count as in flight`);
-        });
-
-        ["", "pending", "ok", "offline", "unauthorized", "error"].forEach(phase => {
-            store.status = phase;
-            verify(!store.isRequestInFlight, `${phase} should not count as in flight`);
-        });
+    function adoptRequest(request) {
+        const applied = Sync.applyResponse(request, store.monthKey);
+        store.habitsStore.habits = Fixtures.fakeModel(applied.roster.map(habit =>
+            Fixtures.habitRow(Object.assign({}, habit, { entriesByDate: applied.entriesByHabitId[habit.id] || {} }))));
     }
 
     function test_statusForReadyStateMapsThePhases() {
@@ -307,6 +315,7 @@ TestCase {
             [Fixtures.entryRow({ habitId: "a", date: "2026-08-01", outcome: Entries.X })],
             "2026-08");
 
+        adoptRequest(request);
         store._handleDone(done(200, request), request, "2026-08");
 
         compare(store.habitsStore.applySyncedCalls, 0, "nothing changed, so nothing is applied");
@@ -323,6 +332,7 @@ TestCase {
             [wireHabit({ id: "a", name: "Renamed on another device", editedAt: 1750000009000 })],
             [{ habitId: "a", date: "2026-08-02", outcome: "Failure", editedAt: 1750000009000 }]);
 
+        adoptRequest(request);
         store._handleDone(done(200, body), request, "2026-08");
 
         compare(store.habitsStore.applySyncedCalls, 1);
@@ -351,6 +361,7 @@ TestCase {
         const request = Sync.buildRequest([Fixtures.rosterRow({ id: "a" })], [], [], "2026-08");
         const body = response([wireHabit({ editedAt: 1750000009000 })], []);
 
+        adoptRequest(request);
         store._handleDone(done(200, body), request, "2026-08");
 
         compare(store.status, "error");
@@ -369,6 +380,68 @@ TestCase {
         store._handleDone(done(200, request), request, "2026-08");
 
         compare(store.errorMessage, "");
+        compare(store.status, "ok");
+    }
+
+    function test_failedNetworkSetupReleasesTheInFlightGuard() {
+        makeStore();
+        store.createRequest = function () { return { open: function () { throw new Error("Invalid URL"); } }; };
+        store.syncNow();
+        verify(!store.isRequestInFlight);
+        compare(store.status, "error");
+    }
+
+    function captureNetwork() {
+        const requests = [];
+        store.createRequest = function () {
+            const xhr = { readyState: 0, status: 0, responseText: "",
+                open: function (method, endpoint, asynchronous) { verify(asynchronous); },
+                setRequestHeader: function () {},
+                send: function (body) { this.body = JSON.parse(body); requests.push(this); },
+                abort: function () {},
+                finish: function () {
+                    this.status = 200;
+                    this.responseText = JSON.stringify(this.body);
+                    this.readyState = XMLHttpRequest.DONE;
+                    this.onreadystatechange();
+                }
+            };
+            return xhr;
+        };
+        store._syncTimer.interval = 1;
+        return requests;
+    }
+
+    function test_editsDuringARequestArePreservedAndResentOnce() {
+        makeStore(undefined, "2026-08", [Fixtures.habitRow()]);
+        const requests = captureNetwork();
+        store.syncNow();
+        store.habitsStore.habits = Fixtures.fakeModel([Fixtures.habitRow({ name: "Edited during request" })]);
+        store.scheduleSync();
+        store.scheduleSync();
+        store.syncNow();
+        compare(requests.length, 1);
+        requests[0].finish();
+        compare(store.habitsStore.applySyncedCalls, 0);
+        compare(store.habitsStore.purgeCalls, 0);
+        tryCompare(requests, "length", 2);
+        compare(requests[1].body.habits[0].name, "Edited during request");
+        requests[1].finish();
+        compare(store.status, "ok");
+        compare(store.habitsStore.purgeCalls, 1);
+    }
+
+    function test_monthNavigationQueuesTheArrivedAtMonth() {
+        makeStore();
+        const requests = captureNetwork();
+        store.syncNow();
+        store.monthKey = "2026-09";
+        store.syncNow();
+        compare(requests.length, 1);
+        requests[0].finish();
+        tryCompare(requests, "length", 2);
+        compare(requests[1].body.months[0].month, "2026-09");
+        requests[1].finish();
         compare(store.status, "ok");
     }
 
