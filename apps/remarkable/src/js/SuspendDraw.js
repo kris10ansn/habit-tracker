@@ -8,7 +8,7 @@ function computeSignature(habits, today) {
     const month = today.getMonth();
     const visible = habits.filter((h) => !h.isPrivate);
 
-    const parts = [`power-images-ledger-v3|${year}-${month}-${currentDay}`];
+    const parts = [`power-images-ledger-v4|${year}-${month}-${currentDay}`];
 
     for (let i = 0; i < visible.length; i++) {
         const h = visible[i];
@@ -290,7 +290,7 @@ const drawStateIcon = (ctx, state, x, y, color) => {
         drawLine(ctx, 18, 0, 18, 19, color, 3);
     } else if (state === "rebooting") {
         drawPolyline(ctx, circlePoints(18, 18, 16, -Math.PI / 2, Math.PI));
-        drawPolyline(ctx, [[0, 7], [2, 18], [13, 16]]);
+        drawPolyline(ctx, [[-5, 25], [2, 18], [9, 25]]);
     } else if (state === "overheating") {
         drawPolyline(ctx, [[18, 0], [36, 34], [0, 34], [18, 0]]);
         drawLine(ctx, 18, 10, 18, 21, color, 3);
