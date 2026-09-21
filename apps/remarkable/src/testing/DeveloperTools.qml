@@ -22,6 +22,9 @@ Item {
         canRender: tools.canRender
         previewPath: preview.targetPath
         renderPreview: function (onDone) { preview.renderOnce(onDone); }
+        renderPreviews: function (targets, onDone) {
+            preview.renderImagesOnce(targets.map(target => ({ state: target.state, path: target.preview })), onDone);
+        }
     }
 
     DeveloperPage {
@@ -32,9 +35,12 @@ Item {
         dataDirectory: tools.dataDirectory
         previewPath: controller.previewPath
         backupPath: controller.backupPath
+        backupDirectory: controller.backupDirectory
         onPreviewRequested: controller.preview()
         onWriteRequested: controller.writeOnce()
         onRestoreRequested: controller.restore()
+        onWriteAllRequested: controller.writeAllOnce()
+        onRestoreAllRequested: controller.restoreAll()
         onBackRequested: tools.backRequested()
     }
 }

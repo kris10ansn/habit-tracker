@@ -206,7 +206,7 @@ test slot on the tablet, so deploying another worktree replaces that test versio
 
 The grid and Settings display **TEST**. Ordinary test writes stay inside the test app directory,
 including when **Save local suspend preview** is enabled: automatic renders, edits, and quitting only
-update `suspend-preview.png`. The test profile leaves all other device power-state images untouched.
+update `suspend-preview.png`. Only explicit developer write/restore actions change device power-state images.
 Test builds refuse writes to production habit data, settings, and the
 stable suspend-image backup. The separate native device suspend-writer is unavailable in the test
 profile. Both apps run inside xochitl; this is not an operating-system sandbox. Keep the test
@@ -227,17 +227,30 @@ settings before opening it. The page shows the test data, preview, and backup pa
   or when habit data cannot be read. Restore before removing the test install, which holds the
   backup. The original is the image captured before the **first** test write, not necessarily the
   stock reMarkable image or the latest stable habit grid.
+- **Write all screens once** renders one current-month snapshot for every available supported
+  screen: sleep, power off, battery empty, startup, restart, overheating, and crash recovery.
+  All previews are saved locally and all originals are backed up and verified before any system
+  image is replaced. This is a one-shot action; automatic renders continue to write local previews only.
+  Additional originals are kept as `device-<screen>-original.png` in the test install. The suspend
+  image shares the existing `device-suspend-original.png` backup with the single-image action.
+- **Restore all original screens** preflights every captured backup before restoring it, including
+  after an interrupted or partially failed batch. It works without readable/current-month habit data.
+  Repeated writes and app restarts preserve the first verified originals; restore before uninstalling.
+
+[Developer-options preview](../../docs/assets/screenshots/remarkable-developer-options.png).
 
 The developer UI, controller, and their own preview renderer live under `src/testing/`, behind
 `DeveloperTools.qml`. The app passes only the habit model, render eligibility, and data directory;
 the module handles its actions internally. Stable bundles omit every `src/testing/` resource.
-The ordinary suspend renderer exposes a reusable one-shot render operation, and binary file I/O is
-shared without giving ordinary test storage permission to write outside its app directory.
+The ordinary suspend renderer exposes reusable one-shot and batch preview operations. The developer
+controller permits explicit device writes only to the supported screen paths; ordinary test storage
+and preview rendering still refuse writes outside the test app directory.
 
 Render actions require readable, loaded data for the current month. Private habits remain excluded.
 Failures are displayed on the developer page; a failed render or backup never proceeds to a device
-write. Close the stable app during suspend-image testing, since it can otherwise replace the shared
-device image with its own grid. The test app never changes the stable app's backup or signature.
+write. Device-write failures name the affected path; originals remain available for restoration.
+Close the stable app during screen testing, since it can otherwise replace the shared device images
+with its own grid. The test app never changes the stable app's backup or signature.
 
 **Sync requires separate test data on both clients.** For pairing tests, use a separate backend
 account (or a separate backend), and a phone installation with separate local storage. A real

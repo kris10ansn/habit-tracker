@@ -91,6 +91,10 @@ Canvas {
     }
 
     function renderOnce(onDone) {
+        renderImagesOnce([{ state: "sleep", path: canvas.targetPath }], onDone);
+    }
+
+    function renderImagesOnce(imageTargets, onDone) {
         if (canvas.busy) {
             onDone(false);
             return;
@@ -98,13 +102,16 @@ Canvas {
         canvas.cancelPending();
         canvas.busy = true;
         canvas.phase = "saving";
+        const snapshot = HabitsModel.toSuspendHabits(canvas.habits);
+        const snapshotDate = new Date(canvas.today.getTime());
         Qt.callLater(() => {
-            const ok = canvas._renderTarget({ state: "sleep", path: canvas.targetPath }, HabitsModel.toSuspendHabits(canvas.habits), canvas.today);
+            const failed = imageTargets.find(target => !canvas._renderTarget(target, snapshot, snapshotDate));
+            const ok = !failed;
             canvas.busy = false;
             canvas.lastRenderFailed = !ok;
-            canvas.failedPath = ok ? "" : canvas.targetPath;
+            canvas.failedPath = ok ? "" : failed.path;
             canvas.phase = ok ? "saved" : "save-failed";
-            onDone(ok);
+            onDone(ok, canvas.failedPath);
         });
     }
 

@@ -11,10 +11,13 @@ Item {
     property string dataDirectory: ""
     property string previewPath: ""
     property string backupPath: ""
+    property string backupDirectory: ""
 
     signal previewRequested
     signal writeRequested
     signal restoreRequested
+    signal writeAllRequested
+    signal restoreAllRequested
     signal backRequested
 
     Column {
@@ -33,9 +36,37 @@ Item {
 
         Text {
             width: parent.width
-            text: "Test habits and settings are separate. Only Write once and Restore below change the device’s suspend image. Private habits stay excluded."
+            text: "Write once and Restore change the device’s system screens. Automatic test renders stay local. Private habits stay excluded."
             wrapMode: Text.WordWrap
             font.pixelSize: App.Theme.labelFont
+            color: App.Theme.fg
+        }
+
+        Row {
+            spacing: App.Theme.buttonGap
+
+            AppButton {
+                height: App.Theme.quitButtonHeight
+                width: 440
+                text: "Write all screens once"
+                disabled: page.busy || !page.canRender
+                onClicked: page.writeAllRequested()
+            }
+
+            AppButton {
+                height: App.Theme.quitButtonHeight
+                width: 460
+                text: "Restore all original screens"
+                disabled: page.busy
+                onClicked: page.restoreAllRequested()
+            }
+        }
+
+        Text {
+            width: parent.width
+            text: "All screens: sleeping, powered off, battery empty, starting, restarting, overheating, and crash recovery, where available."
+            wrapMode: Text.WordWrap
+            font.pixelSize: App.Theme.subtitleFont
             color: App.Theme.fg
         }
 
@@ -84,7 +115,7 @@ Item {
 
         Text {
             width: parent.width
-            text: "Data: " + page.dataDirectory + "\n\nPreview: " + page.previewPath + "\n\nOriginal image backup: " + page.backupPath
+            text: "Data: " + page.dataDirectory + "\n\nPreview: " + page.previewPath + "\n\nSuspend backup: " + page.backupPath + "\n\nScreen backups: " + page.backupDirectory
             wrapMode: Text.WrapAnywhere
             font.pixelSize: App.Theme.subtitleFont
             color: App.Theme.fg
@@ -92,7 +123,7 @@ Item {
 
         Text {
             width: parent.width
-            text: "The first write keeps the current device image as your original backup, including after restarting the app. Restore it before removing the test install. Close the stable app while testing the suspend image so it cannot overwrite your test image."
+            text: "Each screen’s first write keeps its original backup, including after restarting the app. Restore all originals before removing the test install. Close the stable app while testing so it cannot overwrite your test images."
             wrapMode: Text.WordWrap
             font.pixelSize: App.Theme.labelFont
             color: App.Theme.fg

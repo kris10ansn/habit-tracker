@@ -1,6 +1,7 @@
 import QtQuick 2.15
 import QtTest 1.2
 import "src/components" as Components
+import "src/testing" as Testing
 import "src/js/BuildProfile.js" as BuildProfile
 
 TestCase {
@@ -11,6 +12,14 @@ TestCase {
     Component {
         id: factory
         Components.SuspendCanvas {}
+    }
+
+    Component { id: developerFactory; Testing.DeveloperTools {} }
+
+    function test_developerToolsLoadWithoutRendering() {
+        const tools = createTemporaryObject(developerFactory, testCase, {});
+        verify(tools !== null);
+        compare(tools.canRender, false);
     }
 
     function test_profileTargets() {
@@ -47,5 +56,9 @@ TestCase {
         canvas.renderOnce(ok => results.push(ok));
         tryCompare(canvas, "busy", false);
         compare(results, [false]);
+
+        canvas.renderImagesOnce([{ state: "rebooting", path: forbiddenPath }], ok => results.push(ok));
+        tryCompare(canvas, "busy", false);
+        compare(results, [false, false]);
     }
 }
