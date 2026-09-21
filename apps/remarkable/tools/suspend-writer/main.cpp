@@ -6,7 +6,7 @@
 // app's own roster.json + month YYYY-MM.json (same on-disk shapes the QML stores
 // write). Build with ./build-host.sh (host) or ./build-device.sh (ARM); see
 // README. Run: ./build/suspend-writer --roster <roster.json> [--month <YYYY-MM.json>]
-//              [--today YYYY-MM-DD] [--out suspended.png] [--state sleep|off|empty] [--js-dir <dir>]
+//              [--today YYYY-MM-DD] [--out suspended.png] [--state <state>] [--js-dir <dir>]
 
 #include <QGuiApplication>
 #include <QImage>
@@ -226,9 +226,9 @@ int main(int argc, char *argv[]) {
         else { qWarning() << "unknown argument" << arg; return 2; }
     }
 
-    if (rosterPath.isEmpty() || !QStringList{"sleep", "off", "empty"}.contains(powerState)) {
+    if (rosterPath.isEmpty() || !QStringList{"sleep", "off", "empty", "starting", "rebooting", "overheating"}.contains(powerState)) {
         qWarning() << "usage: suspend-writer --roster <roster.json> [--month <YYYY-MM.json>]"
-                   << "[--today YYYY-MM-DD] [--out suspended.png] [--state sleep|off|empty] [--js-dir <dir>]";
+                   << "[--today YYYY-MM-DD] [--out suspended.png] [--state sleep|off|empty|starting|rebooting|overheating] [--js-dir <dir>]";
         return 2;
     }
 

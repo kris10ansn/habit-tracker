@@ -12,7 +12,7 @@ Canvas {
     property string targetPath: BuildProfile.suspendPath
     readonly property var targets: BuildProfile.isTest
         ? [{ state: "sleep", path: canvas.targetPath, backup: BuildProfile.suspendBackupPath }]
-        : SuspendRender.imageTargets(imageDirectory)
+        : SuspendRender.availableImageTargets(SuspendRender.imageTargets(imageDirectory))
     property var habits: []
     property date today: new Date()
     property bool renderAllowed: false
@@ -177,7 +177,11 @@ Canvas {
     }
 
     function _upToDate() {
-        return SuspendDraw.computeSignature(HabitsModel.toSuspendHabits(canvas.habits), canvas.today) === canvas.lastRenderedSignature;
+        return _signature(HabitsModel.toSuspendHabits(canvas.habits), canvas.today) === canvas.lastRenderedSignature;
+    }
+
+    function _signature(snapshot, date) {
+        return SuspendDraw.computeSignature(snapshot, date) + "\n" + canvas.targets.map(target => target.path).join("\n");
     }
 
     function _renderAll() {
@@ -188,7 +192,7 @@ Canvas {
         canvas.busy = true;
         const snapshot = HabitsModel.toSuspendHabits(canvas.habits);
         const snapshotDate = new Date(canvas.today.getTime());
-        const signature = SuspendDraw.computeSignature(snapshot, snapshotDate);
+        const signature = _signature(snapshot, snapshotDate);
         for (let index = 0; index < canvas.targets.length; index++) {
             const target = canvas.targets[index];
             if (!canvas._renderTarget(target, snapshot, snapshotDate)) {
