@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Host integration tests; every output lives in TemporaryDirectory, never on a tablet."""
 import json
+import errno
 import os
 from pathlib import Path
 import socket
@@ -224,7 +225,15 @@ class PowerImageServiceTests(unittest.TestCase):
                         self.fail(log_path.read_text())
                     time.sleep(.02)
                 # Input reached QML before the native worker is allowed to render or write.
-                descriptor = os.open(helper.gate, os.O_WRONLY | os.O_NONBLOCK)
+                deadline = time.monotonic() + 10
+                while True:
+                    try:
+                        descriptor = os.open(helper.gate, os.O_WRONLY | os.O_NONBLOCK)
+                        break
+                    except OSError as error:
+                        if error.errno != errno.ENXIO or time.monotonic() > deadline:
+                            raise
+                        time.sleep(.02)
                 os.write(descriptor, b"1")
                 os.close(descriptor)
                 self.assertEqual(process.wait(timeout=20), 0, log_path.read_text())
