@@ -14,12 +14,24 @@ TestCase {
         Components.SuspendCanvas {}
     }
 
+    Component { id: bootFactory; Testing.BootPreview {} }
+
     Component { id: developerFactory; Testing.DeveloperTools {} }
 
     function test_developerToolsLoadWithoutRendering() {
         const tools = createTemporaryObject(developerFactory, testCase, {});
         verify(tools !== null);
         compare(tools.canRender, false);
+    }
+
+    function test_bootPreviewRefusesOutsideTestInstall() {
+        if (!BuildProfile.isTest) return;
+        const boot = createTemporaryObject(bootFactory, testCase, {});
+        tryVerify(() => boot.available);
+        const forbiddenPath = Qt.resolvedUrl("forbidden-boot.bmp").toString().replace("file://", "");
+        let result = null;
+        boot.renderOnce(forbiddenPath, [], new Date(), ok => result = ok);
+        compare(result, false);
     }
 
     function test_profileTargets() {

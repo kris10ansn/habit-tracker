@@ -3,6 +3,7 @@ import QtTest 1.2
 import "../src/testing" as Testing
 import "../src/js/Storage.js" as Storage
 import "../src/js/SuspendRender.js" as SuspendRender
+import "../src/js/BootSplash.js" as BootSplash
 import "TestPaths.js" as TestPaths
 
 TestCase {
@@ -16,6 +17,9 @@ TestCase {
     property int writes: 0
     property bool renderSucceeds: true
     property string failingPath: ""
+    property var bootImage: null
+    property var bootPreview: null
+    property bool invalidBootPreview: false
 
     Component { id: factory; Testing.SuspendController {} }
 
@@ -23,6 +27,30 @@ TestCase {
         let finished = false;
         Storage.writeFile(path, text, error => { compare(error, null); finished = true; });
         tryVerify(() => finished);
+    }
+
+    function writeBinary(path, buffer) {
+        let finished = false;
+        Storage.writeBinary(path, buffer, error => { compare(error, null); finished = true; });
+        tryVerify(() => finished);
+    }
+
+    function initTestCase() {
+        bootImage = BootSplash.encodeLandscape(new Uint8Array(1872 * 1404 * 4), 1872, 1404);
+        bootPreview = bootImage.slice(0);
+        new Uint8Array(bootPreview)[1078] = 0;
+    }
+
+    function addBootTargets() {
+        const bootTargets = BootSplash.imageTargets(TestPaths.tmpDir()).map((target, index) => Object.assign({}, target, {
+            path: TestPaths.tmpPath("boot-" + sequence + "-" + index + ".bmp"),
+            backup: TestPaths.tmpPath("boot-" + sequence + "-" + index + "-original.bmp"),
+            preview: TestPaths.tmpPath("boot-" + sequence + "-preview.bmp")
+        }));
+        bootTargets.forEach(target => writeBinary(target.path, bootImage));
+        targets = targets.concat(bootTargets);
+        controller.screenTargets = targets;
+        controller.deviceModel = "reMarkable 1.0";
     }
 
     function createController() {
@@ -36,7 +64,10 @@ TestCase {
             renderPreview: onDone => Qt.callLater(() => onDone(true)),
             renderPreviews: function (selected, onDone) {
                 renders++;
-                selected.forEach(target => writeText(target.preview, "test-" + target.state));
+                selected.forEach(target => {
+                    if (target.format === "boot-bmp" && !invalidBootPreview) writeBinary(target.preview, bootPreview);
+                    else writeText(target.preview, "test-" + target.state);
+                });
                 Qt.callLater(() => onDone(renderSucceeds, selected[0].preview));
             },
             writeDeviceImage: (buffer, onDone) => Storage.writeBinary(targets[0].path, buffer, onDone),
@@ -57,6 +88,7 @@ TestCase {
         renders = 0;
         writes = 0;
         renderSucceeds = true;
+        invalidBootPreview = false;
         failingPath = "";
         targets = SuspendRender.imageTargets(TestPaths.tmpDir()).map(target => Object.assign({}, target, {
             path: TestPaths.tmpPath("all-" + sequence + "-" + target.filename),
@@ -176,6 +208,72 @@ TestCase {
         controller.restoreAll();
         compare(writes, 0);
         verify(controller.statusText.includes("No original"));
+    }
+
+    function test_bothBootCopiesAreBackedUpAndRestoredAfterRestart() {
+        addBootTargets();
+        writeAll();
+        compare(writes, 9);
+        targets.slice(7).forEach(target => {
+            compare(BootSplash.validationError(Storage.readBinary(target.backup)), "");
+            compare(new Uint8Array(Storage.readBinary(target.backup))[1078], 255);
+            compare(new Uint8Array(Storage.readBinary(target.path))[1078], 0);
+            writeText(target.path, "damaged installed image");
+        });
+        controller.destroy();
+        createController();
+        controller.deviceModel = "reMarkable 1.0";
+        controller.restoreAll();
+        tryVerify(() => !controller.busy);
+        compare(writes, 18);
+        targets.slice(7).forEach(target => {
+            compare(BootSplash.validationError(Storage.readBinary(target.path)), "");
+            compare(new Uint8Array(Storage.readBinary(target.path))[1078], 255);
+        });
+    }
+
+    function test_bootWrongModelPreventsAllWrites() {
+        addBootTargets();
+        controller.deviceModel = "reMarkable 2.0";
+        writeAll();
+        compare(writes, 0);
+        compare(renders, 0);
+    }
+
+    function test_invalidBootOriginalPreventsAllWrites() {
+        addBootTargets();
+        writeText(targets[8].path, "truncated BMP");
+        writeAll();
+        compare(writes, 0);
+        compare(renders, 0);
+    }
+
+    function test_invalidBootPreviewPreventsAllBackupsAndWrites() {
+        addBootTargets();
+        invalidBootPreview = true;
+        writeAll();
+        compare(writes, 0);
+        compare(renders, 1);
+        targets.forEach(target => compare(Storage.readBinary(target.backup), null));
+    }
+
+    function test_invalidBootBackupPreventsEntireRestore() {
+        addBootTargets();
+        writeAll();
+        writes = 0;
+        writeText(targets[8].backup, "truncated backup");
+        controller.restoreAll();
+        compare(writes, 0);
+        verify(controller.statusText.includes(targets[8].backup));
+    }
+
+    function test_defaultWriterRejectsInvalidBootFormat() {
+        const restricted = createTemporaryObject(factory, testCase, { deviceModel: "reMarkable 1.0" });
+        BootSplash.imageTargets("unused").forEach(target => {
+            let result = null;
+            restricted.writeDeviceTarget(target.path, new ArrayBuffer(1), error => result = error);
+            verify(result.includes("Refusing unsupported boot splash"));
+        });
     }
 
     function test_defaultWriterRejectsNonScreenPaths() {

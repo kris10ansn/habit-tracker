@@ -64,7 +64,7 @@ Item {
 
         Text {
             width: parent.width
-            text: "All screens: sleeping, powered off, battery empty, starting, restarting, overheating, and crash recovery, where available."
+            text: "All available screens: sleeping, powered off, battery empty, starting, restarting, overheating, crash recovery, and reMarkable 1 early boot."
             wrapMode: Text.WordWrap
             font.pixelSize: App.Theme.subtitleFont
             color: App.Theme.fg
@@ -123,7 +123,7 @@ Item {
 
         Text {
             width: parent.width
-            text: "Each screen’s first write keeps its original backup, including after restarting the app. Restore all originals before removing the test install. Close the stable app while testing so it cannot overwrite your test images."
+            text: "Each screen’s first write keeps its original backup, including both boot BMP copies. Wait for completion before powering off. Restore all originals before removing the test install. Close the stable app while testing so it cannot overwrite your test images."
             wrapMode: Text.WordWrap
             font.pixelSize: App.Theme.labelFont
             color: App.Theme.fg

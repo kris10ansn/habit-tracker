@@ -159,12 +159,12 @@ Each contains the landscape Quiet ledger layout and a state icon and instruction
 
 All originals must be readable and backed up to their adjacent `.bak` files before the first write. Existing backups are reused, including the original suspend backup on upgrade. Backup, restore, and save failures name the affected path. Disabling preflights every backup, restores every selected image, then commits the setting off; a failed restore pauses further rendering until retried. Uninstalling does not restore images: disable the feature successfully first. An already-enabled suspend setting now covers all available images, without changing the persisted settings shape. The render signature changes on upgrade and includes the selected paths so newly supported screens are rendered even when the habit data is unchanged.
 
-**Startup versus early boot.** `starting.png` is [documented as the loading screen](https://xavier.arnaus.net/blog/remarkable-2-customizing-screens); this is the likely source of “Paper tablet is loading”, but the exact wording still needs checking on the device's firmware. Firmware may draw its own progress indicator over the image. This feature replaces the PNG background, not that overlay or an earlier bootloader splash (`splash.bmp` / `splash.dat`). It leaves first-use `factory.png`, firmware-update artwork, and release-note artwork alone. OS updates can restore stock images; reopen the app and check the power-state-image status after updating.
+**Startup versus early boot.** `starting.png` is [documented as the loading screen](https://xavier.arnaus.net/blog/remarkable-2-customizing-screens); this is the likely source of “Paper tablet is loading”, but the exact wording still needs checking on the device's firmware. Firmware may draw its own progress indicator over the image. Automatic renders replace the PNG background, not that overlay. The earlier “Paper tablet is starting” image on reMarkable 1 comes from a separate bootloader BMP; use the test build’s **Developer options → Write all screens once** to replace it as described below. It leaves first-use `factory.png`, firmware-update artwork, and release-note artwork alone. OS updates can restore stock images; reopen the app and check the power-state-image status after updating.
 
 To confirm the installed files and aliases, run this yourself (agents must not access the device):
 
 ```sh
-ssh remarkable 'ls -l /usr/share/remarkable/*.png /usr/share/remarkable/splash.* /var/lib/uboot/splash.* 2>/dev/null'
+ssh remarkable 'ls -l /usr/share/remarkable/*.png /usr/share/remarkable/splash/splash.* /var/lib/uboot/splash.* 2>/dev/null'
 ```
 
 After installing, check startup and restart on the tablet, including any firmware progress overlay. The host previews cannot verify which screen a particular firmware displays or caches.
@@ -228,11 +228,21 @@ settings before opening it. The page shows the test data, preview, and backup pa
   backup. The original is the image captured before the **first** test write, not necessarily the
   stock reMarkable image or the latest stable habit grid.
 - **Write all screens once** renders one current-month snapshot for every available supported
-  screen: sleep, power off, battery empty, startup, restart, overheating, and crash recovery.
+  screen: sleep, power off, battery empty, startup, restart, overheating, crash recovery, and
+  reMarkable 1 early boot.
   All previews are saved locally and all originals are backed up and verified before any system
   image is replaced. This is a one-shot action; automatic renders continue to write local previews only.
   Additional originals are kept as `device-<screen>-original.png` in the test install. The suspend
   image shares the existing `device-suspend-original.png` backup with the single-image action.
+  On `reMarkable 1.0`, this also replaces both existing `/usr/share/remarkable/splash/splash.bmp`
+  and `/var/lib/uboot/splash.bmp` with the starting snapshot. The bootloader reads the latter;
+  the former is an identical copy on the inspected tablet, but its runtime role is unconfirmed.
+  Originals and generated previews must match the verified 1872×1404, uncompressed 8-bit BMP
+  layout; another device model or unexpected BMP stops the whole batch before any system writes.
+  Separate backups are `device-system-splash-original.bmp` and `device-boot-splash-original.bmp`.
+  Boot images refresh only on this explicit action. Keep the tablet on until it reports completion;
+  the boot-partition write is verified by readback but is not atomic against power loss.
+  See [bootloader evidence and BMP requirements](docs/research/early-boot-splash.md).
 - **Restore all original screens** preflights every captured backup before restoring it, including
   after an interrupted or partially failed batch. It works without readable/current-month habit data.
   Repeated writes and app restarts preserve the first verified originals; restore before uninstalling.

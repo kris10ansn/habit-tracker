@@ -94,7 +94,7 @@ Canvas {
         renderImagesOnce([{ state: "sleep", path: canvas.targetPath }], onDone);
     }
 
-    function renderImagesOnce(imageTargets, onDone) {
+    function renderImagesOnce(imageTargets, onDone, snapshot = HabitsModel.toSuspendHabits(canvas.habits), snapshotDate = new Date(canvas.today.getTime())) {
         if (canvas.busy) {
             onDone(false);
             return;
@@ -102,8 +102,6 @@ Canvas {
         canvas.cancelPending();
         canvas.busy = true;
         canvas.phase = "saving";
-        const snapshot = HabitsModel.toSuspendHabits(canvas.habits);
-        const snapshotDate = new Date(canvas.today.getTime());
         Qt.callLater(() => {
             const failed = imageTargets.find(target => !canvas._renderTarget(target, snapshot, snapshotDate));
             const ok = !failed;
