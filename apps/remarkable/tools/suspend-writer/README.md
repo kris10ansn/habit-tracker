@@ -156,8 +156,8 @@ failures (or a client timeout); no fallback draws or encodes in QML.
 Host integration tests can override `--app-dir`, `--image-dir`, `--js-dir`, and `--port` to use
 temporary directories. Host builds include a test-only FIFO gate controlled by
 `HABIT_TRACKER_TEST_GATE`; ARM builds omit that hook. `make responsiveness-test` proves the
-service and QML remain responsive with the worker held at that gate. A follow-up adds the
-seven-image timing benchmark.
+service and QML remain responsive with the worker held at that gate. `make performance` measures
+the real seven-image path.
 
 ## Input JSON shapes
 

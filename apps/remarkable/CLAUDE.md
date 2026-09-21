@@ -46,6 +46,7 @@ Local (agent-runnable):
 - `make test` — Qt Quick Test over `tests/tst_*.qml`, headless on host Qt 5.15 (the device's Qt), against live `src/`. Covers the JS modules and the stores. **Unlike `lint`, this target fails properly** — never give it the `|| echo skipping` treatment. See the testing section below.
 - `make suspend-writer-test` — builds the host renderer and smoke-tests it against fixtures.
 - `make responsiveness-test` — host helper integration tests, including QML input with a deliberately blocked worker; uses temporary files and loopback sockets.
+- `make performance` — reports seven-image UI latency. `PERFORMANCE_ARGS="--max-gap-ms 100"` adds an optional machine-specific limit. These targets are local; no device access.
 - `make clean` — removes local `build/`.
 - `make suspend-writer-host` / `suspend-writer-clean` — host build of the off-device renderer against host Qt5, for previewing a render as a PNG; no device or SDK needed (see below).
 
@@ -81,7 +82,7 @@ with a test.
   and the stale-`requestMonthKey` discard (0004), the alive-only model with tombstones (0002/0005),
   and the `x`/`o` ↔ `Success`/`Failure` respelling (0005). Sync's terminal paths are reached by
   calling `_handleDone` with a plain `{status, responseText}` stand-in — no server needed.
-- Responsiveness regressions have two checks: deterministic held-I/O/input and delegate-identity tests in ordinary suites, the separate real-render timing benchmark follows in the next increment. Do not put tight wall-clock thresholds into ordinary correctness tests.
+- Responsiveness regressions have two checks: deterministic held-I/O/input and delegate-identity tests in ordinary suites, plus the separate real-render timing benchmark. Do not put tight wall-clock thresholds into ordinary correctness tests.
 
 ## suspend-writer: a second consumer of the JS renderer — tell the user when you break it
 

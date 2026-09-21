@@ -29,3 +29,8 @@ jobs:
             - run: make test
             - run: make build build-test RCC=rcc
             - run: make suspend-writer-test responsiveness-test
+            - run: make performance > performance-results.txt
+            - uses: actions/upload-artifact@v4
+              with:
+                  name: remarkable-performance
+                  path: apps/remarkable/performance-results.txt
