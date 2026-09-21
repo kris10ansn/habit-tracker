@@ -1,7 +1,7 @@
 import QtQuick 2.15
 import QtTest 1.2
 import "../src" as App
-import "../src/js/Storage.js" as Storage
+import "Storage.js" as Storage
 import "TestPaths.js" as TestPaths
 
 // The persistence scaffolding every store inherits: deferred first load, 200 ms debounced save,
@@ -87,6 +87,7 @@ TestCase {
         tryVerify(() => Storage.readJson(target).generation === 2, 2000);
         store.reload();
 
+        tryCompare(store, "isLoaded", true);
         compare(store.loaded.generation, 2);
 
         store.destroy();
@@ -242,6 +243,76 @@ TestCase {
         compare(store.isUnwritable, false);
 
         store.destroy();
+    }
+
+    function test_lateLoadCannotReplaceTheNewestMonth() {
+        const reads = [];
+        const store = createTemporaryObject(jsonStoreComponent, testCase, {
+            filePath: path("first-month.json"),
+            readJson: function (target, onDone) { reads.push(onDone); }
+        });
+        tryCompare(reads, "length", 1);
+        store.filePath = path("new-month.json");
+        store.reload();
+        reads[1]({ month: "new" });
+        verify(store.isLoaded);
+        reads[0]({ month: "old" });
+        compare(store.loaded.month, "new");
+    }
+
+    function test_failedOldMonthRetriesItsCapturedFileAndSnapshot() {
+        const writes = [];
+        const store = createTemporaryObject(jsonStoreComponent, testCase, {
+            filePath: path("old-month.json"), writes: { month: "old" },
+            writeJson: function (target, value, onDone) { writes.push({ path: target, value: value, finish: onDone }); }
+        });
+        tryCompare(store, "isLoaded", true);
+        store._doSave();
+        store.filePath = path("new-month.json");
+        store.writes = { month: "new" };
+        writes[0].finish("Disk full");
+        store.flushPendingSave();
+        compare(writes[1].path, path("old-month.json"));
+        compare(writes[1].value.month, "old");
+        verify(store.hasPendingSave);
+        writes[1].finish(null);
+        verify(!store.hasPendingSave);
+        compare(store.lastSaveError, "");
+    }
+
+    function test_failedWriteCannotRetryOverARefusedFile() {
+        const writes = [];
+        const store = createTemporaryObject(jsonStoreComponent, testCase, {
+            filePath: path("refused-retry.json"),
+            writeJson: function (target, value, onDone) { writes.push(onDone); }
+        });
+        tryCompare(store, "isLoaded", true);
+        store._doSave();
+        writes[0]("Write failed");
+        store.isUnwritable = true;
+        store.filePath = path("another-month.json");
+        store.isUnwritable = false;
+        store.flushPendingSave();
+        compare(writes.length, 1);
+        verify(store.lastSaveError.indexOf("unreadable") >= 0);
+    }
+
+    function test_pendingSaveIncludesVerificationAfterFlush() {
+        let finish;
+        const store = createTemporaryObject(jsonStoreComponent, testCase, {
+            filePath: path("held-save.json"),
+            writeJson: function (target, value, onDone) { finish = onDone; }
+        });
+        tryCompare(store, "isLoaded", true);
+        store.scheduleSave();
+        store.flushPendingSave();
+        verify(store.hasPendingSave);
+        let eventRan = false;
+        Qt.callLater(() => eventRan = true);
+        tryVerify(() => eventRan);
+        verify(store.hasPendingSave);
+        finish(null);
+        verify(!store.hasPendingSave);
     }
 
     Component {

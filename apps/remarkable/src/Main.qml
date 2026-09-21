@@ -30,51 +30,56 @@ Rectangle {
 
     signal close
 
-    function _waitForPendingOperations() {
-        const syncInProgress = syncStore.isRequestInFlight || syncStore.status === "pending";
-        const renderInProgress = suspendCanvas.busy || suspendCanvas.phase === "saving" || suspendCanvas.phase === "pending";
+    property bool _quitting: false
+    property bool _quitImageSubmitted: false
+    property bool _preparingQuit: false
+    property string _quitError: ""
+    property bool _monthNavigationPending: false
+    enabled: !root._quitting
 
-        if (syncInProgress || renderInProgress) {
-            Qt.callLater(() => root._waitForPendingOperations());
+    function _tryClose() {
+        if (!root._quitting || root._preparingQuit || suspendCanvas.busy || suspendCanvas.phase === "saving" || suspendCanvas.phase === "pending" || habitsStore.hasPendingSave || settingsStore.hasPendingSave || syncStore.hasPendingSave) return;
+        const error = habitsStore.lastSaveError || settingsStore.lastSaveError || syncStore.lastSaveError;
+        if (error) {
+            root._quitError = error;
+            root._quitting = false;
             return;
         }
-
+        if (!root._quitImageSubmitted) {
+            root._quitImageSubmitted = true;
+            if (landscape.canRenderSuspend) suspendCanvas.renderAsync();
+            Qt.callLater(root._tryClose);
+            return;
+        }
         root.close();
     }
 
     function quit() {
+        if (root._quitting) return;
+        root._preparingQuit = true;
+        root._quitting = true;
+        root._quitImageSubmitted = false;
+        syncStore.abortSync();
+        suspendCanvas.cancelPending();
         habitsStore.flushPendingSave();
         settingsStore.flushPendingSave();
         syncStore.flushPendingSave();
-
-        if (landscape.canRenderSuspend) {
-            suspendCanvas.renderAsync();
-        }
-
-        if (!syncStore.hasSyncedSuccessfully) {
-            syncStore.abortSync();
-        }
-
-        root._waitForPendingOperations();
+        root._preparingQuit = false;
+        root._tryClose();
     }
 
-    // Teardown flushes local state only — deliberately never syncs. A network round-trip here has
-    // no frame left to report into and no way to apply the merged response, so a sync on quit can
-    // only lose the result. Pending edits reach the server on the next launch's load-sync instead.
     function unloading() {
-        console.log("Habit Tracker unloading");
+        syncStore.abortSync();
         habitsStore.flushPendingSave();
         settingsStore.flushPendingSave();
         syncStore.flushPendingSave();
-        if (landscape.canRenderSuspend)
-            suspendCanvas.renderSync();
     }
 
     // Sync once both the habits and the sync sidecar have loaded — never before, or a first sync
     // could miss pending tombstones. Guarded to run once per launch.
     property bool _syncedOnLoad: false
     function _maybeSyncOnLoad() {
-        if (root.screenshotMode || root._syncedOnLoad || !habitsStore.isLoaded || !syncStore.isLoaded)
+        if (root.screenshotMode || root._syncedOnLoad || !habitsStore.isLoaded || !syncStore.isLoaded || !settingsStore.isLoaded)
             return;
 
         root._syncedOnLoad = true;
@@ -87,16 +92,16 @@ Rectangle {
             return;
         }
 
-        suspendCanvas.backup(ok => {
-            if (!ok) return;
-            if (enabled) {
-                suspendCanvas.restorationPending = false;
-                settingsStore.setSuspendImageEnabled(true);
-                return;
-            }
+        if (!enabled) {
             suspendCanvas.restore(restored => {
                 if (restored) settingsStore.setSuspendImageEnabled(false);
             });
+            return;
+        }
+        suspendCanvas.backup(ok => {
+            if (!ok) return;
+            suspendCanvas.restorationPending = false;
+            settingsStore.setSuspendImageEnabled(true);
         });
     }
 
@@ -112,6 +117,7 @@ Rectangle {
 
     App.HabitsStore {
         id: habitsStore
+        objectName: "habitsStore"
         dataDir: root.dataDir
         today: root.today
     }
@@ -122,11 +128,13 @@ Rectangle {
 
     App.SettingsStore {
         id: settingsStore
+        objectName: "settingsStore"
         filePath: root.settingsFilePath
     }
 
     App.SyncStore {
         id: syncStore
+        objectName: "syncStore"
         filePath: root.syncFilePath
         habitsStore: habitsStore
         settingsStore: settingsStore
@@ -138,19 +146,28 @@ Rectangle {
     App.PairingStore {
         id: pairingStore
         settingsStore: settingsStore
-        active: !root.screenshotMode && landscape.currentView === "settings"
+        active: !root._quitting && !root.screenshotMode && landscape.currentView === "settings"
     }
 
     App.SuspendCanvas {
         id: suspendCanvas
+        objectName: "suspendCanvas"
         habits: habitsStore.habits
         today: root.today
         renderAllowed: landscape.canRenderSuspend && landscape.gridReady && !landscape.editing
     }
 
     Connections {
+        target: suspendCanvas
+        function onBusyChanged() { Qt.callLater(root._tryClose); }
+        function onPhaseChanged() { Qt.callLater(root._tryClose); }
+    }
+
+    Connections {
         target: habitsStore
+        function onHasPendingSaveChanged() { Qt.callLater(root._tryClose); }
         function onSaved() {
+            if (root._quitting) return;
             if (!landscape.editing && landscape.canRenderSuspend)
                 suspendCanvas.scheduleRender();
             syncStore.scheduleSync();
@@ -158,11 +175,18 @@ Rectangle {
         function onIsLoadedChanged() {
             root._maybeSyncOnLoad();
             root._maybeStartInitialEditing();
+            if (habitsStore.isLoaded && root._monthNavigationPending) {
+                root._monthNavigationPending = false;
+                landscape.recenterScroll();
+                syncStore.syncNow();
+                if (!landscape.editing) suspendCanvas.scheduleRender();
+            }
         }
     }
 
     Connections {
         target: syncStore
+        function onHasPendingSaveChanged() { Qt.callLater(root._tryClose); }
         function onIsLoadedChanged() {
             root._maybeSyncOnLoad();
         }
@@ -172,7 +196,9 @@ Rectangle {
     // and settings.json loading after the grid is already built.
     Connections {
         target: settingsStore
+        function onHasPendingSaveChanged() { Qt.callLater(root._tryClose); }
         function onIsLoadedChanged() {
+            root._maybeSyncOnLoad();
             root._maybeStartInitialEditing();
         }
         function onSuspendImageEnabledChanged() {
@@ -214,10 +240,8 @@ Rectangle {
         // renders as an empty month, which must never reach the suspend image.
         readonly property bool canRenderSuspend: !root.screenshotMode && settingsStore.suspendImageEnabled && isCurrentMonth && !habitsStore.hasUnreadableData
 
-        // Tear the grid down and repoint the header this frame for instant feedback,
-        // then defer the blocking month read past the paint (mirrors the deferred
-        // first-open read). Qt.callLater dedups, so rapid hops collapse to a single
-        // load of the final month; _loadViewedMonth reads whatever month is on screen.
+        // Coalesce rapid navigation before starting the asynchronous month read.
+        // Generation checks in JsonStore discard reads superseded by another hop.
         function goToMonth(year, month) {
             if (landscape.viewYear === year && landscape.viewMonth === month)
                 return;
@@ -230,24 +254,8 @@ Rectangle {
         }
 
         function _loadViewedMonth() {
+            root._monthNavigationPending = true;
             habitsStore.loadMonth(landscape.viewYear, landscape.viewMonth);
-            landscape.recenterScroll();
-
-            // Pull the arrived-at month from the server (no-op when standalone).
-            syncStore.syncNow();
-
-            if (!landscape.canRenderSuspend) {
-                // A render debounced against the current month must not fire now that the model
-                // holds another month — or a month that could not be read.
-                suspendCanvas.cancelPending();
-                return;
-            }
-
-            // Back on the current month: refresh the suspend image if it drifted
-            // while we were away (e.g. suspend enabled mid-browse). scheduleRender
-            // self-dedups, so an unchanged current month costs nothing.
-            if (!landscape.editing)
-                suspendCanvas.scheduleRender();
         }
 
         function goToPreviousMonth() {
@@ -393,6 +401,15 @@ Rectangle {
         Connections {
             target: developerTools.item
             function onBackRequested() { landscape.currentView = "settings"; }
+        }
+
+        App.ConfirmDialog {
+            visible: root._quitError !== ""
+            acknowledgeOnly: true
+            confirmText: "Dismiss"
+            message: "Couldn’t finish saving. The app remains open.\n\n" + root._quitError
+            onConfirmed: root._quitError = ""
+            onCancelled: root._quitError = ""
         }
 
         App.ConfirmDialog {

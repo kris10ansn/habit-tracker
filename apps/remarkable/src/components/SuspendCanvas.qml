@@ -33,7 +33,10 @@ Canvas {
     renderStrategy: Canvas.Cooperative
     renderTarget: Canvas.Image
 
-    Component.onCompleted: canvas.lastRenderedSignature = SuspendRender.readSignature(canvas.signaturePath)
+    Component.onCompleted: SuspendRender.readSignature(canvas.signaturePath, signature => {
+        if (canvas && !canvas.busy && canvas.lastRenderedSignature === "")
+            canvas.lastRenderedSignature = signature;
+    })
     onRenderAllowedChanged: if (!renderAllowed) cancelPending()
 
     Timer {

@@ -1,7 +1,7 @@
 import QtQuick 2.15
 import QtTest 1.2
 import "../src/testing" as Testing
-import "../src/js/Storage.js" as Storage
+import "Storage.js" as Storage
 import "TestPaths.js" as TestPaths
 
 TestCase {
@@ -152,8 +152,8 @@ TestCase {
 
     function test_restoreWithoutBackupDoesNotWriteDevice() {
         controller.restore();
+        tryCompare(controller, "busy", false);
         compare(deviceWrites, 0);
-        compare(controller.busy, false);
         verify(controller.statusText.indexOf("No verified") !== -1);
     }
 

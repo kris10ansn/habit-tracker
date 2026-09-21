@@ -1,7 +1,7 @@
 import QtQuick 2.15
 import QtTest 1.2
 import "../src" as App
-import "../src/js/Storage.js" as Storage
+import "Storage.js" as Storage
 import "../src/js/Entries.js" as Entries
 import "../src/js/HabitEdits.js" as HabitEdits
 import "../src/js/Polarity.js" as Polarity
@@ -290,6 +290,7 @@ TestCase {
         compare(Object.keys(store.habits.get(0).entriesByDate).length, 0);
 
         store.loadMonth(year, 0);
+        tryCompare(store, "isLoaded", true);
 
         compare(store.monthKey, "2025-01");
         compare(Object.keys(store.habits.get(0).entriesByDate).length, 1);
@@ -492,6 +493,7 @@ TestCase {
         store.applySynced([first], {});
         compare(view.count, 1);
         compare(view.itemAt(0), firstDelegate);
+        tryVerify(() => !store.hasPendingSave);
     }
 
     // --- applySynced -----------------------------------------------------------------------------

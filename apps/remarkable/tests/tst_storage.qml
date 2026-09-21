@@ -1,6 +1,6 @@
 import QtQuick 2.15
 import QtTest 1.2
-import "../src/js/Storage.js" as Storage
+import "Storage.js" as Storage
 import "TestPaths.js" as TestPaths
 
 // Storage speaks three answers, not two: a value, MISSING, or CORRUPT. Keeping MISSING and
