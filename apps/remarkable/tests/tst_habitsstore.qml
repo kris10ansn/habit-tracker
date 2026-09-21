@@ -1,7 +1,7 @@
 import QtQuick 2.15
 import QtTest 1.2
 import "../src" as App
-import "../src/js/Storage.js" as Storage
+import "Storage.js" as Storage
 import "../src/js/Entries.js" as Entries
 import "../src/js/HabitEdits.js" as HabitEdits
 import "../src/js/Polarity.js" as Polarity
@@ -290,6 +290,7 @@ TestCase {
         compare(Object.keys(store.habits.get(0).entriesByDate).length, 0);
 
         store.loadMonth(year, 0);
+        tryCompare(store, "isLoaded", true);
 
         compare(store.monthKey, "2025-01");
         compare(Object.keys(store.habits.get(0).entriesByDate).length, 1);
@@ -465,6 +466,34 @@ TestCase {
 
         compare(store.habits.get(0).isPrivate, true);
         verify(store.habits.get(0).editedAt > before);
+    }
+
+    Component {
+        id: delegateView
+        Repeater {
+            delegate: Item { property string habitId: model.id }
+        }
+    }
+
+    function test_syncUpdatesPreserveUnchangedAndMovedDelegates() {
+        const first = Fixtures.rosterRow({ id: "first", name: "First" });
+        const second = Fixtures.rosterRow({ id: "second", name: "Second" });
+        writeAndSettle(rosterPath(workingDir), { habits: [first, second] });
+        makeStore(workingDir, 2024, 0);
+        const view = createTemporaryObject(delegateView, testCase, { model: store.habits });
+        compare(view.count, 2);
+        const firstDelegate = view.itemAt(0);
+        const secondDelegate = view.itemAt(1);
+        store.applySynced([first, Object.assign({}, second, { name: "Updated", editedAt: second.editedAt + 1 })], {});
+        compare(view.itemAt(0), firstDelegate);
+        compare(view.itemAt(1), secondDelegate);
+        store.applySynced([second, first], {});
+        compare(view.itemAt(0), secondDelegate);
+        compare(view.itemAt(1), firstDelegate);
+        store.applySynced([first], {});
+        compare(view.count, 1);
+        compare(view.itemAt(0), firstDelegate);
+        tryVerify(() => !store.hasPendingSave);
     }
 
     // --- applySynced -----------------------------------------------------------------------------

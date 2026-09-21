@@ -5,13 +5,17 @@ Renders the reMarkable suspend image **outside** the QML app. It hosts the app's
 same renderer the app uses produces a PNG — no QML runtime needed. It runs both on your machine (for
 previewing) and on the device (headless, to write the real suspend image).
 
-Still a spike: no settings/opt-in check, no backup, no `.sleep-sig` dedup — it always writes.
+The same binary also runs the production power-image service (`--serve`) and its isolated job
+workers (`--worker`). Plain `--roster ... --out ...` remains a preview CLI; only service jobs own
+backup, restore, and deduplication.
 
 ## Layout
 
 ```
 tools/suspend-writer/
-├── main.cpp           the tool (Canvas2D shim + QJSEngine host)
+├── main.cpp           CLI and service entry points
+├── Renderer.cpp       shared Canvas2D shim + QJSEngine renderer
+├── PowerImageService.cpp  job queue, workers, backup/restore, and local HTTP
 ├── build-host.sh      host build (Qt5, no SDK)        → build/suspend-writer
 ├── build-device.sh    cross build (ARM, Qt6, via SDK) → build/suspend-writer-arm
 ├── build/             build outputs                    (gitignored)
@@ -24,7 +28,7 @@ runnable directly from this dir.
 
 ## Preview on your machine (host build)
 
-Needs Qt5 dev packages (`Qt5Core`, `Qt5Gui`, `Qt5Qml`) on `pkg-config`'s path. No SDK required.
+Needs Qt5 dev packages (`Qt5Core`, `Qt5Gui`, `Qt5Qml`, `Qt5Network`) on `pkg-config`'s path. No SDK required.
 
 ```sh
 make suspend-writer-host                       # → tools/suspend-writer/build/suspend-writer
@@ -58,7 +62,7 @@ sysroot). Download the installer for your **host** architecture from reMarkable'
 downloads (<https://developer.remarkable.com/links>), matching your **device's OS version**. See (<https://developer.remarkable.com/documentation/sdk>) for further information.
 
 > **Match the version to your device.** The sysroot's Qt version is whatever the chosen image
-> shipped (the current one is **Qt 6.8**). The binary links against it, so an SDK newer than the OS
+> shipped. The binary links against it, so an SDK newer than the OS
 > on your reMarkable can link libraries the device doesn't have.
 
 Run the self-extracting installer and point it at `./sdk` in this directory:
@@ -81,16 +85,18 @@ Produces a 32-bit ARM ELF for `cortexa9hf-neon` (rM1). `main.cpp` is source-comp
 Qt5/Qt6, so this needs no source changes.
 
 > **Qt 5 vs Qt 6.** The QML app's `rcc` targets Qt 5.15, but this binary links the SDK's
-> `libQt6{Core,Gui,Qml}.so.6`. The device must provide matching Qt6 runtime libs; verify on-device
+> `libQt6{Core,Gui,Qml,Network}.so.6`. The device must provide matching Qt6 runtime libs; verify on-device
 > with `ldd ./suspend-writer-arm` (no line should say "not found").
 
 ### 3. Deploy
 
 ```sh
-make suspend-writer-deploy                     # cross-builds, then scps to the device
+make suspend-writer-device                     # user-run cross-build
+make deploy-test                               # install isolated TEST app and helper
+# make deploy CONFIRM_STABLE=1                  # replace stable app and helper
 ```
 
-This copies, into `…/appload/habit-tracker/suspend-writer/` on the device:
+This copies, into `…/appload/<app-id>/suspend-writer/` on the device:
 
 - `suspend-writer-arm` — the binary, and
 - `SuspendDraw.js`, `DateUtils.js`, `Entries.js`, `Polarity.js`, `HabitsModel.js` — **the five JS
@@ -113,9 +119,45 @@ QT_QPA_PLATFORM=offscreen ./suspend-writer-arm \
   --out    /tmp/test-suspend.png
 ```
 
-> **Data-loss caveat.** The real suspend image is `/usr/share/remarkable/suspended.png`. Writing
-> `--out` straight there clobbers the stock image with **no backup** (no settings/opt-in, no `.bak`)
-> — this safety is the still-unaddressed next step. Render to a scratch path first.
+The plain preview CLI writes exactly the `--out` path and does not manage originals. Use a scratch
+path for previews. Production uses the service lifecycle below.
+
+## Production service
+
+`deploy` stops the previous helper before replacing its executable, then installs and starts
+`<app-id>-images.service` with the ARM binary and shared renderer modules. Close the frontend before updating.
+The service has a low scheduling priority and runs outside xochitl. Stable uses loopback port
+47831; test uses 47832. A newly generated owner-only `power-image-token.json` in the app directory
+authenticates requests. There is no browser CORS access and no network listener beyond loopback.
+
+QML submits JSON POST requests with a `Bearer` token. `render` and `preview` receive an immutable
+`{ date, roster: { habits }, month: { month, entries }, rendererSignature }` snapshot. Paths are
+configured when starting the service; requests cannot choose output paths. A response containing
+`accepted: true` and `jobId` means the helper owns the job even if the frontend closes. `status`
+returns `pending: true` until a terminal `{ ok, error?, path?, signature? }` result is available.
+
+The service keeps one worker active and one newest pending render. `restore` cancels queued and
+active renders, pauses later automatic renders until `backup` succeeds, then restores originals.
+A cancelled worker never completes a file overwrite halfway: each PNG is written through
+QSaveFile. Replacement resolves existing symlinks so firmware aliases survive. A batch is not
+atomic across all target files; its completion signature advances only after every output lands.
+Failed or interrupted jobs retain originals and can be retried.
+
+`backup` preserves and verifies every existing original before any image is replaced. `restore`
+checks all backups before writing. Test `render`/`preview` only write `suspend-preview.png` inside
+the test app. Explicit `test-write`/`test-restore` jobs manage the single device suspend image using
+the test app's separate `device-suspend-original.png` backup; stable rejects these operations.
+
+Helper state uses `.power-image-signature`; the old `.sleep-sig` is no longer consulted. It includes
+the snapshot, selected targets, and a native-renderer version. Bump that version if a native shim
+change affects pixels without a shared JS signature change. Helper crashes become terminal job
+failures (or a client timeout); no fallback draws or encodes in QML.
+
+Host integration tests can override `--app-dir`, `--image-dir`, `--js-dir`, and `--port` to use
+temporary directories. Host builds include a test-only FIFO gate controlled by
+`HABIT_TRACKER_TEST_GATE`; ARM builds omit that hook. `make responsiveness-test` proves the
+service and QML remain responsive with the worker held at that gate. `make performance` measures
+the real seven-image path.
 
 ## Input JSON shapes
 
@@ -204,8 +246,7 @@ The renderer now uses Quiet ledger with aligned, compact state icons. Add `--sta
 `--state off`, `--state empty`, `--state starting`, `--state rebooting`, or
 `--state overheating` to select the footer; the default is `sleep`. Crash recovery uses
 the `rebooting` footer because its device file can alias the normal restart image.
-`--out` still chooses a single output file. This tool previews images only and does not perform
-backup/restore or install them. The QML app owns the multi-image write lifecycle.
+`--out` still chooses a single output file. The plain CLI previews a single image. Service mode owns the multi-image write lifecycle.
 
 Rebuild this tool after the renderer update: its Canvas shim now supports filled rounded paths, scaling, text
 measurement, and right-aligned labels. Copying the updated JavaScript beside an old binary is not sufficient.

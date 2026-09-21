@@ -4,9 +4,6 @@ PROFILE ?= stable
 ifeq ($(PROFILE),test)
 override APP_ID := habit-tracker-test
 override BUILD_DIR := build/test
-ifneq ($(filter suspend-writer-device suspend-writer-deploy,$(MAKECMDGOALS)),)
-$(error The device suspend-writer is unavailable for test installs; use the app's suspend preview)
-endif
 else ifeq ($(PROFILE),stable)
 override APP_ID := habit-tracker
 override BUILD_DIR := build
@@ -75,23 +72,26 @@ lint:
 # deploy create data/ — ADR 0002), so a HabitsStore test cannot make its own: habits/ is the
 # shared working dir, habits-seed/ is left empty for the first-run seeding test.
 test:
-	node --test tests/build-profile.test.mjs
+	node --test tests/build-profile.test.mjs tests/async-storage.test.mjs
 	@command -v $(QMLTESTRUNNER) >/dev/null 2>&1 || { echo "$(QMLTESTRUNNER) not found (install qt5-declarative)"; exit 1; }
 	rm -rf $(TEST_TMP)
-	mkdir -p $(TEST_TMP)/habits $(TEST_TMP)/habits-seed $(TEST_TMP)/power-images $(TEST_TMP)/power-images-linked
-	ln -s rebooting.png $(TEST_TMP)/power-images-linked/restart-crashed.png
+	mkdir -p $(TEST_TMP)/habits $(TEST_TMP)/habits-seed $(TEST_TMP)/quit
 	QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software QML_XHR_ALLOW_FILE_READ=1 QML_XHR_ALLOW_FILE_WRITE=1 \
 		$(QMLTESTRUNNER) -input $(TEST_DIR) -import $(QML_IMPORT_PATH)
 
 # The data/ subdir must exist before first launch: QML/XHR cannot create it, so
 # a missing dir turns every save into a visible failure (see ADR 0002).
 deploy: build
+	@test -f $(SW_DIR)/build/suspend-writer-arm || { echo "Build the device image helper first: make suspend-writer-device"; exit 1; }
 	@test "$(PROFILE)" = test || test "$(CONFIRM_STABLE)" = 1 || { echo "Stable install protected. Use make deploy-test, or make deploy CONFIRM_STABLE=1 to replace the stable app."; exit 1; }
-	ssh $(REMARKABLE_HOST) "mkdir -p $(REMOTE_DIR)/data"
+	ssh $(REMARKABLE_HOST) "systemctl stop $(APP_ID)-images.service 2>/dev/null || true; mkdir -p $(REMOTE_DIR)/data $(SW_REMOTE_DIR)"
+	scp $(SW_DIR)/build/suspend-writer-arm $(SW_JS_MODULES) $(REMARKABLE_HOST):$(SW_REMOTE_DIR)/
 	scp $(BUILD_DIR)/resources.rcc $(BUILD_DIR)/manifest.json $(BUILD_DIR)/icon.png $(REMARKABLE_HOST):$(REMOTE_DIR)/
+	scp $(BUILD_DIR)/$(APP_ID)-images.service $(REMARKABLE_HOST):/etc/systemd/system/
+	ssh $(REMARKABLE_HOST) "systemctl daemon-reload && systemctl enable $(APP_ID)-images.service && systemctl restart $(APP_ID)-images.service"
 
 remove:
-	ssh $(REMARKABLE_HOST) "rm -rf $(REMOTE_DIR)"
+	ssh $(REMARKABLE_HOST) "systemctl disable --now $(APP_ID)-images.service; rm -f /etc/systemd/system/$(APP_ID)-images.service; systemctl daemon-reload; rm -rf $(REMOTE_DIR)"
 
 # Hotspot leases move, so find the device on the current network by its SSH host
 # key and repoint $(HOTSPOT_HOST) in ~/.ssh/config at it. Needs nmap; probes the
@@ -129,10 +129,7 @@ suspend-writer-device:
 # Deploy the ARM binary plus the loose JS modules it reads at runtime. The app bundles those
 # inside resources.rcc, so they are not otherwise on-device. SuspendDraw.js reaches the other
 # four, so all five ship together — see the tool's README.
-suspend-writer-deploy: suspend-writer-device
-	ssh $(REMARKABLE_HOST) "mkdir -p $(SW_REMOTE_DIR)"
-	scp $(SW_DIR)/build/suspend-writer-arm $(REMARKABLE_HOST):$(SW_REMOTE_DIR)/
-	scp $(SW_JS_MODULES) $(REMARKABLE_HOST):$(SW_REMOTE_DIR)/
+suspend-writer-deploy: suspend-writer-device deploy
 
 suspend-writer-clean:
 	rm -rf $(SW_DIR)/build
@@ -144,3 +141,12 @@ readme-screenshot-host:
 
 readme-screenshot-clean:
 	rm -rf $(SCREENSHOT_DIR)/build
+
+# Deterministic integration tests deliberately hold the native worker while QML handles input.
+.PHONY: responsiveness-test performance
+responsiveness-test: suspend-writer-host
+	python3 tests/power-image-service-test.py
+
+# Machine-dependent latency is reported separately from ordinary correctness checks.
+performance: suspend-writer-host
+	python3 tests/performance/benchmark.py $(PERFORMANCE_ARGS)

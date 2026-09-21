@@ -5,7 +5,38 @@
 
 A small habit tracker for the **reMarkable 1** e-ink tablet. The reMarkable has no app ecosystem and no official way to run third-party software, but a community modding stack ([XOVI](https://github.com/asivery/xovi) + [rm-appload](https://github.com/asivery/rm-appload)) lets you load custom QML scenes inside the stock UI process. This is one such scene — a calendar grid of habits × days of the month (with arrows to step back and forth through months), persisted to disk, with a twist: it can overwrite the tablet's **power-state images** (sleeping, powered off, and battery empty) with today's grid, so the habits are the first thing you see when you wake the device. That overwrite is opt-in — you turn it on in **Settings**.
 
-No account UI on the tablet itself, no telemetry. It runs fully standalone and offline by default — just a QML scene drawn by the same Qt process that already runs the device's UI. Optionally, point it at a self-hosted server (Settings → **Sync server**) to sync your habits across devices; leave it blank and nothing ever leaves the tablet. If that server requires an account, the tablet shows a QR code and a short manual code for approval from your phone (Settings → **Connect**) — it never has a login form of its own.
+No account UI on the tablet itself, no telemetry. It runs fully standalone and offline by default — a QML scene drawn by the device UI, with a separate local helper for power-state images. Optionally, point it at a self-hosted server (Settings → **Sync server**) to sync your habits across devices; leave it blank and nothing ever leaves the tablet. If that server requires an account, the tablet shows a QR code and a short manual code for approval from your phone (Settings → **Connect**) — it never has a login form of its own.
+
+## Responsiveness and image-helper setup
+
+Power-state images are now generated outside the UI process. The app submits a snapshot to a
+local helper, then remains usable while it renders, encodes, and saves the images. File loads and
+save verification are asynchronous; changed sync responses update existing grid rows in place.
+Quit confirms local saves and hands image work to the helper before closing, without waiting for
+server sync. Using apploader to forcibly unload the scene cannot wait for pending local saves;
+use the app's Quit button when leaving immediately after editing.
+
+**Upgrade requirement:** build the ARM helper against an SDK compatible with your tablet before
+deploying this version. `make build` only builds the QML resources. On your computer, follow the
+[helper build instructions](tools/suspend-writer/README.md), then run `make suspend-writer-device`
+and `make deploy-test` (or `make deploy CONFIRM_STABLE=1` for the stable install). Device builds and
+deployments are user-run commands. Deploy installs and starts the corresponding systemd service.
+The existing roster, month, settings, and original image backups need no migration.
+
+The helper listens only on loopback, using a per-install token. Stable and test installs use
+separate services and ports. If the helper is unavailable, habit tracking and sync continue;
+image operations report failure rather than falling back to blocking UI rendering. Restore the
+original images in Settings before uninstalling the stable app.
+
+Performance checks, run from `apps/remarkable/`:
+
+- `make test`: behavior, asynchronous I/O ordering, stale-load rejection, and preservation of grid delegates.
+- `make responsiveness-test`: real local helper tests, including UI input with a deliberately blocked renderer, cancellation, backups, restoration, and test-install isolation.
+- `make performance`: seven-image benchmark reporting total duration and the largest UI event-loop gap after initial storage loading, with cold Qt initialization reported separately. Add `PERFORMANCE_ARGS="--max-gap-ms 100"` to enforce a budget on a controlled machine.
+
+CI runs the deterministic suites and uploads benchmark measurements. Tight timing thresholds
+are intentionally separate from ordinary tests because host load varies. Host results do not
+measure the tablet's e-ink refresh latency; verify responsiveness on a test install as well.
 
 ## What it looks like
 
@@ -208,8 +239,8 @@ The grid and Settings display **TEST**. Ordinary test writes stay inside the tes
 including when **Save local suspend preview** is enabled: automatic renders, edits, and quitting only
 update `suspend-preview.png`. The test profile leaves all other device power-state images untouched.
 Test builds refuse writes to production habit data, settings, and the
-stable suspend-image backup. The separate native device suspend-writer is unavailable in the test
-profile. Both apps run inside xochitl; this is not an operating-system sandbox. Keep the test
+stable suspend-image backup. The test profile uses its own helper and only explicit developer
+actions can replace the device suspend image. Both apps run inside xochitl; this is not an operating-system sandbox. Keep the test
 directory as a normal directory, without symlinks to production files.
 
 #### Developer options (test builds only)
@@ -374,7 +405,7 @@ this before the final `make deploy` above, not after.
 │   ├── SettingsStore.qml# JSON-backed app settings (power-state images on/off, sync server URL, bearer token)
 │   ├── SyncStore.qml    # offline-first sync engine + sidecar (last-synced time)
 │   ├── PairingStore.qml # tablet device-code pairing (Connect flow); ephemeral, nothing persists
-│   ├── components/      # reusable QML pieces (AppButton, HabitsGrid, SuspendCanvas, SettingsPage, …)
+│   ├── components/      # reusable QML pieces (AppButton, HabitsGrid, SettingsPage, …)
 │   └── js/              # plain JS modules (date helpers, scroll math, suspend-image draw, sync translation)
 ├── scripts/             # one-shot storage migrations, run on your computer (see ADR 0006)
 ├── docs/adr/            # the decisions behind the storage layout, suspend image and migrations

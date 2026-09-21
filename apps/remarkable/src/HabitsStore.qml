@@ -54,6 +54,9 @@ QtObject {
     onIsLoadedChanged: if (store.isLoaded)
         store.hasLoadedOnce = true
 
+    readonly property bool hasPendingSave: _roster.hasPendingSave || _month.hasPendingSave
+    readonly property string lastSaveError: _roster.lastSaveError || _month.lastSaveError
+
     signal saved
 
     property string saveError: ""
@@ -365,9 +368,8 @@ QtObject {
         store._roster.scheduleSave();
     }
 
-    // Overwrite local state with the authoritative result of a sync: rebuild the
-    // roster in the server's order and replace the viewed month's entries. Persists both
-    // files immediately. Returns false without touching anything if the server sent a habit this
+    // Apply authoritative sync state by id, retaining unchanged delegates and entries.
+    // Persist only the roster/month projections that changed. Returns false without touching anything if the server sent a habit this
     // version cannot store — the same `_isRosterRow` test the roster reader applies, run *before*
     // the save rather than after it. Without this an older backend (one whose response omits a
     // field this version requires, e.g. `isPrivate`) would be written to roster.json and then
@@ -389,22 +391,41 @@ QtObject {
                 });
             });
 
-        store.habits.clear();
-        if (items.length > 0) {
-            store.habits.append(items);
+        const rosterBefore = JSON.stringify(HabitsModel.toRoster(store.habits));
+        const entriesBefore = JSON.stringify(HabitsModel.toMonthEntryRows(store.habits));
+        const ids = items.map(item => item.id);
+        for (let index = store.habits.count - 1; index >= 0; index--) {
+            if (ids.indexOf(store.habits.get(index).id) < 0) store.habits.remove(index);
         }
+        items.forEach((item, target) => store._updateSyncedRow(item, target));
 
+        const hadTombstones = store.habitTombstones.length > 0;
         store.habitTombstones = [];
-
-        store._roster._doSave();
-        store._month._doSave();
+        if (hadTombstones || rosterBefore !== JSON.stringify(HabitsModel.toRoster(store.habits)))
+            store._roster._doSave();
+        if (entriesBefore !== JSON.stringify(HabitsModel.toMonthEntryRows(store.habits)))
+            store._month._doSave();
 
         return true;
     }
 
+    function _updateSyncedRow(item, target) {
+        const current = store._indexOfId(item.id);
+        if (current < 0) {
+            store.habits.insert(target, item);
+            return;
+        }
+        if (current !== target) store.habits.move(current, target, 1);
+        const previous = store.habits.get(target);
+        Object.keys(item).forEach(field => {
+            if (JSON.stringify(previous[field]) !== JSON.stringify(item[field]))
+                store.habits.setProperty(target, field, item[field]);
+        });
+    }
+
     // Tear the grid Loader down now (drop the month store's isLoaded) so the
     // "Loading…" screen paints this frame — the instant half of a month switch.
-    // The blocking read is deferred by the caller and runs in loadMonth (ADR 0004).
+    // loadMonth starts the asynchronous read after navigation has coalesced (ADR 0004).
     function beginLoadMonth() {
         store._month.isLoaded = false;
     }
@@ -414,9 +435,8 @@ QtObject {
     // change), then re-point and re-read, folding the new month's entry rows onto the
     // roster. The roster (identity/config) is month-independent and stays put.
     //
-    // This holds the blocking read, so the caller defers it past the teardown paint
-    // (see Main.goToMonth). reload restores isLoaded to true, rebuilding the grid
-    // async against the new month. No same-month early-return: after a teardown the
+    // reload restores isLoaded when the asynchronous read finishes, rebuilding the grid
+    // against the new month. No same-month early-return: after a teardown the
     // read must run to restore isLoaded even when the viewed month is unchanged
     // (e.g. hopping forward then back before the deferred load fires).
     function loadMonth(year, month) {
