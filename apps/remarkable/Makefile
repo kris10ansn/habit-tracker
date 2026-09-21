@@ -143,6 +143,10 @@ readme-screenshot-clean:
 	rm -rf $(SCREENSHOT_DIR)/build
 
 # Deterministic integration tests deliberately hold the native worker while QML handles input.
-.PHONY: responsiveness-test
+.PHONY: responsiveness-test performance
 responsiveness-test: suspend-writer-host
 	python3 tests/power-image-service-test.py
+
+# Machine-dependent latency is reported separately from ordinary correctness checks.
+performance: suspend-writer-host
+	python3 tests/performance/benchmark.py $(PERFORMANCE_ARGS)

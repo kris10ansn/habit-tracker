@@ -32,9 +32,11 @@ Performance checks, run from `apps/remarkable/`:
 
 - `make test`: behavior, asynchronous I/O ordering, stale-load rejection, and preservation of grid delegates.
 - `make responsiveness-test`: real local helper tests, including UI input with a deliberately blocked renderer, cancellation, backups, restoration, and test-install isolation.
+- `make performance`: seven-image benchmark reporting total duration and the largest UI event-loop gap after initial storage loading, with cold Qt initialization reported separately. Add `PERFORMANCE_ARGS="--max-gap-ms 100"` to enforce a budget on a controlled machine.
 
-CI runs the deterministic suites. Host results do not measure the tablet's e-ink refresh latency;
-verify responsiveness on a test install as well. A follow-up adds the seven-image timing benchmark.
+CI runs the deterministic suites and uploads benchmark measurements. Tight timing thresholds
+are intentionally separate from ordinary tests because host load varies. Host results do not
+measure the tablet's e-ink refresh latency; verify responsiveness on a test install as well.
 
 ## What it looks like
 
