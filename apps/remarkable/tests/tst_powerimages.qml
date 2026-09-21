@@ -154,7 +154,7 @@ TestCase {
 
     function test_upgradeRendersNewScreensWithoutAHabitEdit() {
         const writer = createWriter();
-        const oldSignature = SuspendDraw.computeSignature(HabitsModel.toSuspendHabits(writer.habits), writer.today).replace("ledger-v4", "ledger-v3");
+        const oldSignature = SuspendDraw.computeSignature(HabitsModel.toSuspendHabits(writer.habits), writer.today).replace("ledger-v5", "ledger-v4");
         writer.lastRenderedSignature = oldSignature;
         writer.renderAllowed = true;
         writer.renderAsync();
