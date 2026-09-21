@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Host integration tests; every output lives in TemporaryDirectory, never on a tablet."""
 import json
+import errno
 import os
 from pathlib import Path
 import socket
@@ -204,6 +205,43 @@ class PowerImageServiceTests(unittest.TestCase):
         self.assertTrue(helper.wait(active)["cancelled"])
         self.assertTrue(helper.wait(newest)["cancelled"])
         self.assertEqual((helper.images / "suspended.png").read_bytes(), original_png())
+
+    def test_qml_input_remains_live_with_a_blocked_native_worker(self):
+        helper = self.helper(gated=True)
+        template = (APP / "tests/performance/responsiveness.qml.in").read_text()
+        qml = template.replace("__APP_URL__", APP.as_uri()).replace("__ENDPOINT__", f"http://127.0.0.1:{helper.port}")
+        qml = qml.replace("__TOKEN_PATH__", str(helper.app / "power-image-token.json"))
+        test_file = helper.root / "tst_live.qml"
+        test_file.write_text(qml)
+        log_path = helper.root / "qml.log"
+        with log_path.open("w") as output:
+            process = subprocess.Popen([os.environ.get("QMLTESTRUNNER", "qmltestrunner-qt5"), "-input", str(test_file)], stdout=output, stderr=output,
+                env=dict(os.environ, QT_QPA_PLATFORM="offscreen", QT_QUICK_BACKEND="software",
+                    QML_XHR_ALLOW_FILE_READ="1", QML_XHR_ALLOW_FILE_WRITE="1"))
+            try:
+                deadline = time.monotonic() + 10
+                while "UI_INPUT_WHILE_PENDING" not in log_path.read_text():
+                    if process.poll() is not None or time.monotonic() > deadline:
+                        self.fail(log_path.read_text())
+                    time.sleep(.02)
+                # Input reached QML before the native worker is allowed to render or write.
+                deadline = time.monotonic() + 10
+                while True:
+                    try:
+                        descriptor = os.open(helper.gate, os.O_WRONLY | os.O_NONBLOCK)
+                        break
+                    except OSError as error:
+                        if error.errno != errno.ENXIO or time.monotonic() > deadline:
+                            raise
+                        time.sleep(.02)
+                os.write(descriptor, b"1")
+                os.close(descriptor)
+                self.assertEqual(process.wait(timeout=20), 0, log_path.read_text())
+                print(log_path.read_text().split("PERFORMANCE ")[-1].splitlines()[0])
+            finally:
+                if process.poll() is None:
+                    process.kill()
+                    process.wait()
 
     def test_worker_error_is_terminal_and_next_job_can_run(self):
         helper = self.helper()

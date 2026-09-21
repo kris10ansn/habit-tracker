@@ -1,0 +1,16 @@
+[Unit]
+Description=Habit Tracker power-state image helper (@PROFILE@)
+After=local-fs.target
+
+[Service]
+Type=simple
+ExecStart=@APP_DIRECTORY@/suspend-writer/suspend-writer-arm --serve --profile @PROFILE@ --js-dir @APP_DIRECTORY@/suspend-writer
+Restart=on-failure
+RestartSec=2
+Nice=10
+UMask=0077
+KillMode=control-group
+Environment=QT_QPA_PLATFORM=offscreen
+
+[Install]
+WantedBy=multi-user.target

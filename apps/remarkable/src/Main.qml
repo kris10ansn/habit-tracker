@@ -38,20 +38,16 @@ Rectangle {
     enabled: !root._quitting
 
     function _tryClose() {
-        if (!root._quitting || root._preparingQuit || suspendCanvas.busy || suspendCanvas.phase === "saving" || suspendCanvas.phase === "pending" || habitsStore.hasPendingSave || settingsStore.hasPendingSave || syncStore.hasPendingSave) return;
+        if (!root._quitting || root._preparingQuit || suspendCanvas._operationInFlight || habitsStore.hasPendingSave || settingsStore.hasPendingSave || syncStore.hasPendingSave) return;
         const error = habitsStore.lastSaveError || settingsStore.lastSaveError || syncStore.lastSaveError;
         if (error) {
             root._quitError = error;
             root._quitting = false;
             return;
         }
-        if (!root._quitImageSubmitted) {
-            root._quitImageSubmitted = true;
-            if (landscape.canRenderSuspend) suspendCanvas.renderAsync();
-            Qt.callLater(root._tryClose);
-            return;
-        }
-        root.close();
+        if (root._quitImageSubmitted) return;
+        root._quitImageSubmitted = true;
+        suspendCanvas.submitForQuit(() => root.close());
     }
 
     function quit() {
@@ -60,7 +56,6 @@ Rectangle {
         root._quitting = true;
         root._quitImageSubmitted = false;
         syncStore.abortSync();
-        suspendCanvas.cancelPending();
         habitsStore.flushPendingSave();
         settingsStore.flushPendingSave();
         syncStore.flushPendingSave();
@@ -149,7 +144,7 @@ Rectangle {
         active: !root._quitting && !root.screenshotMode && landscape.currentView === "settings"
     }
 
-    App.SuspendCanvas {
+    App.PowerImageStore {
         id: suspendCanvas
         objectName: "suspendCanvas"
         habits: habitsStore.habits
@@ -160,7 +155,6 @@ Rectangle {
     Connections {
         target: suspendCanvas
         function onBusyChanged() { Qt.callLater(root._tryClose); }
-        function onPhaseChanged() { Qt.callLater(root._tryClose); }
     }
 
     Connections {

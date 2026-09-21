@@ -1,0 +1,70 @@
+import QtQuick 2.15
+import QtTest 1.2
+import "__APP_URL__/src" as App
+import "__APP_URL__/tests/Fixtures.js" as Fixtures
+import "__APP_URL__/src/js/Storage.js" as Storage
+
+TestCase {
+    id: testCase
+    name: "LivePowerImageResponsiveness"
+    when: windowShown
+    visible: true
+    width: 200
+    height: 200
+    property int clicks: 0
+    property double lastTick: 0
+    property double largestGap: 0
+    property int ticks: 0
+    MouseArea { id: input; width: 100; height: 100; onClicked: testCase.clicks++ }
+    Timer {
+        id: heartbeat
+        interval: 16
+        repeat: true
+        onTriggered: {
+            const now = Date.now();
+            if (testCase.lastTick) testCase.largestGap = Math.max(testCase.largestGap, now - testCase.lastTick);
+            testCase.lastTick = now;
+            testCase.ticks++;
+        }
+    }
+    App.PowerImageStore {
+        id: images
+        renderAllowed: true
+        today: new Date(2026, 7, 17)
+        client.endpoint: "__ENDPOINT__"
+        client.tokenPath: "__TOKEN_PATH__"
+    }
+    function test_inputWhileRealWorkerIsOutstanding() {
+        images.habits = Fixtures.fakeModel(Array.from({length: 12}, (_, index) =>
+            Fixtures.habitRow({ id: "habit-" + index, name: "Habit " + index })));
+        // Main has already loaded its JSON stores before image jobs begin. Report the
+        // standalone runner's cold Qt network initialization separately from render latency.
+        const coldStarted = Date.now();
+        let initialized = false;
+        Storage.readJson(images.client.tokenPath, () => initialized = true);
+        tryVerify(() => initialized);
+        const coldFileLoadMs = Date.now() - coldStarted;
+        heartbeat.start();
+        wait(50);
+        const snapshotStarted = Date.now();
+        images._snapshot();
+        const snapshotMs = Date.now() - snapshotStarted;
+        const started = Date.now();
+        images.renderAsync();
+        const requestSetupMs = Date.now() - started;
+        tryVerify(() => images.client._requests.some(request => request.jobId !== ""), 5000);
+        verify(images.busy);
+        const clicking = Date.now();
+        mouseClick(input, 30, 30, Qt.LeftButton, Qt.NoModifier, 0);
+        const clickMs = Date.now() - clicking;
+        compare(clicks, 1);
+        console.log("UI_INPUT_WHILE_PENDING");
+        tryCompare(images, "busy", false, 15000);
+        compare(images.phase, "saved", images.failedPath);
+        wait(50);
+        heartbeat.stop();
+        verify(ticks > 2, "UI heartbeat must run during the operation");
+        console.log("PERFORMANCE " + JSON.stringify({ durationMs: Date.now() - started,
+            coldFileLoadMs: coldFileLoadMs, snapshotMs: snapshotMs, requestSetupMs: requestSetupMs, clickMs: clickMs, maxEventLoopGapMs: largestGap, heartbeatTicks: ticks }));
+    }
+}

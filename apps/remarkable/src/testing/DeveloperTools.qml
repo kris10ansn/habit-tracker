@@ -1,5 +1,5 @@
 import QtQuick 2.15
-import "../components" as App
+import ".." as App
 import "../js/BuildProfile.js" as BuildProfile
 
 Item {
@@ -10,17 +10,15 @@ Item {
     property string dataDirectory: ""
     signal backRequested
 
-    App.SuspendCanvas {
+    App.PowerImageStore {
         id: preview
         habits: tools.habits
-        targetPath: BuildProfile.appDirectory + "/developer-preview.png"
-        signaturePath: BuildProfile.appDirectory + "/.developer-preview-sig"
     }
 
     SuspendController {
         id: controller
         canRender: tools.canRender
-        previewPath: preview.targetPath
+        previewPath: BuildProfile.appDirectory + "/suspend-preview.png"
         renderPreview: function (onDone) { preview.renderOnce(onDone); }
     }
 

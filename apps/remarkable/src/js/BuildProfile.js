@@ -24,3 +24,5 @@ function canWrite(path) {
             .every((part) => part !== "" && part !== "." && part !== "..")
     );
 }
+
+const powerImageEndpoint = "http://127.0.0.1:" + (isTest ? "47832" : "47831");

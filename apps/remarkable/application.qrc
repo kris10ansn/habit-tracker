@@ -26,7 +26,8 @@
         <file>src/components/VerticalScrollButtons.qml</file>
         <file>src/components/HabitsColumn.qml</file>
         <file>src/components/HabitsGrid.qml</file>
-        <file>src/components/SuspendCanvas.qml</file>
+        <file>src/PowerImageStore.qml</file>
+        <file>src/PowerImageClient.qml</file>
         <file>src/components/SegmentedToggle.qml</file>
         <file>src/components/SettingsPage.qml</file>
         <file>src/components/QrCode.qml</file>
@@ -40,7 +41,6 @@
         <file>src/js/Storage.js</file>
         <file>src/js/BinaryFiles.js</file>
         <file>src/js/BuildProfile.js</file>
-        <file>src/js/SuspendRender.js</file>
         <file>src/js/SuspendDraw.js</file>
         <file>src/js/SuspendStatus.js</file>
         <file>src/js/Sync.js</file>

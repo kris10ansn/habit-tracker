@@ -194,6 +194,8 @@ test("binary writes reject an unchanged same-size file and verify the actual byt
                     assert.equal(this.url, `file://${destination}`);
                     if (this.method === "GET") {
                         this.response = stored;
+                        this.readyState = this.DONE;
+                        this.onreadystatechange();
                         return;
                     }
                     writes.push(this.url);
@@ -217,4 +219,16 @@ test("binary writes reject an unchanged same-size file and verify the actual byt
         assert.equal(writes.length, 2);
         assert.equal(profile.canWrite(destination), false);
     });
+});
+
+test("deployment stages a service scoped to each app profile", () => {
+    for (const profile of ["stable", "test"]) {
+        withProfile(profile, (configuration, manifest, _resources, directory) => {
+            const service = readFileSync(path.join(directory, `${manifest.id}-images.service`), "utf8");
+            assert.ok(service.includes(`ExecStart=${configuration.appDirectory}/suspend-writer/suspend-writer-arm --serve --profile ${profile}`));
+            assert.match(service, /KillMode=control-group/);
+            assert.match(service, /UMask=0077/);
+            assert.doesNotMatch(service, /@APP_DIRECTORY@|@PROFILE@/);
+        });
+    }
 });
