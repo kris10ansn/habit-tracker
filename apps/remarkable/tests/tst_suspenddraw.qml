@@ -92,7 +92,15 @@ TestCase {
         verify(signature.length > 0);
     }
     function test_allStatesPreservePrivateFilteringAndXOnlyProjection() {
-        ["sleep", "off", "empty"].forEach(state => {
+        const states = {
+            sleep: ["Sleeping", "Press power to wake"],
+            off: ["Powered off", "Hold power to turn on"],
+            empty: ["Battery empty", "Connect to power"],
+            starting: ["Starting up", "Please wait while reMarkable loads"],
+            rebooting: ["Restarting", "Please wait while reMarkable restarts"],
+            overheating: ["Overheating", "Let your reMarkable cool down before use"]
+        };
+        Object.keys(states).forEach(state => {
             const labels = [];
             let strokes = 0;
             const context = {
@@ -109,7 +117,7 @@ TestCase {
             verify(!labels.includes("Secret"));
             verify(!labels.includes("O"));
             verify(labels.includes("Snapshot · 9 August 2026"));
-            verify(labels.includes({ sleep: "Sleeping", off: "Powered off", empty: "Battery empty" }[state]));
+            states[state].forEach(text => verify(labels.includes(text)));
             const withoutMarks = strokes;
             strokes = 0;
             SuspendDraw.draw(context, 1404, 1872, [habit({ name: "Public" })], today, { fg: "#000000", bg: "#ffffff" }, state);

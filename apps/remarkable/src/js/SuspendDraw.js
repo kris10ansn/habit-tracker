@@ -8,7 +8,7 @@ function computeSignature(habits, today) {
     const month = today.getMonth();
     const visible = habits.filter((h) => !h.isPrivate);
 
-    const parts = [`power-images-ledger-v2|${year}-${month}-${currentDay}`];
+    const parts = [`power-images-ledger-v5|${year}-${month}-${currentDay}`];
 
     for (let i = 0; i < visible.length; i++) {
         const h = visible[i];
@@ -36,6 +36,9 @@ function draw(
         sleep: ["Sleeping", "Press power to wake"],
         off: ["Powered off", "Hold power to turn on"],
         empty: ["Battery empty", "Connect to power"],
+        starting: ["Starting up", "Please wait while reMarkable loads"],
+        rebooting: ["Restarting", "Please wait while reMarkable restarts"],
+        overheating: ["Overheating", "Let your reMarkable cool down before use"],
     };
     if (!states[state]) throw new Error(`Unknown power state: ${state}`);
 
@@ -219,9 +222,14 @@ const drawPolyline = (ctx, points) => {
 };
 
 const drawStateBadge = (ctx, state, label) => {
-    const background = { sleep: "#ffffff", off: "#111111", empty: "#dddddd" }[
-        state
-    ];
+    const background = {
+        sleep: "#ffffff",
+        off: "#111111",
+        empty: "#dddddd",
+        starting: "#ffffff",
+        rebooting: "#ffffff",
+        overheating: "#dddddd",
+    }[state];
     const foreground = state === "off" ? "#ffffff" : "#111111";
     const iconWidth = state === "empty" ? 50 : 38;
     const padding = 26;
@@ -274,12 +282,21 @@ const drawStateIcon = (ctx, state, x, y, color) => {
         const outer = circlePoints(18, 18, 18, 0.465, 4.248);
         const inner = circlePoints(26, 10, 18, -2.676, -5.177);
         drawPolyline(ctx, outer.concat(inner, [outer[0]]));
-    } else if (state === "off") {
+    } else if (state === "off" || state === "starting") {
         drawPolyline(
             ctx,
             circlePoints(18, 20, 16, -Math.PI / 3, (Math.PI * 4) / 3),
         );
         drawLine(ctx, 18, 0, 18, 19, color, 3);
+    } else if (state === "rebooting") {
+        drawPolyline(ctx, circlePoints(18, 18, 16, -Math.PI / 2, Math.PI));
+        ctx.translate(2, 18);
+        ctx.rotate(-Math.PI / 12);
+        drawPolyline(ctx, [[-7, 7], [0, 0], [7, 7]]);
+    } else if (state === "overheating") {
+        drawPolyline(ctx, [[18, 0], [36, 34], [0, 34], [18, 0]]);
+        drawLine(ctx, 18, 10, 18, 21, color, 3);
+        drawLine(ctx, 18, 26, 18, 29, color, 3);
     } else {
         ctx.strokeRect(0, 1, 43, 34);
         drawLine(ctx, 48, 12, 48, 24, color, 3);

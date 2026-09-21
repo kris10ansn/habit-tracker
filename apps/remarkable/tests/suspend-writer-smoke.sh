@@ -104,7 +104,7 @@ expect_exit "refusesARosterStillSpellingHideFromSleep" 2 "$status"
 
 # --- every power state keeps the same grid but changes its state footer -------------------------
 
-for state in off empty; do
+for state in off empty starting rebooting overheating; do
     status=$(render "$state.png" --state "$state" --roster "$FIXTURES/roster.json" --month "$FIXTURES/2026-08.json")
     expect_exit "renders-$state" 0 "$status"
     if cmp -s "$TMP/valid.png" "$TMP/$state.png"; then
@@ -123,4 +123,4 @@ if [ "$failures" -ne 0 ]; then
     exit 1
 fi
 
-echo "Totals: 14 passed, 0 failed"
+echo "Totals: 20 passed, 0 failed"

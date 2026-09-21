@@ -156,7 +156,7 @@ Item {
 
                     Text {
                         width: parent.width
-                        text: BuildProfile.isTest ? "Preview file inside the test app only." : "Sleeping, powered off, and battery empty."
+                        text: BuildProfile.isTest ? "Preview file inside the test app only." : "Sleep, power off, battery empty, startup, restart, and overheating."
                         font.pixelSize: 26
                         color: App.Theme.muted
                         wrapMode: Text.WordWrap
