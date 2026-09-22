@@ -8,7 +8,7 @@ Update CLAUDE.md as you learn the user's preferences for code style, workflow, o
 
 ## What this is
 
-A pure-QML **habit tracker** for **reMarkable 1**, launched via **apploader** — specifically the XOVI extension `asivery/rm-appload`. apploader's frontend runtime is QML, loaded inside xochitl's process. The shipped app is QML + plain JS with no native component; the one C++ thing in the tree, `tools/suspend-writer/`, is a dev tool that hosts the app's own JS modules outside QML and is never part of a build or deploy. Renders a landscape grid of habits × days-of-the-current-month with the current day highlighted.
+A QML **habit tracker** for **reMarkable 1**, launched via **apploader** — specifically the XOVI extension `asivery/rm-appload`. apploader's frontend runtime is QML, loaded inside xochitl's process. The frontend is QML + plain JS; power-image rendering and file I/O run in a separate offscreen Qt Quick process shipped as apploader's `backend/entry`. Read [the worker README](tools/image-worker/README.md) before changing its IPC, lifecycle, or packaging. `tools/suspend-writer/` remains a separate dev renderer. Renders a landscape grid of habits × days-of-the-current-month with the current day highlighted.
 
 This is the `apps/remarkable/` app in the habit-tracker monorepo (pnpm workspaces). It runs fully standalone by default and _optionally_ syncs to the monorepo's backend (`apps/backend/`, ASP.NET Core + EF Core + PostgreSQL) when the user sets a Server URL. See the monorepo-root `CLAUDE.md` for cross-app conventions.
 
@@ -38,9 +38,10 @@ This applies even when a `make` target wraps the SSH. The full user-only set is 
 
 Local (agent-runnable):
 
-- `make build` — stages `src/` into `build/src/` (see the `.pragma library` injection below), then compiles `application.qrc` → `build/resources.rcc` via `rcc-qt5` and stages `manifest.json` + `icon.png` alongside it.
+- `make build` — stages `src/` into `build/src/` (see the `.pragma library` injection below), then compiles `application.qrc` → `build/resources.rcc` via `rcc-qt5` and stages `manifest.json` + `icon.png` alongside it. Also cross-builds `backend/entry` with the installed SDK; set `REMARKABLE_SDK` to its directory.
 - `make lint` — runs `qmllint-qt5` over every `src/**/*.qml`. Best-effort to a fault: the recipe is `command -v … && $(QMLLINT) … || echo "not installed; skipping"`, so **a missing linter _and_ a failing lint both print the skip notice and exit 0**. `make lint` can never fail the build — read its output, don't trust its exit code.
 - `make test` — Qt Quick Test over `tests/tst_*.qml`, headless on host Qt 5.15 (the device's Qt), against live `src/`. Covers the JS modules and the stores. **Unlike `lint`, this target fails properly** — never give it the `|| echo skipping` treatment. See the testing section below.
+- `make image-worker-host` / `image-worker-device` / `image-worker-test` — local host build, local ARM cross-build with the SDK, and process integration tests against temporary host files. No tablet access.
 - `make suspend-writer-test` — builds the host suspend-writer and smoke-tests it against `tests/fixtures/`. Separate from `make test` because it needs a C++ build.
 - `make clean` — removes local `build/`.
 - `make suspend-writer-host` / `suspend-writer-clean` — host build of the off-device renderer against host Qt5, for previewing a render as a PNG; no device or SDK needed (see below).
@@ -49,7 +50,7 @@ Device-touching (**user-only**, never run these): `make deploy`, `make remove`, 
 
 Overrides: `make REMARKABLE_HOST=<host>` (default `remarkable`), `make HOTSPOT_HOST=<host>` (default `remarkable-hotspot`, the alias `find-hotspot-ip` repoints), `make RCC=<path>` (default `rcc-qt5`; rM1 is Qt 5.15, so Qt 5's rcc is required), `make QMLLINT=<path>`, `make QML_IMPORT_PATH=<dir>` (default `/usr/lib/qt/qml`, passed to the linter as `-I`).
 
-`make test` and `make lint` are the checkers. Only `make test` can fail the build.
+`make test` and `make image-worker-test` fail on errors. `make lint` is best-effort; inspect its output.
 
 ## Tests
 
@@ -104,7 +105,7 @@ So **`src/js` has a consumer outside the app.** Two kinds of change break it, an
 
 These are easy to miss and have already cost debug cycles:
 
-1. **QML is not deployed loose.** apploader loads QML from a Qt **binary resource** (`resources.rcc`), not from `.qml` files on disk. `application.qrc` lists files to bundle; `rcc --binary` produces the `.rcc`; only the `.rcc` (plus `manifest.json` + `icon.png`) gets deployed.
+1. **QML is not deployed loose.** apploader loads QML from a Qt **binary resource** (`resources.rcc`), not from `.qml` files on disk. `application.qrc` lists files to bundle; `rcc --binary` produces the `.rcc`; the `.rcc`, `manifest.json`, `icon.png`, and the worker executable `backend/entry` get deployed.
 2. **`entry` in `manifest.json` must start with `/`.** apploader builds the load URL as `qrc:/<random-nonce><entry>` (raw concatenation, no separator added). Without the leading slash you get `qrc:/NONCEMain.qml` and "No such file." Path is _inside_ the rcc.
 3. **Root QML conventions.** The root component must declare `signal close` and `function unloading() { ... }`. Emit `close()` from your "Quit" handler to ask apploader to unload the frontend — `Qt.quit()` is a no-op (Qt's process is xochitl).
 4. **No hardcoded root size.** apploader sizes the container; use `anchors.fill: parent` on the root and anchor children to it. Hardcoded `width: 1404; height: 1872` will be silently ignored.

@@ -35,10 +35,12 @@ SCREENSHOT_DIR := tools/readme-screenshots
 	suspend-writer-host suspend-writer-device suspend-writer-deploy suspend-writer-clean \
 	readme-screenshot-host readme-screenshot-clean
 
-build: inject-pragma
+build: inject-pragma image-worker-device
 	node scripts/stage-profile.mjs $(PROFILE) $(BUILD_DIR)
 	cd $(BUILD_DIR) && $(RCC) --binary -o resources.rcc application.qrc
 	cp icon.png $(BUILD_DIR)/
+	mkdir -p $(BUILD_DIR)/backend
+	cp tools/image-worker/build/image-worker-arm $(BUILD_DIR)/backend/entry
 
 build-test:
 	$(MAKE) build PROFILE=test
@@ -87,7 +89,8 @@ test:
 # The data/ subdir must exist before first launch: QML/XHR cannot create it, so
 # a missing dir turns every save into a visible failure (see ADR 0002).
 deploy: build
-	ssh $(REMARKABLE_HOST) "mkdir -p $(REMOTE_DIR)/data"
+	ssh $(REMARKABLE_HOST) "mkdir -p $(REMOTE_DIR)/data $(REMOTE_DIR)/backend"
+	scp $(BUILD_DIR)/backend/entry $(REMARKABLE_HOST):$(REMOTE_DIR)/backend/
 	scp $(BUILD_DIR)/resources.rcc $(BUILD_DIR)/manifest.json $(BUILD_DIR)/icon.png $(REMARKABLE_HOST):$(REMOTE_DIR)/
 
 remove:
@@ -144,3 +147,14 @@ readme-screenshot-host:
 
 readme-screenshot-clean:
 	rm -rf $(SCREENSHOT_DIR)/build
+
+# Local builds only; the ARM binary is bundled as apploader's backend/entry.
+.PHONY: image-worker-host image-worker-device image-worker-test
+image-worker-host:
+	tools/image-worker/build-host.sh
+
+image-worker-device:
+	tools/image-worker/build-device.sh
+
+image-worker-test: image-worker-host
+	python3 tests/image-worker-integration.py

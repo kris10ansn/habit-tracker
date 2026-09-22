@@ -21,6 +21,7 @@ Canvas {
         : SuspendRender.imageTargets(imageDirectory)
             .concat(BootSplash.imageTargets(bootBackupDirectory, imageDirectory, bootImageDirectory)))
     property var habits: []
+    property var suppliedSnapshot: null
     property date today: new Date()
     property bool renderAllowed: false
     property bool lastRenderFailed: false
@@ -68,6 +69,10 @@ Canvas {
         onTriggered: canvas._renderNextImage()
     }
 
+    function _snapshot() {
+        return suppliedSnapshot !== null ? suppliedSnapshot : HabitsModel.toSuspendHabits(canvas.habits);
+    }
+
     function scheduleRender() {
         if (!renderAllowed || restorationPending || busy)
             return;
@@ -112,7 +117,7 @@ Canvas {
         renderImagesOnce([{ state: "sleep", path: canvas.targetPath }], onDone);
     }
 
-    function renderImagesOnce(imageTargets, onDone, snapshot = HabitsModel.toSuspendHabits(canvas.habits), snapshotDate = new Date(canvas.today.getTime())) {
+    function renderImagesOnce(imageTargets, onDone, snapshot = canvas._snapshot(), snapshotDate = new Date(canvas.today.getTime())) {
         if (canvas.busy) {
             onDone(false);
             return;
@@ -245,7 +250,7 @@ Canvas {
     function _upToDate() {
         // Developer writes and OS updates can replace the images between app launches.
         return canvas._renderedThisSession
-            && _signature(HabitsModel.toSuspendHabits(canvas.habits), canvas.today) === canvas.lastRenderedSignature;
+            && _signature(canvas._snapshot(), canvas.today) === canvas.lastRenderedSignature;
     }
 
     function _signature(snapshot, date) {
@@ -258,7 +263,7 @@ Canvas {
 
         canvas.phase = "saving";
         canvas.busy = true;
-        const snapshot = HabitsModel.toSuspendHabits(canvas.habits);
+        const snapshot = canvas._snapshot();
         canvas._renderedThisSession = false;
         const snapshotDate = new Date(canvas.today.getTime());
         const signature = _signature(snapshot, snapshotDate);

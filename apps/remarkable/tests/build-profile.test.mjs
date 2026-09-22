@@ -50,6 +50,9 @@ test("test install and every persisted file belong to the test app", () => {
     withProfile("test", (profile, manifest, resources) => {
         assert.match(resources, /src\/testing\/DeveloperTools.qml/);
         assert.equal(manifest.id, "habit-tracker-test");
+        assert.equal(manifest.loadsBackend, true);
+        assert.match(resources, /src\/worker\/PowerImageWorker.qml/);
+        assert.match(resources, /src\/testing\/DeveloperImageJobs.qml/);
         assert.equal(manifest.name, "Habit Tracker TEST");
         assert.equal(profile.appId, manifest.id);
         for (const target of [
@@ -133,6 +136,9 @@ test("stable paths and launcher identity remain compatible", () => {
         assert.doesNotMatch(resources, /src\/testing\//);
         assert.equal(profile.isTest, false);
         assert.equal(manifest.id, "habit-tracker");
+        assert.equal(manifest.loadsBackend, true);
+        assert.match(resources, /src\/worker\/PowerImageWorker.qml/);
+        assert.match(resources, /src\/components\/ImageBackend.qml/);
         assert.equal(
             profile.settingsPath,
             "/home/root/xovi/exthome/appload/habit-tracker/settings.json",

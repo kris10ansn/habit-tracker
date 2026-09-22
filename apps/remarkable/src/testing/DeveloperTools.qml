@@ -11,47 +11,46 @@ Item {
     property string dataDirectory: ""
     signal backRequested
 
-    App.SuspendCanvas {
-        id: preview
-        habits: tools.habits
-        targetPath: BuildProfile.appDirectory + "/developer-preview.png"
-        signaturePath: BuildProfile.appDirectory + "/.developer-preview-sig"
-    }
+    property var backend: null
+    property string statusText: ""
+    readonly property bool busy: !!backend && backend.busy
+    readonly property string previewPath: BuildProfile.appDirectory + "/developer-preview.png"
+    readonly property string backupPath: BuildProfile.appDirectory + "/device-suspend-original.png"
 
-    App.BootCanvas { id: bootPreview }
-
-    SuspendController {
-        id: controller
-        canRender: tools.canRender
-        previewPath: preview.targetPath
-        renderPreview: function (onDone) { preview.renderOnce(onDone); }
-        renderPreviews: function (targets, onDone) {
-            const snapshot = HabitsModel.toSuspendHabits(tools.habits);
-            const date = new Date();
-            const boot = targets.find(target => target.format === "boot-bmp");
-            const images = targets.filter(target => target.format !== "boot-bmp")
-                .map(target => ({ state: target.state, path: target.preview }));
-            preview.renderImagesOnce(images, (ok, path) => {
-                if (!ok || !boot) onDone(ok, path);
-                else bootPreview.renderOnce(boot.preview, snapshot, date, onDone);
-            }, snapshot, date);
+    Connections {
+        target: tools.backend
+        function onFailed(message) { tools.statusText = message; }
+        function onProgress(operation, phase, message) {
+            if (operation.indexOf("developer-") === 0 && message) tools.statusText = message;
         }
+    }
+    function run(operation) {
+        if (!backend || busy) return;
+        const restoring = operation === "developer-restore" || operation === "developer-restore-all";
+        if (!restoring && !canRender) return;
+        const date = new Date();
+        const dateText = date.getFullYear() + "-" + ("0" + (date.getMonth() + 1)).slice(-2) + "-" + ("0" + date.getDate()).slice(-2);
+        statusText = restoring ? "Restoring original images…" : "Preparing power-state images…";
+        backend.request(operation, {
+            snapshot: HabitsModel.toSuspendHabits(tools.habits).filter(habit => !habit.isPrivate),
+            date: dateText
+        }, result => tools.statusText = result.message || result.error || "Image operation finished");
     }
 
     DeveloperPage {
         anchors.fill: parent
-        busy: controller.busy
-        canRender: controller.canRender
-        statusText: controller.statusText
+        busy: tools.busy
+        canRender: tools.canRender
+        statusText: tools.statusText
         dataDirectory: tools.dataDirectory
-        previewPath: controller.previewPath
-        backupPath: controller.backupPath
-        backupDirectory: controller.backupDirectory
-        onPreviewRequested: controller.preview()
-        onWriteRequested: controller.writeOnce()
-        onRestoreRequested: controller.restore()
-        onWriteAllRequested: controller.writeAllOnce()
-        onRestoreAllRequested: controller.restoreAll()
+        previewPath: tools.previewPath
+        backupPath: tools.backupPath
+        backupDirectory: BuildProfile.appDirectory
+        onPreviewRequested: tools.run("developer-preview")
+        onWriteRequested: tools.run("developer-write")
+        onRestoreRequested: tools.run("developer-restore")
+        onWriteAllRequested: tools.run("developer-write-all")
+        onRestoreAllRequested: tools.run("developer-restore-all")
         onBackRequested: tools.backRequested()
     }
 }

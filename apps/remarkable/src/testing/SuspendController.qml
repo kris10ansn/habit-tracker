@@ -8,6 +8,8 @@ import "../js/BootSplash.js" as BootSplash
 QtObject {
     id: controller
 
+    signal completed(bool ok, string message)
+
     property bool enabled: BuildProfile.isTest
     property bool canRender: false
     property bool busy: false
@@ -62,7 +64,7 @@ QtObject {
             if (publish)
                 controller._backupAndPublish();
             else
-                controller._finish("Preview saved. Device image unchanged.");
+                controller._finish("Preview saved. Device image unchanged.", true);
         });
     }
 
@@ -172,7 +174,7 @@ QtObject {
 
     function _writeScreens(targets, index, restoring) {
         if (index === targets.length) {
-            controller._finish(restoring ? "Original screen images restored." : "All available screens written once. Automatic device writes remain off.");
+            controller._finish(restoring ? "Original screen images restored." : "All available screens written once. Automatic device writes remain off.", true);
             return;
         }
         const target = targets[index];
@@ -214,11 +216,12 @@ QtObject {
         }
 
         controller.statusText = "Writing suspend image…";
-        controller.writeDeviceImage(image, error => controller._finish(error || successMessage));
+        controller.writeDeviceImage(image, error => controller._finish(error || successMessage, !error));
     }
 
-    function _finish(message) {
+    function _finish(message, ok = false) {
         controller.statusText = message;
         controller.busy = false;
+        controller.completed(ok, message);
     }
 }

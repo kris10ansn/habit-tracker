@@ -2,7 +2,7 @@
     "id": "habit-tracker",
     "name": "reMarkable habit tracker",
     "entry": "/src/Main.qml",
-    "loadsBackend": false,
+    "loadsBackend": true,
     "canHaveMultipleFrontends": false,
     "supportsScaling": true
 }
