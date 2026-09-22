@@ -11,7 +11,6 @@
         <file>src/PairingStore.qml</file>
         <file>src/testing/qmldir</file>
         <file>src/testing/DeveloperTools.qml</file>
-        <file>src/testing/BootPreview.qml</file>
         <file>src/testing/DeveloperPage.qml</file>
         <file>src/testing/SuspendController.qml</file>
         <file>src/components/qmldir</file>
@@ -28,6 +27,7 @@
         <file>src/components/HabitsColumn.qml</file>
         <file>src/components/HabitsGrid.qml</file>
         <file>src/components/SuspendCanvas.qml</file>
+        <file>src/components/BootCanvas.qml</file>
         <file>src/components/SegmentedToggle.qml</file>
         <file>src/components/SettingsPage.qml</file>
         <file>src/components/QrCode.qml</file>

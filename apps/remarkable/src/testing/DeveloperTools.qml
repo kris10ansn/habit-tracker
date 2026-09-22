@@ -18,7 +18,7 @@ Item {
         signaturePath: BuildProfile.appDirectory + "/.developer-preview-sig"
     }
 
-    BootPreview { id: bootPreview }
+    App.BootCanvas { id: bootPreview }
 
     SuspendController {
         id: controller

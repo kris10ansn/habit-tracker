@@ -3,13 +3,17 @@ const HEIGHT = 1404;
 const PIXEL_OFFSET = 54 + 256 * 4;
 const FILE_SIZE = PIXEL_OFFSET + WIDTH * HEIGHT;
 
-function imageTargets(directory) {
+function imageTargets(
+    directory,
+    imageDirectory = "/usr/share/remarkable",
+    bootDirectory = "/var/lib/uboot",
+) {
     return [
         {
-            path: "/usr/share/remarkable/splash/splash.bmp",
+            path: `${imageDirectory}/splash/splash.bmp`,
             backupName: "system-splash",
         },
-        { path: "/var/lib/uboot/splash.bmp", backupName: "boot-splash" },
+        { path: `${bootDirectory}/splash.bmp`, backupName: "boot-splash" },
     ].map((target) => ({
         path: target.path,
         backup: `${directory}/device-${target.backupName}-original.bmp`,

@@ -3,16 +3,22 @@ import "../js/SuspendRender.js" as SuspendRender
 import "../js/SuspendDraw.js" as SuspendDraw
 import "../js/HabitsModel.js" as HabitsModel
 import "../js/BuildProfile.js" as BuildProfile
+import "../js/BootSplash.js" as BootSplash
+import "../js/Storage.js" as Storage
 
 Canvas {
     id: canvas
 
     property string imageDirectory: "/usr/share/remarkable"
+    property string bootImageDirectory: "/var/lib/uboot"
+    property string bootBackupDirectory: BuildProfile.appDirectory
+    property string deviceModel: BuildProfile.isTest ? "" : Storage.readFile("/sys/devices/soc0/machine").trim()
     property string signaturePath: BuildProfile.signaturePath
     property string targetPath: BuildProfile.suspendPath
     readonly property var targets: BuildProfile.isTest
         ? [{ state: "sleep", path: canvas.targetPath, backup: BuildProfile.suspendBackupPath }]
-        : SuspendRender.availableImageTargets(SuspendRender.imageTargets(imageDirectory))
+        : SuspendRender.availableImageTargets(SuspendRender.imageTargets(imageDirectory)
+            .concat(BootSplash.imageTargets(bootBackupDirectory, imageDirectory, bootImageDirectory)))
     property var habits: []
     property date today: new Date()
     property bool renderAllowed: false
@@ -24,6 +30,7 @@ Canvas {
     property bool busy: false
     property bool restorationPending: false
     property bool _backupsReady: BuildProfile.isTest
+    property bool _renderedThisSession: false
     property int _generation: 0
 
     width: 1404
@@ -35,6 +42,8 @@ Canvas {
 
     Component.onCompleted: canvas.lastRenderedSignature = SuspendRender.readSignature(canvas.signaturePath)
     onRenderAllowedChanged: if (!renderAllowed) cancelPending()
+
+    BootCanvas { id: bootCanvas }
 
     Timer {
         id: debounceTimer
@@ -119,8 +128,8 @@ Canvas {
     }
 
     function renderSync() {
-        // Unloading cannot wait for asynchronous backup writes. Normal startup prepares these.
-        if (busy || !_backupsReady)
+        // Boot writes need asynchronous readback; the normal Quit path waits for that batch.
+        if (busy || !_backupsReady || canvas.targets.some(target => target.format === "boot-bmp"))
             return;
         _renderAll();
     }
@@ -135,6 +144,12 @@ Canvas {
 
     function backup(onDone) {
         if (busy) {
+            onDone(false);
+            return;
+        }
+        const invalid = SuspendRender.invalidBootPath(canvas.targets, canvas.deviceModel);
+        if (invalid) {
+            canvas._fail("backup-failed", invalid);
             onDone(false);
             return;
         }
@@ -157,6 +172,12 @@ Canvas {
         }
         cancelPending();
         canvas.restorationPending = true;
+        canvas._renderedThisSession = false;
+        const invalid = SuspendRender.invalidBootPath(canvas.targets, canvas.deviceModel, true);
+        if (invalid) {
+            _finishRestore(false, invalid, onDone);
+            return;
+        }
         canvas.busy = true;
         canvas.phase = "restoring";
         SuspendRender.restoreImages(canvas.targets, (ok, path) => {
@@ -182,7 +203,9 @@ Canvas {
     }
 
     function _upToDate() {
-        return _signature(HabitsModel.toSuspendHabits(canvas.habits), canvas.today) === canvas.lastRenderedSignature;
+        // Developer writes and OS updates can replace the images between app launches.
+        return canvas._renderedThisSession
+            && _signature(HabitsModel.toSuspendHabits(canvas.habits), canvas.today) === canvas.lastRenderedSignature;
     }
 
     function _signature(snapshot, date) {
@@ -193,21 +216,41 @@ Canvas {
         if (!renderAllowed || restorationPending || busy || !_backupsReady || _upToDate())
             return;
 
+        const invalid = SuspendRender.invalidBootPath(canvas.targets, canvas.deviceModel);
+        if (invalid) {
+            canvas._fail("save-failed", invalid);
+            return;
+        }
         canvas.phase = "saving";
         canvas.busy = true;
         const snapshot = HabitsModel.toSuspendHabits(canvas.habits);
+        canvas._renderedThisSession = false;
         const snapshotDate = new Date(canvas.today.getTime());
         const signature = _signature(snapshot, snapshotDate);
         for (let index = 0; index < canvas.targets.length; index++) {
             const target = canvas.targets[index];
+            if (target.format === "boot-bmp") continue;
             if (!canvas._renderTarget(target, snapshot, snapshotDate)) {
-                canvas.busy = false;
-                canvas.failedPath = target.path;
-                canvas.lastRenderFailed = true;
-                canvas.phase = "save-failed";
+                canvas._fail("save-failed", target.path);
                 return;
             }
         }
+        const bootTargets = canvas.targets.filter(target => target.format === "boot-bmp");
+        bootCanvas.renderImages(bootTargets, snapshot, snapshotDate, (ok, path) => {
+            if (!ok) canvas._fail("save-failed", path);
+            else canvas._saveSignature(signature);
+        });
+    }
+
+    function _fail(phase, path) {
+        canvas.busy = false;
+        canvas._renderedThisSession = false;
+        canvas.failedPath = path;
+        canvas.lastRenderFailed = true;
+        canvas.phase = phase;
+    }
+
+    function _saveSignature(signature) {
         SuspendRender.writeSignature(canvas.signaturePath, signature, ok => {
             canvas.busy = false;
             canvas.lastRenderFailed = !ok;
@@ -215,6 +258,7 @@ Canvas {
             canvas.phase = ok ? "saved" : "save-failed";
             if (!ok) return;
             canvas.lastRenderedSignature = signature;
+            canvas._renderedThisSession = true;
             if (canvas.renderAllowed && !canvas._upToDate()) canvas.scheduleRender();
         });
     }

@@ -14,7 +14,7 @@ TestCase {
         Components.SuspendCanvas {}
     }
 
-    Component { id: bootFactory; Testing.BootPreview {} }
+    Component { id: bootFactory; Components.BootCanvas {} }
 
     Component { id: developerFactory; Testing.DeveloperTools {} }
 

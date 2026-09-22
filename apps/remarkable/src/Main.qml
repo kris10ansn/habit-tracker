@@ -87,16 +87,16 @@ Rectangle {
             return;
         }
 
-        suspendCanvas.backup(ok => {
-            if (!ok) return;
-            if (enabled) {
-                suspendCanvas.restorationPending = false;
-                settingsStore.setSuspendImageEnabled(true);
-                return;
-            }
+        if (!enabled) {
             suspendCanvas.restore(restored => {
                 if (restored) settingsStore.setSuspendImageEnabled(false);
             });
+            return;
+        }
+        suspendCanvas.backup(ok => {
+            if (!ok) return;
+            suspendCanvas.restorationPending = false;
+            settingsStore.setSuspendImageEnabled(true);
         });
     }
 

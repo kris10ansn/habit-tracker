@@ -2,7 +2,7 @@ import QtQuick 2.15
 import QtTest 1.2
 import "../src/js/BootSplash.js" as BootSplash
 import "../src/js/Storage.js" as Storage
-import "../src/testing" as Testing
+import "../src/components" as Components
 import "TestPaths.js" as TestPaths
 
 TestCase {
@@ -11,7 +11,7 @@ TestCase {
     when: windowShown
     property var encoded: null
 
-    Component { id: factory; Testing.BootPreview {} }
+    Component { id: factory; Components.BootCanvas {} }
 
     function initTestCase() {
         const pixels = new Uint8Array(1872 * 1404 * 4);

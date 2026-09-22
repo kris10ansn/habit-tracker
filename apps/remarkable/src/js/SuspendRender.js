@@ -1,4 +1,5 @@
 .import "Storage.js" as Storage
+.import "BootSplash.js" as BootSplash
 
 // Storage reports a write only once it has landed, so both of these answer through a callback
 // rather than a return value. Reporting the copy synchronously is what let a failed suspend-image
@@ -66,6 +67,24 @@ function availableImageTargets(targets) {
             Storage.readBinary(target.path) !== null ||
             Storage.readBinary(target.backup) !== null,
     );
+}
+
+function invalidBootPath(targets, deviceModel, restoring = false) {
+    const bootTargets = targets.filter((target) => target.format === "boot-bmp");
+    if (bootTargets.length && deviceModel !== "reMarkable 1.0")
+        return bootTargets[0].path;
+
+    for (const target of bootTargets) {
+        const backup = Storage.readBinary(target.backup);
+        if ((restoring || backup !== null) && BootSplash.validationError(backup))
+            return target.backup;
+        if (
+            !restoring &&
+            BootSplash.validationError(Storage.readBinary(target.path) || backup)
+        )
+            return target.path;
+    }
+    return "";
 }
 
 // Existing backups survive retries, upgrades from suspend-only writing, and re-enabling.

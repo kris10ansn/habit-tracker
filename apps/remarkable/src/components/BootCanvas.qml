@@ -15,8 +15,17 @@ Canvas {
     property bool busy: false
 
     function renderOnce(path, snapshot, date, onDone) {
-        if (canvas.busy || !canvas.available || !BuildProfile.canWrite(path)) {
-            onDone(false, path);
+        renderImages([{ path: path }], snapshot, date, onDone);
+    }
+
+    function renderImages(targets, snapshot, date, onDone) {
+        if (!targets.length) {
+            onDone(true, "");
+            return;
+        }
+        const forbidden = targets.find(target => !BuildProfile.canWrite(target.path));
+        if (canvas.busy || !canvas.available || forbidden) {
+            onDone(false, forbidden ? forbidden.path : targets[0].path);
             return;
         }
         canvas.busy = true;
@@ -26,13 +35,32 @@ Canvas {
                 buffer = canvas._render(snapshot, date);
             } catch (error) {
                 canvas.busy = false;
+                onDone(false, targets[0].path);
+                return;
+            }
+            if (BootSplash.validationError(buffer)) {
+                canvas.busy = false;
+                onDone(false, targets[0].path);
+                return;
+            }
+            canvas._writeImages(targets, buffer, 0, onDone);
+        });
+    }
+
+    function _writeImages(targets, buffer, index, onDone) {
+        if (index === targets.length) {
+            canvas.busy = false;
+            onDone(true, "");
+            return;
+        }
+        const path = targets[index].path;
+        Storage.writeBinary(path, buffer, error => {
+            if (error) {
+                canvas.busy = false;
                 onDone(false, path);
                 return;
             }
-            Storage.writeBinary(path, buffer, error => {
-                canvas.busy = false;
-                onDone(!error, error ? path : "");
-            });
+            canvas._writeImages(targets, buffer, index + 1, onDone);
         });
     }
 

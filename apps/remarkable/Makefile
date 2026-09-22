@@ -80,6 +80,7 @@ test:
 	rm -rf $(TEST_TMP)
 	mkdir -p $(TEST_TMP)/habits $(TEST_TMP)/habits-seed $(TEST_TMP)/power-images $(TEST_TMP)/power-images-linked
 	ln -s rebooting.png $(TEST_TMP)/power-images-linked/restart-crashed.png
+	mkdir -p $(TEST_TMP)/boot-images/system/splash $(TEST_TMP)/boot-images/uboot
 	QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software QML_XHR_ALLOW_FILE_READ=1 QML_XHR_ALLOW_FILE_WRITE=1 \
 		$(QMLTESTRUNNER) -input $(TEST_DIR) -import $(QML_IMPORT_PATH)
 

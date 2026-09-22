@@ -11,6 +11,7 @@ VerticalScrollButtons 1.0 VerticalScrollButtons.qml
 HabitsColumn 1.0 HabitsColumn.qml
 HabitsGrid 1.0 HabitsGrid.qml
 SuspendCanvas 1.0 SuspendCanvas.qml
+BootCanvas 1.0 BootCanvas.qml
 SegmentedToggle 1.0 SegmentedToggle.qml
 SettingsPage 1.0 SettingsPage.qml
 QrCode 1.0 QrCode.qml
