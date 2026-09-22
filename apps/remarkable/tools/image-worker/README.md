@@ -80,8 +80,12 @@ the existing controllers. PNGs and BMPs never cross IPC.
 
 There is one active operation per helper. A shared QLockFile at
 `/tmp/habit-tracker-power-images.lock` excludes simultaneous stable/test jobs.
-A busy helper rejects another operation instead of building an unbounded queue.
-The UI coalesces automatic updates and blocks overlapping manual actions.
+A busy helper rejects overlapping manual operations. Quit's `handoff` request
+may retain one final snapshot behind an active render, replacing an older queued
+snapshot; an identical active snapshot needs no additional render. The helper
+acknowledges ownership with `accepted` while keeping the shared lock through both
+jobs. A `done` reply carries `busy: true` when a queued job still needs to finish.
+The UI otherwise coalesces automatic updates and blocks overlapping manual actions.
 
 The frontend retries the readiness handshake and reports startup failure after
 10 seconds when a job is waiting. A dispatched job has a 120-second inactivity
@@ -96,9 +100,16 @@ apploader may close the frontend before it can show an error.
 
 After the last frontend detaches, the helper completes its accepted job and exits
 when idle. Reattaching cancels idle exit. Socket disconnection also lets the job
-finish. Quit waits for the newest queued snapshot; forced unload only guarantees
-completion of the already accepted snapshot, assuming the worker and device stay
-running. The existing image writes are not an atomic multi-file transaction.
+finish. Quit waits for local habit/settings saves, existing sync, and settings
+backup/restore callbacks, then closes when the worker acknowledges the final
+snapshot. It does not wait for image rendering and writing. Failed or missing
+acknowledgement keeps the UI open with an error. Reopening can attach to the
+remaining work; the helper exits after the last accepted snapshot completes.
+Forced unload only guarantees completion of an already accepted snapshot, assuming
+the worker and device stay running. Closing is not suspension or power-off: either
+can delay or interrupt background work. The existing image writes are not an
+atomic multi-file transaction, and failures after closing cannot appear in the
+closed UI; the next launch retries the current snapshot.
 
 Deploy the executable, manifest, and resources together while both app variants
 and their jobs are stopped. `make deploy` and `make deploy PROFILE=test` do this

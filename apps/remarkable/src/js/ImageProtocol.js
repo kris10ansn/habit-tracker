@@ -3,6 +3,7 @@ const operations = [
     "backup",
     "restore",
     "render",
+    "handoff",
     "developer-preview",
     "developer-write",
     "developer-restore",

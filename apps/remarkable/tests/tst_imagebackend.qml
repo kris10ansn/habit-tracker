@@ -254,4 +254,65 @@ TestCase {
         compare(backedUp, false);
         compare(controller.phase, "backup-failed");
     }
+    function test_quitHandsOffLatestSnapshotWithoutWaitingForRendering() {
+        makeController();
+        controller.renderAsync();
+        controller.habits = Fixtures.fakeModel([Fixtures.habitRow({ name: "Latest" })]);
+        controller.closing = true;
+        let accepted = null;
+        controller.handoff(ok => accepted = ok);
+        compare(endpoint.sent.length, 2);
+        compare(endpoint.sent[1].operation, "handoff");
+        compare(endpoint.sent[1].snapshot[0].name, "Latest");
+        compare(accepted, null);
+        endpoint.reply({ kind: "accepted", id: "unrelated" });
+        compare(accepted, null);
+        endpoint.reply({ kind: "accepted", id: endpoint.sent[1].id });
+        verify(accepted);
+        verify(client.busy);
+        controller.renderAsync();
+        controller.scheduleRender();
+        compare(endpoint.sent.length, 2);
+        endpoint.reply({ kind: "done", id: endpoint.sent[0].id, ok: true, busy: true });
+        verify(client.busy);
+        complete(1);
+        verify(!client.busy);
+    }
+    function test_handoffReplacesUnsentRenderAfterStartupHandshake() {
+        const payload = { snapshot: [], date: "2026-09-22" };
+        client.request("render", payload, function() {});
+        let accepted = null;
+        client.handoff(payload, result => accepted = result);
+        compare(endpoint.sent.length, 0);
+        ready();
+        compare(endpoint.sent.length, 1);
+        compare(endpoint.sent[0].operation, "handoff");
+        endpoint.reply({ kind: "accepted", id: endpoint.sent[0].id });
+        verify(accepted.ok);
+    }
+    function test_handoffFailureAndTimeoutDoNotApproveClosing() {
+        ready();
+        const payload = { snapshot: [], date: "2026-09-22" };
+        let result = null;
+        client.handoff(payload, reply => result = reply);
+        complete(0, false);
+        verify(!result.ok);
+        client.operationTimeout = 30;
+        result = null;
+        client.handoff(payload, reply => result = reply);
+        tryVerify(() => result !== null);
+        verify(!result.ok);
+        endpoint.reply({ kind: "accepted", id: endpoint.sent[1].id });
+        verify(!result.ok);
+        verify(client._uncertain);
+    }
+    function test_handoffDoesNotReplaceSettingsBackup() {
+        ready();
+        client.request("backup", {}, function() {});
+        let result = null;
+        client.handoff({ snapshot: [], date: "2026-09-22" }, reply => result = reply);
+        verify(!result.ok);
+        compare(endpoint.sent.length, 1);
+        complete(0);
+    }
 }

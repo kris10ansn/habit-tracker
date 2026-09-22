@@ -29,27 +29,38 @@ Rectangle {
     readonly property string suspendStatusText: SuspendStatus.text(suspendCanvas.phase, suspendCanvas.remainingSeconds, suspendCanvas.failedPath)
 
     signal close
+    property bool _quitting: false
+    enabled: !_quitting
 
     function _waitForPendingOperations() {
         const syncInProgress = syncStore.isRequestInFlight || syncStore.status === "pending";
-        const renderInProgress = suspendCanvas.busy || suspendCanvas.phase === "saving" || suspendCanvas.phase === "pending";
+        const localSaveInProgress = habitsStore.saving || settingsStore.saving || syncStore.saving;
+        const mustFinishImages = !suspendCanvas.renderAllowed || suspendCanvas.restorationPending
+            || ["backing-up", "restoring"].includes(suspendCanvas.phase);
+        const renderInProgress = mustFinishImages && suspendCanvas.busy;
 
-        if (syncInProgress || renderInProgress) {
+        if (syncInProgress || localSaveInProgress || renderInProgress) {
             quitWaitTimer.restart();
             return;
         }
 
-        root.close();
+        suspendCanvas.handoff(ok => {
+            if (ok) root.close();
+            else {
+                root._quitting = false;
+                suspendCanvas.closing = false;
+            }
+        });
     }
 
     function quit() {
+        if (_quitting) return;
+        _quitting = true;
+        suspendCanvas.closing = true;
+        suspendCanvas.cancelPending();
         habitsStore.flushPendingSave();
         settingsStore.flushPendingSave();
         syncStore.flushPendingSave();
-
-        if (landscape.canRenderSuspend) {
-            suspendCanvas.renderAsync();
-        }
 
         if (!syncStore.hasSyncedSuccessfully) {
             syncStore.abortSync();

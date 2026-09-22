@@ -41,6 +41,7 @@ QtObject {
     property var habitTombstones: []
 
     readonly property bool isLoaded: _roster.isLoaded && _month.isLoaded
+    readonly property bool saving: _roster.saving || _month.saving
 
     // True while either file holds data this version cannot read. Those files are rendered as empty
     // and never written to, so sync must stay off as well — it would push the empty month to the

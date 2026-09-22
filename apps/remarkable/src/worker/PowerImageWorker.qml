@@ -2,10 +2,12 @@ import QtQuick 2.15
 import "../components" as App
 import "../js/BuildProfile.js" as BuildProfile
 import "../js/ImageProtocol.js" as ImageProtocol
+import "../js/SuspendDraw.js" as SuspendDraw
 
 Item {
     id: worker
     property var activeRequest: null
+    property var queuedRequest: null
     readonly property bool ready: writer.available && (!BuildProfile.isTest || (developer.item && developer.item.ready))
     ImageEnvironment { id: environment; configuration: ImageWorkerConfiguration }
     App.PowerImageJobs {
@@ -47,16 +49,23 @@ Item {
             return;
         }
         const invalid = ImageProtocol.validate(request, BuildProfile.isTest);
+        if (!invalid && worker.ready && request.operation === "handoff") {
+            acceptHandoff(request);
+            return;
+        }
         if (invalid || !worker.ready || activeRequest || !ImageBridge.acquire()) {
             send({ kind: "done", id: request.id, ok: false, error: invalid || "Image helper is busy or not ready" });
             return;
         }
+        execute(request);
+    }
+    function execute(request) {
         activeRequest = request;
         if (request.operation === "backup") {
             writer.backup((ok, path) => worker.finish(ok, path));
         } else if (request.operation === "restore") {
             writer.restore((ok, path) => worker.finish(ok, path));
-        } else if (request.operation === "render") {
+        } else if (request.operation === "render" || request.operation === "handoff") {
             writer.render(request.snapshot, ImageProtocol.parseDate(request.date), (ok, path) => worker.finish(ok, path));
         } else {
             developer.item.snapshot = request.snapshot || [];
@@ -64,14 +73,36 @@ Item {
             developer.item.execute(request.operation, (ok, message) => worker.finish(ok, "", message));
         }
     }
+    function acceptHandoff(request) {
+        if (activeRequest) {
+            if (activeRequest.operation !== "render" && activeRequest.operation !== "handoff") {
+                send({ kind: "done", id: request.id, ok: false, error: "Wait for the current image operation before closing" });
+                return;
+            }
+            const signature = job => SuspendDraw.computeSignature(job.snapshot, ImageProtocol.parseDate(job.date));
+            queuedRequest = signature(request) === signature(activeRequest) ? null : request;
+            send({ kind: "accepted", id: request.id });
+            return;
+        }
+        if (!ImageBridge.acquire()) {
+            send({ kind: "done", id: request.id, ok: false, error: "Another app is writing power-state images" });
+            return;
+        }
+        activeRequest = request;
+        send({ kind: "accepted", id: request.id });
+        execute(request);
+    }
     function progress(message) {
         if (activeRequest) send({ kind: "progress", id: activeRequest.id, phase: writer.phase, message: message || "" });
     }
     function finish(ok, path, message = "") {
         if (!activeRequest) return;
         const id = activeRequest.id;
+        const next = queuedRequest;
+        queuedRequest = null;
         activeRequest = null;
-        send({ kind: "done", id: id, ok: ok, path: path, message: message, error: ok ? "" : (message || path || "Image operation failed") });
-        ImageBridge.release();
+        send({ kind: "done", id: id, ok: ok, busy: next !== null, path: path, message: message, error: ok ? "" : (message || path || "Image operation failed") });
+        if (next) execute(next);
+        else ImageBridge.release();
     }
 }
