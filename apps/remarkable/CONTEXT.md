@@ -13,7 +13,8 @@ its future days render muted.
 ## Language
 
 **Power-state image**:
-A static habit snapshot displayed while the tablet is sleeping, powered off, or out of battery.
+A static habit snapshot displayed while the tablet is sleeping, powered off, out of battery,
+starting, restarting, or cooling down after overheating.
 Each state has its own icon, label, and instruction; the snapshot date describes the data, not the current date.
 _Avoid_: lock screen, wallpaper.
 
@@ -38,7 +39,7 @@ regardless of this setting.
 _Avoid_: reveal setting, unhide toggle.
 
 **Power-state-image writing**:
-The device-local opt-in setting that replaces all three power-state images with public habit snapshots.
+The device-local opt-in setting that replaces the available power-state images with public habit snapshots.
 Disabling restores the original images from their backups.
 _Avoid_: sleep-screen toggle, suspend mode.
 

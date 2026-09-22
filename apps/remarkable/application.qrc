@@ -11,6 +11,7 @@
         <file>src/PairingStore.qml</file>
         <file>src/testing/qmldir</file>
         <file>src/testing/DeveloperTools.qml</file>
+        <file>src/testing/BootPreview.qml</file>
         <file>src/testing/DeveloperPage.qml</file>
         <file>src/testing/SuspendController.qml</file>
         <file>src/components/qmldir</file>
@@ -42,6 +43,7 @@
         <file>src/js/BuildProfile.js</file>
         <file>src/js/SuspendRender.js</file>
         <file>src/js/SuspendDraw.js</file>
+        <file>src/js/BootSplash.js</file>
         <file>src/js/SuspendStatus.js</file>
         <file>src/js/Sync.js</file>
         <file>src/js/ServerUrl.js</file>

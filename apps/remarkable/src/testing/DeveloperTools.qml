@@ -1,6 +1,7 @@
 import QtQuick 2.15
 import "../components" as App
 import "../js/BuildProfile.js" as BuildProfile
+import "../js/HabitsModel.js" as HabitsModel
 
 Item {
     id: tools
@@ -17,11 +18,24 @@ Item {
         signaturePath: BuildProfile.appDirectory + "/.developer-preview-sig"
     }
 
+    BootPreview { id: bootPreview }
+
     SuspendController {
         id: controller
         canRender: tools.canRender
         previewPath: preview.targetPath
         renderPreview: function (onDone) { preview.renderOnce(onDone); }
+        renderPreviews: function (targets, onDone) {
+            const snapshot = HabitsModel.toSuspendHabits(tools.habits);
+            const date = new Date();
+            const boot = targets.find(target => target.format === "boot-bmp");
+            const images = targets.filter(target => target.format !== "boot-bmp")
+                .map(target => ({ state: target.state, path: target.preview }));
+            preview.renderImagesOnce(images, (ok, path) => {
+                if (!ok || !boot) onDone(ok, path);
+                else bootPreview.renderOnce(boot.preview, snapshot, date, onDone);
+            }, snapshot, date);
+        }
     }
 
     DeveloperPage {
@@ -32,9 +46,12 @@ Item {
         dataDirectory: tools.dataDirectory
         previewPath: controller.previewPath
         backupPath: controller.backupPath
+        backupDirectory: controller.backupDirectory
         onPreviewRequested: controller.preview()
         onWriteRequested: controller.writeOnce()
         onRestoreRequested: controller.restore()
+        onWriteAllRequested: controller.writeAllOnce()
+        onRestoreAllRequested: controller.restoreAll()
         onBackRequested: tools.backRequested()
     }
 }

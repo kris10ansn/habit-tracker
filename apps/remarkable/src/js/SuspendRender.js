@@ -46,11 +46,25 @@ function imageTargets(directory) {
         { state: "sleep", filename: "suspended.png" },
         { state: "off", filename: "poweroff.png" },
         { state: "empty", filename: "batteryempty.png" },
+        { state: "starting", filename: "starting.png", optional: true },
+        { state: "rebooting", filename: "rebooting.png", optional: true },
+        { state: "overheating", filename: "overheating.png", optional: true },
+        // Some firmware links this file to rebooting.png. Both must render identical bytes.
+        { state: "rebooting", filename: "restart-crashed.png", optional: true },
     ].map((target) =>
         Object.assign({}, target, {
             path: `${directory}/${target.filename}`,
             backup: `${directory}/${target.filename}.bak`,
         }),
+    );
+}
+
+function availableImageTargets(targets) {
+    return targets.filter(
+        (target) =>
+            !target.optional ||
+            Storage.readBinary(target.path) !== null ||
+            Storage.readBinary(target.backup) !== null,
     );
 }
 

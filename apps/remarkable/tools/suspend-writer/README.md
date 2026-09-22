@@ -201,9 +201,13 @@ once already — keep the join, push everything else into the modules.
 ### Power-state previews
 
 The renderer now uses Quiet ledger with aligned, compact state icons. Add `--state sleep`,
-`--state off`, or `--state empty` to select the footer; the default is `sleep`.
+`--state off`, `--state empty`, `--state starting`, `--state rebooting`, or
+`--state overheating` to select the footer; the default is `sleep`. Crash recovery uses
+the `rebooting` footer because its device file can alias the normal restart image.
 `--out` still chooses a single output file. This tool previews images only and does not perform
-backup/restore or install them. The QML app owns the three-target write lifecycle.
+backup/restore or install them. The QML app owns the multi-image write lifecycle.
 
 Rebuild this tool after the renderer update: its Canvas shim now supports filled rounded paths, scaling, text
 measurement, and right-aligned labels. Copying the updated JavaScript beside an old binary is not sufficient.
+
+Rebuild the native tool to accept the new `--state` values; its argument validation is compiled in.
