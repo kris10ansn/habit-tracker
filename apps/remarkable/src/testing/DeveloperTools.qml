@@ -1,5 +1,5 @@
 import QtQuick 2.15
-import "../components" as App
+import "../js/DateUtils.js" as DateUtils
 import "../js/BuildProfile.js" as BuildProfile
 import "../js/HabitsModel.js" as HabitsModel
 
@@ -29,7 +29,7 @@ Item {
         const restoring = operation === "developer-restore" || operation === "developer-restore-all";
         if (!restoring && !canRender) return;
         const date = new Date();
-        const dateText = date.getFullYear() + "-" + ("0" + (date.getMonth() + 1)).slice(-2) + "-" + ("0" + date.getDate()).slice(-2);
+        const dateText = DateUtils.dateKey(date.getFullYear(), date.getMonth(), date.getDate());
         statusText = restoring ? "Restoring original images…" : "Preparing power-state images…";
         backend.request(operation, {
             snapshot: HabitsModel.toSuspendHabits(tools.habits).filter(habit => !habit.isPrivate),

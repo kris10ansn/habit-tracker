@@ -32,7 +32,7 @@ class Worker:
         self.listener.settimeout(10)
         self.log = (directory / "worker.log").open("w+")
         self.process = subprocess.Popen([str(BINARY), str(directory / "socket"),
-                                         str(resource), str(lock)], stderr=self.log,
+                                         str(resource), str(lock), str(directory / "environment.json")], stderr=self.log,
                                         env=dict(os.environ, QT_FORCE_STDERR_LOGGING="1"))
         self.connection, _ = self.listener.accept()
         self.connection.settimeout(15)
@@ -111,25 +111,21 @@ class WorkerIntegration(unittest.TestCase):
             worker.close()
         self.temporary.cleanup()
 
-    def worker(self, profile="stable"):
+    def worker(self, profile="stable", device_model="reMarkable 1.0"):
         directory = self.directory / ("worker" + str(len(self.workers)))
         directory.mkdir()
         shutil.copytree(APP / "src", directory / "src")
         subprocess.run(["node", "scripts/stage-profile.mjs", profile, str(directory)],
                        cwd=APP, check=True)
-        # Redirect only staged test resources; production jobs never accept paths.
-        for path in (directory / "src").rglob("*"):
-            if path.suffix not in [".qml", ".js"]:
-                continue
-            text = path.read_text().replace("/usr/share/remarkable", str(self.system))
-            text = text.replace("/var/lib/uboot", str(self.uboot))
-            text = text.replace('"/home/root/xovi/exthome/appload/" + appId',
-                                json.dumps(str(directory)))
-            text = text.replace('Storage.readFile("/sys/devices/soc0/machine").trim()',
-                                '"reMarkable 1.0"')
-            if path.suffix == ".js":
-                text = ".pragma library\n" + text
-            path.write_text(text)
+        (directory / "environment.json").write_text(json.dumps({
+            "appDirectory": str(directory),
+            "imageDirectory": str(self.system),
+            "bootImageDirectory": str(self.uboot),
+            "deviceModel": device_model,
+        }))
+        # Apply the same staging transform as make; execution source stays unchanged.
+        for path in (directory / "src/js").glob("*.js"):
+            path.write_text(".pragma library\n" + path.read_text())
         subprocess.run(["rcc-qt5", "--binary", "-o", "resources.rcc", "application.qrc"],
                        cwd=directory, check=True)
         worker = Worker(directory, directory / "resources.rcc", self.directory / "images.lock")
@@ -141,7 +137,8 @@ class WorkerIntegration(unittest.TestCase):
 
     def test_backup_render_restore_and_no_client_paths(self):
         worker, directory = self.worker()
-        self.assert_success(worker.run("backup", path=str(self.directory / "untrusted")))
+        self.assert_success(worker.run("backup", path=str(self.directory / "untrusted"),
+                                              configuration={"imageDirectory": "/untrusted", "deviceModel": "wrong"}))
         for path, original in self.originals.items():
             self.assertEqual(path.read_bytes(), original)
         self.assert_success(worker.run("render", snapshot=SNAPSHOT, date="2026-09-22"))
@@ -159,6 +156,28 @@ class WorkerIntegration(unittest.TestCase):
         for path, original in self.originals.items():
             self.assertEqual(path.read_bytes(), original)
         self.assertEqual(json.loads((directory / ".sleep-sig").read_text()), "")
+
+    def test_runtime_check_loads_packaged_resources_without_writing_images(self):
+        for profile in ["stable", "test"]:
+            _, directory = self.worker(profile)
+            result = subprocess.run(
+                [str(BINARY), "--check-runtime", str(directory / "resources.rcc"),
+                 str(self.directory / "unused.lock"), str(directory / "environment.json")],
+                capture_output=True, text=True, timeout=10,
+                env=dict(os.environ, QT_FORCE_STDERR_LOGGING="1"))
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertIn("runtime ready", result.stderr)
+        for path, original in self.originals.items():
+            self.assertEqual(path.read_bytes(), original)
+        self.assertFalse((self.directory / "unused.lock").exists())
+
+    def test_bootstrap_device_guard_rejects_before_writing(self):
+        worker, _ = self.worker(device_model="reMarkable 2.0")
+        result = worker.run("render", snapshot=SNAPSHOT, date="2026-09-22",
+                            configuration={"deviceModel": "reMarkable 1.0"})
+        self.assertFalse(result["ok"], result)
+        for path, original in self.originals.items():
+            self.assertEqual(path.read_bytes(), original)
 
     def test_rejects_invalid_snapshot_and_stable_developer_commands(self):
         worker, _ = self.worker()

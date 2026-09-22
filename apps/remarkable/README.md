@@ -323,7 +323,7 @@ the date and scroll helpers, the suspend-image signature) and the QML stores (de
 refusal of unreadable files, month navigation, the sync engine's terminal paths including a 401, and
 the pairing flow's poll-status handling). Override the runner with `make QMLTESTRUNNER=<path>`.
 
-`make image-worker-test` needs Python 3, a host C++ compiler, Qt 5 Quick development headers, moc, and rcc. It runs the real helper against disposable host files, with production paths redirected only in staged test resources.
+`make image-worker-test` needs Python 3, a host C++ compiler, Qt 5 Quick development headers, moc, and rcc. It runs the real helper against disposable host files through a host-only bootstrap configuration, using the normal staged resources. The device binary uses fixed profile paths. The [worker runtime check](tools/image-worker/README.md#build-and-test-locally) lets you verify the deployed Qt runtime without writing images.
 
 `make suspend-writer-test` additionally needs a host C++ toolchain and Qt 5 dev headers, since it
 builds `tools/suspend-writer` first.

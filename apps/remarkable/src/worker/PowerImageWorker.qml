@@ -7,19 +7,27 @@ Item {
     id: worker
     property var activeRequest: null
     readonly property bool ready: writer.available && (!BuildProfile.isTest || (developer.item && developer.item.ready))
-    App.SuspendCanvas { id: writer }
-    Loader {
-        id: developer
-        source: BuildProfile.isTest ? "../testing/DeveloperImageJobs.qml" : ""
+    ImageEnvironment { id: environment; configuration: ImageWorkerConfiguration }
+    App.PowerImageJobs {
+        id: writer
+        imageDirectory: environment.imageDirectory
+        bootImageDirectory: environment.bootImageDirectory
+        bootBackupDirectory: environment.appDirectory
+        deviceModel: environment.deviceModel
+        signaturePath: environment.appDirectory + "/.sleep-sig"
+        targetPath: environment.suspendPath
+        backupPath: environment.suspendBackupPath
+        onProgress: function(phase, path) { worker.progress(path); }
+    }
+    Loader { id: developer }
+    Component.onCompleted: {
+        BuildProfile.configureImageWorker(environment.appDirectory);
+        if (BuildProfile.isTest)
+            developer.setSource("../testing/DeveloperImageJobs.qml", { environment: environment });
     }
     Connections {
         target: ImageBridge
         function onMessage(body) { worker.receive(body); }
-    }
-    Connections {
-        target: writer
-        function onPhaseChanged() { Qt.callLater(worker.report); }
-        function onBusyChanged() { Qt.callLater(worker.report); }
     }
     Connections {
         target: developer.item
@@ -27,7 +35,7 @@ Item {
         function onStatusTextChanged() { worker.progress(developer.item.statusText); }
     }
 
-    Timer { interval: 1000; repeat: true; running: worker.activeRequest !== null; onTriggered: worker.progress("") }
+    Timer { interval: 1000; repeat: true; running: worker.activeRequest !== null; onTriggered: worker.send({ kind: "heartbeat", id: worker.activeRequest.id }) }
 
     function send(message) { ImageBridge.reply(JSON.stringify(message)); }
     function receive(body) {
@@ -45,20 +53,11 @@ Item {
         }
         activeRequest = request;
         if (request.operation === "backup") {
-            writer.backup(ok => {
-                if (ok) writer.restorationPending = false;
-                worker.finish(ok, writer.failedPath);
-            });
+            writer.backup((ok, path) => worker.finish(ok, path));
         } else if (request.operation === "restore") {
-            writer.restore(ok => worker.finish(ok, writer.failedPath));
+            writer.restore((ok, path) => worker.finish(ok, path));
         } else if (request.operation === "render") {
-            // Each frontend session refreshes images that another app may have replaced.
-            writer._renderedThisSession = false;
-            writer.suppliedSnapshot = request.snapshot;
-            writer.today = ImageProtocol.parseDate(request.date);
-            writer.renderAllowed = true;
-            writer.renderAsync();
-            Qt.callLater(worker.report);
+            writer.render(request.snapshot, ImageProtocol.parseDate(request.date), (ok, path) => worker.finish(ok, path));
         } else {
             developer.item.snapshot = request.snapshot || [];
             developer.item.today = ImageProtocol.parseDate(request.date) || new Date();
@@ -68,16 +67,9 @@ Item {
     function progress(message) {
         if (activeRequest) send({ kind: "progress", id: activeRequest.id, phase: writer.phase, message: message || "" });
     }
-    function report() {
-        if (!activeRequest || activeRequest.operation !== "render") return;
-        progress("");
-        if (writer.busy || writer.phase === "saving" || writer.phase === "pending") return;
-        finish(writer.phase === "saved", writer.failedPath);
-    }
     function finish(ok, path, message = "") {
         if (!activeRequest) return;
         const id = activeRequest.id;
-        writer.renderAllowed = false;
         activeRequest = null;
         send({ kind: "done", id: id, ok: ok, path: path, message: message, error: ok ? "" : (message || path || "Image operation failed") });
         ImageBridge.release();

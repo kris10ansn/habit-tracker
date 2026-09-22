@@ -124,6 +124,43 @@ TestCase {
         verify(result.error.indexOf("reopen") >= 0);
         compare(endpoint.sent.length, 0);
     }
+    function test_heartbeatsCannotKeepAnUnfinishedJobBusy() {
+        ready();
+        client.operationTimeout = 60;
+        let result = null;
+        client.request("backup", {}, reply => result = reply);
+        for (let index = 0; index < 5; index++) {
+            endpoint.reply({ kind: "heartbeat", id: endpoint.sent[0].id });
+            wait(25);
+        }
+        verify(result !== null && !result.ok);
+        verify(!client.busy);
+        complete(0);
+        verify(!result.ok);
+    }
+    function test_progressCannotExceedTotalOperationLimit() {
+        ready();
+        client.operationTimeout = 60;
+        client.maximumOperationDuration = 100;
+        let result = null;
+        client.request("backup", {}, reply => result = reply);
+        for (let index = 0; index < 6; index++) {
+            endpoint.reply({ kind: "progress", id: endpoint.sent[0].id, phase: "saving" });
+            wait(25);
+        }
+        verify(result !== null && !result.ok);
+        verify(!client.busy);
+    }
+    function test_previousSessionHeartbeatsCannotKeepQuitWaiting() {
+        client.operationTimeout = 60;
+        ready(true);
+        for (let index = 0; index < 5; index++) {
+            endpoint.reply({ kind: "heartbeat", id: "previous-session" });
+            wait(25);
+        }
+        verify(!client.busy);
+        verify(client._uncertain);
+    }
     function test_progressExtendsDeadline() {
         ready();
         client.operationTimeout = 100;
@@ -195,6 +232,19 @@ TestCase {
         controller.renderAsync();
         compare(endpoint.sent.length, 1);
         compare(controller.phase, "restored");
+    }
+    function test_leavingCurrentMonthCancelsQueuedSnapshot() {
+        makeController();
+        controller.renderAsync();
+        controller.habits = Fixtures.fakeModel([Fixtures.habitRow({ name: "Changed" })]);
+        controller.scheduleRender();
+        controller.renderAllowed = false;
+        complete(0);
+        wait(30);
+        controller.renderAsync();
+        compare(endpoint.sent.length, 1);
+        compare(controller.phase, "saved");
+        verify(!controller._renderRequested);
     }
     function test_backupFailureDoesNotReportEnabled() {
         makeController();

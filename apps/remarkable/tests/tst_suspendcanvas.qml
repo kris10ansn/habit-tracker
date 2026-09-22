@@ -25,7 +25,6 @@ TestCase {
     function createCanvas(output) {
         const canvas = createTemporaryObject(factory, testCase, {
             targetPath: TestPaths.tmpPath(output),
-            signaturePath: TestPaths.tmpPath("canvas-signature.json"),
             habits: Fixtures.fakeModel([Fixtures.habitRow()]),
             today: new Date(2026, 7, 17)
         });

@@ -18,3 +18,4 @@ QrCode 1.0 QrCode.qml
 AppLoadTransport 1.0 AppLoadTransport.qml
 ImageBackend 1.0 ImageBackend.qml
 PowerImageController 1.0 PowerImageController.qml
+PowerImageJobs 1.0 PowerImageJobs.qml

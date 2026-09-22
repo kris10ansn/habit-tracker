@@ -18,7 +18,7 @@ TestCase {
     property var originalBoot: null
     property var writer: null
 
-    Component { id: factory; Components.SuspendCanvas {} }
+    Component { id: factory; Components.PowerImageJobs {} }
 
     function writeBinary(path, buffer) {
         let finished = false;
@@ -44,16 +44,15 @@ TestCase {
             bootImageDirectory: directory + "/uboot",
             bootBackupDirectory: directory,
             deviceModel: "reMarkable 1.0",
-            signaturePath: directory + "/signature.json",
-            habits: Fixtures.fakeModel([Fixtures.habitRow()]),
-            today: new Date(2026, 8, 22)
+            signaturePath: directory + "/signature.json"
         });
         verify(writer !== null);
         tryVerify(() => writer.available);
     }
 
-    function cleanup() {
-        writer.renderAllowed = false;
+    function render() {
+        writer.render(HabitsModel.toSuspendHabits(Fixtures.fakeModel([Fixtures.habitRow()])),
+            new Date(2026, 8, 22), function() {});
     }
 
     function verifyPngsUnchanged() {
@@ -62,8 +61,7 @@ TestCase {
 
     function test_wrongDevicePreventsAllWrites() {
         writer.deviceModel = "reMarkable 2.0";
-        writer.renderAllowed = true;
-        writer.renderAsync();
+        render();
         tryCompare(writer, "phase", "backup-failed");
         compare(writer.failedPath, bootPaths[0]);
         verifyPngsUnchanged();
@@ -71,8 +69,7 @@ TestCase {
 
     function test_invalidOriginalPreventsAllWrites() {
         writeText(bootPaths[1], "invalid boot bitmap");
-        writer.renderAllowed = true;
-        writer.renderAsync();
+        render();
         tryCompare(writer, "phase", "backup-failed");
         compare(writer.failedPath, bootPaths[1]);
         verifyPngsUnchanged();
@@ -82,8 +79,7 @@ TestCase {
         const boot = writer.targets.find(target => target.format === "boot-bmp");
         verify(boot !== undefined);
         boot.backup = directory + "/absent-directory/boot.bmp";
-        writer.renderAllowed = true;
-        writer.renderAsync();
+        render();
         tryCompare(writer, "phase", "backup-failed", 15000);
         verifyPngsUnchanged();
     }
@@ -111,24 +107,22 @@ TestCase {
         const boot = writer.targets.filter(target => target.format === "boot-bmp")[1];
         const correctPath = boot.path;
         boot.path = directory + "/absent-directory/boot.bmp";
-        writer.renderAllowed = true;
-        writer.renderAsync();
+        render();
         tryCompare(writer, "phase", "save-failed", 15000);
         compare(writer.failedPath, boot.path);
         compare(writer.lastRenderedSignature, "");
         verify(!writer.busy);
 
         boot.path = correctPath;
-        writer.renderAsync();
+        render();
         tryCompare(writer, "phase", "saved", 15000);
         verify(writer.lastRenderedSignature.length > 0);
         compare(BootSplash.validationError(Storage.readBinary(correctPath)), "");
     }
 
     function test_regularRenderReplacesBootAndStartupImagesAndRestoresOriginals() {
-        writer.lastRenderedSignature = writer._signature(HabitsModel.toSuspendHabits(writer.habits), writer.today);
-        writer.renderAllowed = true;
-        writer.renderAsync();
+        writer.lastRenderedSignature = "previous successful snapshot";
+        render();
         tryCompare(writer, "phase", "saved", 15000);
         // A success message must include the early-boot files, not just the three legacy PNGs.
         bootPaths.forEach(path => {

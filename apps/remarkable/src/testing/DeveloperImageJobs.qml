@@ -1,9 +1,9 @@
 import QtQuick 2.15
 import "../components" as App
-import "../js/BuildProfile.js" as BuildProfile
 
 Item {
     id: jobs
+    property var environment: null
     property var snapshot: []
     property date today: new Date()
     property var completion: null
@@ -15,13 +15,18 @@ Item {
         id: preview
         suppliedSnapshot: jobs.snapshot
         today: jobs.today
-        targetPath: BuildProfile.appDirectory + "/developer-preview.png"
-        signaturePath: BuildProfile.appDirectory + "/.developer-preview-sig"
+        targetPath: jobs.environment.appDirectory + "/developer-preview.png"
     }
     App.BootCanvas { id: bootPreview }
     SuspendController {
         id: controller
         canRender: true
+        backupDirectory: jobs.environment.appDirectory
+        backupPath: backupDirectory + "/device-suspend-original.png"
+        deviceImageDirectory: jobs.environment.imageDirectory
+        deviceImagePath: deviceImageDirectory + "/suspended.png"
+        bootImageDirectory: jobs.environment.bootImageDirectory
+        deviceModel: jobs.environment.deviceModel
         previewPath: preview.targetPath
         renderPreview: function(onDone) { preview.renderOnce(onDone); }
         renderPreviews: function(targets, onDone) {

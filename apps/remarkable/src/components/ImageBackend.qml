@@ -12,6 +12,7 @@ Item {
     readonly property bool busy: _pending !== null || _remoteBusy
     property int startupTimeout: 10000
     property int operationTimeout: 120000
+    property int maximumOperationDuration: 600000
     property var _pending: null
     property bool _remoteBusy: false
     property bool _uncertain: false
@@ -36,16 +37,25 @@ Item {
     }
     Timer {
         id: deadline
-        onTriggered: {
-            client._uncertain = (!!client._pending && client._pending.sent) || client._remoteBusy;
-            client._remoteBusy = false;
-            client.ready = false;
-            const error = client._uncertain
-                ? "Image helper did not confirm completion. Close and reopen the app before retrying."
-                : "Image helper is unavailable. Check the backend installation.";
-            client.failed(error);
-            client.finish({ ok: false, error: error });
-        }
+        onTriggered: client.timeOut()
+    }
+    Timer {
+        id: operationLimit
+        interval: client.maximumOperationDuration
+        onTriggered: client.timeOut()
+    }
+
+    function timeOut() {
+        deadline.stop();
+        operationLimit.stop();
+        _uncertain = (!!_pending && _pending.sent) || _remoteBusy;
+        _remoteBusy = false;
+        ready = false;
+        const error = _uncertain
+            ? "Image helper did not confirm completion. Close and reopen the app before retrying."
+            : "Image helper is unavailable. Check the backend installation.";
+        failed(error);
+        finish({ ok: false, error: error });
     }
 
     function request(operation, payload, onDone) {
@@ -71,6 +81,7 @@ Item {
         _pending.sent = true;
         deadline.interval = operationTimeout;
         deadline.restart();
+        operationLimit.restart();
         endpoint.send(_pending.body);
     }
     function receive(body) {
@@ -81,6 +92,7 @@ Item {
             ready = message.version === ImageProtocol.version && message.ready === true;
             _remoteBusy = message.busy === true;
             if (_remoteBusy) {
+                if (!operationLimit.running) operationLimit.start();
                 deadline.interval = operationTimeout;
                 deadline.restart();
             } else if (ready) dispatch();
@@ -90,6 +102,7 @@ Item {
             if (!_remoteBusy || (_pending && _pending.sent)) return;
             _remoteBusy = false;
             deadline.stop();
+            operationLimit.stop();
             dispatch();
             return;
         }
@@ -105,6 +118,7 @@ Item {
     function finish(result) {
         if (!_pending) return;
         deadline.stop();
+        operationLimit.stop();
         _remoteBusy = false;
         const onDone = _pending.onDone;
         _pending = null;
