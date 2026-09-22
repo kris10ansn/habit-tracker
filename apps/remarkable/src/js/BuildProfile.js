@@ -11,12 +11,20 @@ const suspendBackupPath = isTest
     : "/usr/share/remarkable/suspended.png.bak";
 const signaturePath = appDirectory + "/.sleep-sig";
 
+let imageWorkerDirectory = null;
+
+// Trusted worker bootstrap only; frontend requests cannot configure paths.
+function configureImageWorker(directory) {
+    imageWorkerDirectory = directory;
+}
+
 function canWrite(path) {
     if (!isTest) return true;
-    if (typeof path !== "string" || path.indexOf(appDirectory + "/") !== 0)
+    const directory = imageWorkerDirectory || appDirectory;
+    if (typeof path !== "string" || path.indexOf(directory + "/") !== 0)
         return false;
 
-    const relative = path.slice(appDirectory.length + 1);
+    const relative = path.slice(directory.length + 1);
     return (
         /^[a-zA-Z0-9_.\/-]+$/.test(relative) &&
         relative

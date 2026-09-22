@@ -15,20 +15,9 @@ TestCase {
     width: 100
     height: 100
 
-    property var observeUi: null
-    Timer {
-        id: heartbeat
-        interval: 1
-        repeat: true
-        onTriggered: if (testCase.observeUi) testCase.observeUi()
-    }
-
-    function cleanup() {
-        heartbeat.stop();
-        testCase.observeUi = null;
-    }
-
-    Component { id: writerComponent; Components.SuspendCanvas {} }
+    property var habits: null
+    property date today: new Date(2026, 8, 9)
+    Component { id: writerComponent; Components.PowerImageJobs {} }
 
     function writeFile(path, content) {
         let finished = false;
@@ -135,17 +124,14 @@ TestCase {
 
     function createWriter(directory = "power-images") {
         seed(SuspendRender.imageTargets(TestPaths.tmpPath(directory)));
+        testCase.habits = Fixtures.fakeModel([Fixtures.habitRow()]);
         const writer = writerComponent.createObject(testCase, {
             imageDirectory: TestPaths.tmpPath(directory),
             signaturePath: TestPaths.tmpPath("power-images-signature.json"),
-            habits: Fixtures.fakeModel([Fixtures.habitRow()]),
-            today: new Date(2026, 8, 9)
+            targets: SuspendRender.imageTargets(TestPaths.tmpPath(directory))
         });
         verify(writer !== null);
         tryVerify(() => writer.available);
-        let selected = false;
-        writer._withTargets(() => selected = true);
-        tryVerify(() => selected);
         return writer;
     }
 
@@ -160,8 +146,7 @@ TestCase {
         const writer = createWriter(data.directory);
         compare(writer.targets.map(target => target.filename), ["suspended.png", "poweroff.png", "batteryempty.png", "starting.png", "rebooting.png", "overheating.png", "restart-crashed.png"]);
         seed(writer.targets);
-        writer.renderAllowed = true;
-        writer.renderAsync();
+        render(writer);
         tryCompare(writer, "phase", "saved", 10000);
         const images = writer.targets.map(target => Storage.readBinary(target.path));
         images.forEach(buffer => {
@@ -179,99 +164,75 @@ TestCase {
         tryVerify(() => result === true);
         writer.targets.forEach(target => compare(Storage.readFile(target.path), `original-${target.state}`));
         compare(writer.lastRenderedSignature, "");
-        writer.renderAllowed = false;
         writer.destroy();
     }
 
-    function test_editsDuringBatchQueueAnotherSnapshotAndRestoreCannotOverlap() {
-        const writer = createWriter();
-        let backedUp = false;
-        writer.backup(ok => backedUp = ok);
-        tryVerify(() => backedUp);
-        writer.lastRenderedSignature = "";
-        const initialSignature = writer._signature(HabitsModel.toSuspendHabits(writer.habits), writer.today);
-        let editedBetweenImages = false;
-        let restoreResult = null;
-        testCase.observeUi = () => {
-            if (editedBetweenImages || writer.phase !== "saving") return;
-            const firstImage = Storage.readBinary(writer.targets[0].path);
-            if (!firstImage || new Uint8Array(firstImage)[0] !== 137) return;
-            if (Storage.readFile(writer.targets[1].path) !== "original-off") return;
+    function render(writer, onDone = function() {}) {
+        writer.render(HabitsModel.toSuspendHabits(testCase.habits), testCase.today, onDone);
+    }
 
-            editedBetweenImages = true;
-            verify(writer.busy);
-            compare(writer.lastRenderedSignature, "");
-            writer.restore(ok => restoreResult = ok);
-            writer.habits = Fixtures.fakeModel([Fixtures.habitRow({ name: "Edited during saving" })]);
-            writer.scheduleRender();
-            writer.renderAsync();
-        };
-        heartbeat.start();
-        writer.renderAllowed = true;
-        writer.renderAsync();
-        tryVerify(() => editedBetweenImages, 10000);
-        tryCompare(writer, "phase", "pending", 10000);
-        heartbeat.stop();
-        compare(restoreResult, false);
-        compare(writer.lastRenderedSignature, initialSignature);
-        compare(SuspendRender.readSignature(writer.signaturePath), initialSignature);
-        writer.renderAsync();
+    function test_capturedJobRejectsOverlapAndCompletesAfterSignature() {
+        const writer = createWriter();
+        const captured = HabitsModel.toSuspendHabits(testCase.habits);
+        const expectedPrefix = SuspendDraw.computeSignature(captured, testCase.today);
+        let completions = 0;
+        writer.render(captured, testCase.today, (ok, path) => {
+            completions++;
+            verify(ok);
+            compare(path, "");
+            verify(!writer.busy);
+            verify(SuspendRender.readSignature(writer.signaturePath).indexOf(expectedPrefix) === 0);
+            writer.targets.forEach(target => compare(new Uint8Array(Storage.readBinary(target.path))[0], 137));
+        });
+        captured[0].name = "Changed after capture";
+        let overlappingRestore = null;
+        writer.restore(ok => overlappingRestore = ok);
+        compare(overlappingRestore, false);
+        let overlappingRender = null;
+        render(writer, ok => overlappingRender = ok);
+        compare(overlappingRender, false);
         tryCompare(writer, "phase", "saved", 10000);
-        compare(writer.lastRenderedSignature, writer._signature(HabitsModel.toSuspendHabits(writer.habits), writer.today));
-        verify(writer.lastRenderedSignature !== initialSignature);
-        writer.renderAllowed = false;
-        writer.destroy();
-    }
-
-    function test_unloadingSavesPreparedImagesWithoutWaitingForATimer() {
-        const writer = createWriter();
-        let backedUp = false;
-        writer.backup(ok => backedUp = ok);
-        tryVerify(() => backedUp);
-        writer.lastRenderedSignature = "";
-        writer.renderAllowed = true;
-        writer.renderSync();
-        writer.targets.forEach(target => compare(new Uint8Array(Storage.readBinary(target.path))[0], 137));
-        tryVerify(() => !writer.busy);
-        writer.renderAllowed = false;
+        compare(completions, 1);
+        wait(50);
+        compare(completions, 1);
         writer.destroy();
     }
 
     function test_upgradeRendersNewScreensWithoutAHabitEdit() {
         const writer = createWriter();
-        const oldSignature = SuspendDraw.computeSignature(HabitsModel.toSuspendHabits(writer.habits), writer.today).replace("ledger-v5", "ledger-v4");
+        const oldSignature = SuspendDraw.computeSignature(HabitsModel.toSuspendHabits(testCase.habits), testCase.today).replace("ledger-v5", "ledger-v4");
         writer.lastRenderedSignature = oldSignature;
-        writer.renderAllowed = true;
-        writer.renderAsync();
+        render(writer);
         tryCompare(writer, "phase", "saved", 10000);
         verify(writer.lastRenderedSignature !== oldSignature);
         writer.targets.slice(3).forEach(target => compare(new Uint8Array(Storage.readBinary(target.path))[0], 137));
-        writer.renderAllowed = false;
         writer.destroy();
     }
 
     function test_newScreenBackupFailurePreventsEveryImageWrite() {
         const writer = createWriter();
         writer.targets[3].backup = TestPaths.tmpPath("absent-directory/starting.png.bak");
-        writer.renderAllowed = true;
-        writer.renderAsync();
+        render(writer);
         tryCompare(writer, "phase", "backup-failed");
         writer.targets.forEach(target => compare(Storage.readFile(target.path), `original-${target.state}`));
-        writer.renderAllowed = false;
         writer.destroy();
     }
 
-    function test_cancelDuringBackupPreventsWrites() {
+    function test_backupAfterRestoreAllowsAnotherCompleteJob() {
         const writer = createWriter();
-        seed(writer.targets);
-        writer.lastRenderedSignature = "";
-        writer.renderAllowed = true;
-        writer.renderAsync();
-        writer.renderAllowed = false;
-        tryVerify(() => !writer.busy);
-        wait(50);
-        writer.targets.forEach(target => compare(Storage.readFile(target.path), `original-${target.state}`));
-        compare(writer.lastRenderedSignature, "");
+        render(writer);
+        tryCompare(writer, "phase", "saved", 10000);
+        let restored = null;
+        writer.restore(ok => restored = ok);
+        tryVerify(() => restored === true);
+        let blocked = null;
+        render(writer, ok => blocked = ok);
+        compare(blocked, false);
+        let backedUp = null;
+        writer.backup(ok => backedUp = ok);
+        tryVerify(() => backedUp === true);
+        render(writer);
+        tryCompare(writer, "phase", "saved", 10000);
         writer.destroy();
     }
 
@@ -284,16 +245,14 @@ TestCase {
         writer.lastRenderedSignature = "";
         const correctPath = writer.targets[1].path;
         writer.targets[1].path = TestPaths.tmpPath("absent-directory/poweroff.png");
-        writer.renderAllowed = true;
-        writer.renderAsync();
+        render(writer);
         tryCompare(writer, "phase", "save-failed");
         compare(writer.lastRenderedSignature, "");
         compare(writer.failedPath, writer.targets[1].path);
         writer.targets[1].path = correctPath;
-        writer.renderAsync();
+        render(writer);
         tryCompare(writer, "phase", "saved");
         verify(writer.lastRenderedSignature.length > 0);
-        writer.renderAllowed = false;
         writer.destroy();
     }
 
@@ -303,17 +262,15 @@ TestCase {
         writer.lastRenderedSignature = "";
         const correctPath = writer.signaturePath;
         writer.signaturePath = TestPaths.tmpPath("absent-directory/signature.json");
-        writer.renderAllowed = true;
-        writer.renderAsync();
+        render(writer);
         tryCompare(writer, "phase", "save-failed");
         compare(writer.busy, false);
         compare(writer.lastRenderedSignature, "");
         compare(writer.failedPath, writer.signaturePath);
         writer.signaturePath = correctPath;
-        writer.renderAsync();
+        render(writer);
         tryCompare(writer, "phase", "saved");
         verify(writer.lastRenderedSignature.length > 0);
-        writer.renderAllowed = false;
         writer.destroy();
     }
 
@@ -331,8 +288,7 @@ TestCase {
         tryVerify(() => result === false);
         compare(writer.phase, "restore-failed");
         verify(writer.restorationPending);
-        writer.renderAllowed = true;
-        writer.renderAsync();
+        render(writer);
         compare(writer.phase, "restore-failed");
         compare(Storage.readFile(writer.targets[0].path), "original-sleep");
         writer.targets[1].path = correctPath;
@@ -340,7 +296,6 @@ TestCase {
         writer.restore(ok => result = ok);
         tryVerify(() => result === true);
         writer.targets.forEach(target => compare(Storage.readFile(target.path), `original-${target.state}`));
-        writer.renderAllowed = false;
         writer.destroy();
     }
 }

@@ -35,7 +35,7 @@ Rectangle {
         const renderInProgress = suspendCanvas.busy || suspendCanvas.phase === "saving" || suspendCanvas.phase === "pending";
 
         if (syncInProgress || renderInProgress) {
-            Qt.callLater(() => root._waitForPendingOperations());
+            quitWaitTimer.restart();
             return;
         }
 
@@ -67,7 +67,7 @@ Rectangle {
         settingsStore.flushPendingSave();
         syncStore.flushPendingSave();
         if (landscape.canRenderSuspend)
-            suspendCanvas.renderSync();
+            suspendCanvas.renderAsync();
     }
 
     // Sync once both the habits and the sync sidecar have loaded — never before, or a first sync
@@ -141,8 +141,11 @@ Rectangle {
         active: !root.screenshotMode && landscape.currentView === "settings"
     }
 
-    App.SuspendCanvas {
+    Timer { id: quitWaitTimer; interval: 100; onTriggered: root._waitForPendingOperations() }
+    App.ImageBackend { id: imageBackend; enabled: !root.screenshotMode }
+    App.PowerImageController {
         id: suspendCanvas
+        backend: imageBackend
         habits: habitsStore.habits
         today: root.today
         renderAllowed: landscape.canRenderSuspend && landscape.gridReady && !landscape.editing
@@ -384,6 +387,7 @@ Rectangle {
             visible: landscape.currentView === "developer"
             source: "testing/DeveloperTools.qml"
             onLoaded: {
+                item.backend = imageBackend;
                 item.habits = Qt.binding(() => habitsStore.habits);
                 item.canRender = Qt.binding(() => !root.screenshotMode && landscape.isCurrentMonth && habitsStore.isLoaded && !habitsStore.hasUnreadableData);
                 item.dataDirectory = Qt.binding(() => root.dataDir);

@@ -5,7 +5,7 @@
 
 A small habit tracker for the **reMarkable 1** e-ink tablet. The reMarkable has no app ecosystem and no official way to run third-party software, but a community modding stack ([XOVI](https://github.com/asivery/xovi) + [rm-appload](https://github.com/asivery/rm-appload)) lets you load custom QML scenes inside the stock UI process. This is one such scene — a calendar grid of habits × days of the month (with arrows to step back and forth through months), persisted to disk, with a twist: it can overwrite the tablet's **power-state images** (sleeping, powered off, and battery empty) with today's grid, so the habits are the first thing you see when you wake the device. That overwrite is opt-in — you turn it on in **Settings**.
 
-No account UI on the tablet itself, no telemetry. It runs fully standalone and offline by default — just a QML scene drawn by the same Qt process that already runs the device's UI. Optionally, point it at a self-hosted server (Settings → **Sync server**) to sync your habits across devices; leave it blank and nothing ever leaves the tablet. If that server requires an account, the tablet shows a QR code and a short manual code for approval from your phone (Settings → **Connect**) — it never has a login form of its own.
+No account UI on the tablet itself, no telemetry. It runs fully standalone and offline by default — a QML scene drawn by the device's UI process, with power-image jobs handled by a separate background helper. Optionally, point it at a self-hosted server (Settings → **Sync server**) to sync your habits across devices; leave it blank and nothing ever leaves the tablet. If that server requires an account, the tablet shows a QR code and a short manual code for approval from your phone (Settings → **Connect**) — it never has a login form of its own.
 
 ## What it looks like
 
@@ -43,7 +43,7 @@ You need a **reMarkable 1** (this targets Qt 5.15 specifically — it doesn't ru
 Then build and deploy this app:
 
 ```sh
-make build      # produces build/resources.rcc + staged icon/manifest
+make build      # produces resources.rcc, icon/manifest, and backend/entry in build/
 make deploy     # scps build/* to /home/root/xovi/exthome/appload/habit-tracker/
 ```
 
@@ -171,9 +171,9 @@ After installing, check startup and restart on the tablet, including any firmwar
 
 The images are prepared while the app is running; battery depletion does not need to launch the renderer. All outputs are dated snapshots and stay unchanged while the tablet is off. Device firmware activation and e-ink appearance still need checking on the tablet after deployment.
 
-**Cheap re-renders.** Saving a 1404×1872 PNG for every trivial edit is wasteful, so renders are _debounced_ (a 3-second timer restarts after saved changes) and _deduplicated_ via a content signature persisted alongside the PNG — after a successful batch in the current session, unchanged snapshots are skipped. The first batch on each launch refreshes all selected images, replacing images left by test builds or OS updates. A small status line on the grid ("Saving power-state images in 3s" → "Power-state images saved", and the backup/restore phases) makes the pipeline visible. Normal saves yield to the UI between PNGs; backup/restore reads are asynchronous and byte verification yields between small chunks. Each PNG save and early-boot render can still cause a pause. An active image batch finishes its captured snapshot, then schedules another render if habits changed during the save. Quit waits for the latest image batch and backup operations. An unexpected unload cannot finish asynchronous BMP verification; use Quit to wait for the complete batch. When idle, PNG-only installations retain the synchronous unload save after backups are prepared. Use Quit to finish an active batch before closing. The content signature includes the layout version and is committed only when every selected save succeeds, so a partial failure is retried.
+**Cheap re-renders.** Saving a 1404×1872 PNG for every trivial edit is wasteful, so renders are _debounced_ (a 3-second timer restarts after saved changes) and _deduplicated_ via a content signature persisted alongside the PNG — after a successful batch in the current session, unchanged snapshots are skipped. The first batch on each launch refreshes all selected images, replacing images left by test builds or OS updates. A small status line on the grid ("Saving power-state images in 3s" → "Power-state images saved", and the backup/restore phases) makes the pipeline visible. Rendering, PNG/BMP encoding, backup, verification, and restore run in a separate offscreen process, keeping that work off xochitl's UI thread. The UI sends a captured snapshot and receives progress; edits made during a batch coalesce into a later render. Quit waits for pending jobs. An accepted job finishes if the frontend unloads, then the helper exits; a forced unload can still discard a newer snapshot that has not been submitted. A helper timeout reports failure without falling back to UI-thread rendering. If completion is unknown, reopen the app before retrying. The content signature includes the layout version and is committed only when every selected save succeeds, so a partial failure is retried.
 
-**Pure QML + plain JS.** State lives in JSON-backed QML stores sharing a `JsonStore.qml` base for the load/debounced-save plumbing. `HabitsStore.qml` is a facade that splits persistence across two files — a `roster.json` (identity + config, plus tombstones for deleted habits) and a per-month file holding that month's entries as flat `(habitId, date)` rows — so a single toggle rewrites only the current month, not all history, and corruption is isolated to one month. The rows match the backend's shape exactly while the month partitioning keeps launch and per-tap cost bounded to one month, which matters on a 1 GHz device. Components forward signals upward; only the store mutates state. Updates are immutable (array spread, `Object.assign`) — the V4 engine handles re-bindings from there. Optional sync is a separate `SyncStore.qml` (the network engine + a `sync.json` sidecar) over a pure-JS `Sync.js` translation layer, sending `Authorization: Bearer <token>` once paired; the merge itself runs server-side, so the client just sends its state and accepts the authoritative result. Tablet pairing is `PairingStore.qml` (ephemeral — nothing it holds persists) over a pure-JS `Pairing.js` translation layer. Both stores share `ServerUrl.js`'s scheme-defaulting/endpoint-joining and `HttpError.js`, which displays the backend's `ProblemDetails.title` for server rejections; the stores only supply messages for device-side network and response failures.
+**QML + plain JS, with a native image helper.** State lives in JSON-backed QML stores sharing a `JsonStore.qml` base for the load/debounced-save plumbing. `HabitsStore.qml` is a facade that splits persistence across two files — a `roster.json` (identity + config, plus tombstones for deleted habits) and a per-month file holding that month's entries as flat `(habitId, date)` rows — so a single toggle rewrites only the current month, not all history, and corruption is isolated to one month. The rows match the backend's shape exactly while the month partitioning keeps launch and per-tap cost bounded to one month, which matters on a 1 GHz device. Components forward signals upward; only the store mutates state. Updates are immutable (array spread, `Object.assign`) — the V4 engine handles re-bindings from there. Optional sync is a separate `SyncStore.qml` (the network engine + a `sync.json` sidecar) over a pure-JS `Sync.js` translation layer, sending `Authorization: Bearer <token>` once paired; the merge itself runs server-side, so the client just sends its state and accepts the authoritative result. Tablet pairing is `PairingStore.qml` (ephemeral — nothing it holds persists) over a pure-JS `Pairing.js` translation layer. Both stores share `ServerUrl.js`'s scheme-defaulting/endpoint-joining and `HttpError.js`, which displays the backend's `ProblemDetails.title` for server rejections; the stores only supply messages for device-side network and response failures.
 
 **Platform constraints shape the code.**
 
@@ -250,8 +250,7 @@ settings before opening it. The page shows the test data, preview, and backup pa
 [Developer-options preview](../../docs/assets/screenshots/remarkable-developer-options.png).
 
 The developer UI and controller live under `src/testing/`, behind `DeveloperTools.qml`.
-The PNG and boot BMP renderers are shared components used by both builds. The app passes only the habit model, render eligibility, and data directory;
-the module handles its actions internally. Stable bundles omit every `src/testing/` resource.
+The PNG and boot BMP renderers are shared components used by both builds. The developer page submits snapshots through the same image helper as automatic rendering; previews, one-shot writes, and restores run outside the UI process. Stable bundles omit every `src/testing/` resource.
 The ordinary suspend renderer exposes reusable one-shot and batch preview operations. The developer
 controller permits explicit device writes only to the supported screen paths; ordinary test storage
 and preview rendering still refuse writes outside the test app directory.
@@ -260,7 +259,7 @@ Render actions require readable, loaded data for the current month. Private habi
 Failures are displayed on the developer page; a failed render or backup never proceeds to a device
 write. Device-write failures name the affected path; originals remain available for restoration.
 Close the stable app during screen testing, since it can otherwise replace the shared device images
-with its own grid. The test app never changes the stable app's backup or signature.
+with its own grid. A shared process lock prevents overlapping image jobs across both builds. The test app never changes the stable app's backup or signature.
 
 **Sync requires separate test data on both clients.** For pairing tests, use a separate backend
 account (or a separate backend), and a phone installation with separate local storage. A real
@@ -285,16 +284,22 @@ place: incompatible or corrupt habit files block saves and sync.
 
 ### Build tools
 
-You need Node.js to stage the build profile and Qt 5's `rcc` to match the app's Qt 5.15 runtime:
+You need Node.js to stage the build profile, the installed reMarkable ARM SDK for the image helper, and Qt 5's `rcc` for the frontend resources:
 
 - Arch/Manjaro: `pacman -S qt5-base` (binary is `rcc-qt5`)
 - Debian/Ubuntu: `apt install qtbase5-dev-tools`
 - macOS: `brew install qt@5`
 
 Override the binary with `make RCC=<path>` if it isn't on `$PATH` as `rcc-qt5`.
+The SDK defaults to `tools/suspend-writer/sdk/`; for an SDK installed elsewhere,
+export `REMARKABLE_SDK=/absolute/path/to/sdk`. The helper links the SDK's Qt 6
+libraries and needs matching Qt Quick/QML libraries and the offscreen platform plugin on
+the tablet. See [image-worker build and runtime details](tools/image-worker/README.md).
+Close both app variants and let any image job finish before deploying; deploy installs the
+helper together with its matching resources and manifest.
 
 ```sh
-make build      # produces build/resources.rcc + staged icon/manifest
+make build      # produces resources.rcc, icon/manifest, and backend/entry in build/
 make test       # runs the test suite (see below)
 make deploy     # scps build/* to the device
 make remove     # uninstalls from the device
@@ -307,6 +312,7 @@ make clean      # nukes local build/
 
 ```sh
 make test                  # Qt Quick Test over tests/tst_*.qml
+make image-worker-test     # host IPC, image writes, restore, locking, and detach tests
 make suspend-writer-test   # smoke-tests the off-device renderer against tests/fixtures/
 ```
 
@@ -316,6 +322,8 @@ step first. It covers the plain-JS modules (the sync and pairing wire formats, t
 the date and scroll helpers, the suspend-image signature) and the QML stores (debounced saving, the
 refusal of unreadable files, month navigation, the sync engine's terminal paths including a 401, and
 the pairing flow's poll-status handling). Override the runner with `make QMLTESTRUNNER=<path>`.
+
+`make image-worker-test` needs Python 3, a host C++ compiler, Qt 5 Quick development headers, moc, and rcc. It runs the real helper against disposable host files through a host-only bootstrap configuration, using the normal staged resources. The device binary uses fixed profile paths. The [worker runtime check](tools/image-worker/README.md#build-and-test-locally) lets you verify the deployed Qt runtime without writing images.
 
 `make suspend-writer-test` additionally needs a host C++ toolchain and Qt 5 dev headers, since it
 builds `tools/suspend-writer` first.

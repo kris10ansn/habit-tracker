@@ -8,6 +8,8 @@ import "../js/BootSplash.js" as BootSplash
 QtObject {
     id: controller
 
+    signal completed(bool ok, string message)
+
     property bool enabled: BuildProfile.isTest
     property bool canRender: false
     property bool busy: false
@@ -16,24 +18,25 @@ QtObject {
     property string backupPath: BuildProfile.appDirectory + "/device-suspend-original.png"
     property string deviceImagePath: "/usr/share/remarkable/suspended.png"
     property string deviceImageDirectory: "/usr/share/remarkable"
+    property string bootImageDirectory: "/var/lib/uboot"
     property string backupDirectory: BuildProfile.appDirectory
     property string deviceModel: Storage.readFile("/sys/devices/soc0/machine").trim()
     property var screenTargets: SuspendRender.imageTargets(controller.deviceImageDirectory).map(target => Object.assign({}, target, {
         backup: target.state === "sleep" ? controller.backupPath : controller.backupDirectory + "/device-" + target.filename.replace(".png", "") + "-original.png",
         preview: target.state === "sleep" ? controller.previewPath : controller.backupDirectory + "/developer-" + target.filename
-    })).concat(BootSplash.imageTargets(controller.backupDirectory))
+    })).concat(BootSplash.imageTargets(controller.backupDirectory, controller.deviceImageDirectory, controller.bootImageDirectory))
     property var renderPreview: null
     property var renderPreviews: null
     property var writeDeviceImage: function (buffer, onDone) {
-        BinaryFiles.write("/usr/share/remarkable/suspended.png", buffer, onDone);
+        controller.writeDeviceTarget(controller.deviceImagePath, buffer, onDone);
     }
     property var writeDeviceTarget: function (path, buffer, onDone) {
-        const boot = BootSplash.imageTargets(controller.backupDirectory).some(target => target.path === path);
+        const boot = BootSplash.imageTargets(controller.backupDirectory, controller.deviceImageDirectory, controller.bootImageDirectory).some(target => target.path === path);
         if (boot && (controller.deviceModel !== "reMarkable 1.0" || BootSplash.validationError(buffer))) {
             onDone("Refusing unsupported boot splash: " + path);
             return;
         }
-        if (!boot && !SuspendRender.imageTargets("/usr/share/remarkable").some(target => target.path === path)) {
+        if (!boot && !SuspendRender.imageTargets(controller.deviceImageDirectory).some(target => target.path === path)) {
             onDone("Refusing unsupported screen: " + path);
             return;
         }
@@ -62,7 +65,7 @@ QtObject {
             if (publish)
                 controller._backupAndPublish();
             else
-                controller._finish("Preview saved. Device image unchanged.");
+                controller._finish("Preview saved. Device image unchanged.", true);
         });
     }
 
@@ -172,7 +175,7 @@ QtObject {
 
     function _writeScreens(targets, index, restoring) {
         if (index === targets.length) {
-            controller._finish(restoring ? "Original screen images restored." : "All available screens written once. Automatic device writes remain off.");
+            controller._finish(restoring ? "Original screen images restored." : "All available screens written once. Automatic device writes remain off.", true);
             return;
         }
         const target = targets[index];
@@ -214,11 +217,12 @@ QtObject {
         }
 
         controller.statusText = "Writing suspend image…";
-        controller.writeDeviceImage(image, error => controller._finish(error || successMessage));
+        controller.writeDeviceImage(image, error => controller._finish(error || successMessage, !error));
     }
 
-    function _finish(message) {
+    function _finish(message, ok = false) {
         controller.statusText = message;
         controller.busy = false;
+        controller.completed(ok, message);
     }
 }

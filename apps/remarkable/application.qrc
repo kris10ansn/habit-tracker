@@ -54,5 +54,14 @@
         <file>src/js/Scroll.js</file>
         <file>src/js/HabitLayout.js</file>
         <file>src/js/HabitEdits.js</file>
+        <file>src/components/AppLoadTransport.qml</file>
+        <file>src/components/ImageBackend.qml</file>
+        <file>src/components/PowerImageController.qml</file>
+        <file>src/js/ImageProtocol.js</file>
+        <file>src/testing/DeveloperImageJobs.qml</file>
+        <file>src/worker/PowerImageWorker.qml</file>
+        <file>src/worker/qmldir</file>
+        <file>src/components/PowerImageJobs.qml</file>
+        <file>src/worker/ImageEnvironment.qml</file>
     </qresource>
 </RCC>
