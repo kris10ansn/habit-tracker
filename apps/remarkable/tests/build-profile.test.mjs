@@ -184,30 +184,44 @@ test("staged Qt renderers keep test previews local and stable power-state target
 test("binary writes reject an unchanged same-size file and verify the actual bytes", () => {
     withProfile("test", (profile) => {
         const destination = "/usr/share/remarkable/suspended.png";
-        const requested = new Uint8Array([1, 2, 3]).buffer;
-        let stored = new Uint8Array([3, 2, 1]).buffer;
+        const bytes = new Uint8Array(65537).fill(193);
+        const requested = bytes.buffer;
+        let stored = requested.slice(0);
+        new Uint8Array(stored)[bytes.length - 1] = 77;
+        const scheduled = [];
+        const drain = () => {
+            let turns = 0;
+            while (scheduled.length) {
+                scheduled.shift()();
+                turns++;
+            }
+            return turns;
+        };
         let acceptWrite = false;
         const writes = [];
         const context = vm.createContext({
             BuildProfile: profile,
+            Qt: { callLater: (callback) => scheduled.push(callback) },
             console: { warn() {} },
             XMLHttpRequest: class {
                 DONE = 4;
                 status = 0;
-                open(method, url) {
+                open(method, url, asynchronous = true) {
+                    assert.equal(asynchronous, true);
                     this.method = method;
                     this.url = url;
                 }
                 send(buffer) {
                     assert.equal(this.url, `file://${destination}`);
-                    if (this.method === "GET") {
-                        this.response = stored;
-                        return;
-                    }
-                    writes.push(this.url);
-                    if (acceptWrite) stored = buffer;
-                    this.readyState = this.DONE;
-                    this.onreadystatechange();
+                    scheduled.push(() => {
+                        if (this.method === "GET") this.response = stored;
+                        else {
+                            writes.push(this.url);
+                            if (acceptWrite) stored = buffer;
+                        }
+                        this.readyState = this.DONE;
+                        this.onreadystatechange();
+                    });
                 }
             },
         });
@@ -218,9 +232,18 @@ test("binary writes reject an unchanged same-size file and verify the actual byt
         vm.runInContext(storage, context);
         const errors = [];
         context.write(destination, requested, (error) => errors.push(error));
+        assert.equal(errors.length, 0);
+        assert.ok(
+            drain() > 3,
+            "verification must yield beyond the PUT and GET callbacks",
+        );
+        assert.equal(errors.length, 1);
         assert.match(errors[0], /binary write failed/);
         acceptWrite = true;
         context.write(destination, requested, (error) => errors.push(error));
+        assert.equal(errors.length, 1);
+        assert.ok(drain() > 3);
+        assert.equal(errors.length, 2);
         assert.equal(errors[1], null);
         assert.equal(writes.length, 2);
         assert.equal(profile.canWrite(destination), false);

@@ -7,7 +7,14 @@ import "TestPaths.js" as TestPaths
 // CORRUPT apart is what lets HabitsStore seed defaults on a first run but refuse a damaged file
 // (ADR 0006) — collapsing them would overwrite real data.
 TestCase {
+    id: testCase
     name: "Storage"
+    property int uiTicks: 0
+    Timer { id: heartbeat; interval: 1; repeat: true; onTriggered: testCase.uiTicks++ }
+
+    function cleanup() {
+        heartbeat.stop();
+    }
 
     function path(name) {
         return TestPaths.tmpPath(`storage-${name}`);
@@ -109,6 +116,54 @@ TestCase {
         tryVerify(() => errors.length === 1, 2000);
         compare(errors[0], null);
         compare(Storage.readBinary(target).byteLength, 10);
+    }
+
+    function test_largeBinaryWriteAllowsUiEventsBeforeVerifiedSuccess() {
+        const bytes = new Uint8Array(4 * 1024 * 1024);
+        bytes.fill(193);
+        bytes[bytes.length - 1] = 77;
+        const target = path("large-binary.bin");
+        let result = undefined;
+        let ticksDuringWrite = 0;
+        testCase.uiTicks = 0;
+        heartbeat.start();
+        Storage.writeBinary(target, bytes.buffer, error => {
+            ticksDuringWrite = testCase.uiTicks;
+            result = error;
+        });
+        tryVerify(() => result !== undefined);
+        compare(result, null);
+        verify(ticksDuringWrite > 1, "Large binary writes must allow UI events before verification completes");
+        const written = new Uint8Array(Storage.readBinary(target));
+        compare(written.length, bytes.length);
+        compare(written[0], 193);
+        compare(written[written.length - 1], 77);
+    }
+
+    function test_binaryReadIsAsynchronousAndReturnsExactBytes() {
+        const target = path("async-read.bin");
+        const bytes = new Uint8Array([0, 127, 128, 255]);
+        let saved = false;
+        Storage.writeBinary(target, bytes.buffer, error => { compare(error, null); saved = true; });
+        tryVerify(() => saved);
+        let result = undefined;
+        Storage.readBinaryAsync(target, buffer => result = buffer);
+        compare(result, undefined);
+        tryVerify(() => result !== undefined);
+        compare(Array.from(new Uint8Array(result)), [0, 127, 128, 255]);
+    }
+
+    function test_asyncBinaryReadTreatsMissingAndEmptyFilesAsNothing() {
+        const target = path("empty-binary.bin");
+        let saved = false;
+        Storage.writeFile(target, "", error => { compare(error, null); saved = true; });
+        tryVerify(() => saved);
+        [target, path("absent-async-binary.bin")].forEach(target => {
+            let result = undefined;
+            Storage.readBinaryAsync(target, buffer => result = buffer);
+            tryVerify(() => result !== undefined);
+            compare(result, null);
+        });
     }
 
     // An unreadable file answers with a zero-length buffer rather than nothing, so length is the

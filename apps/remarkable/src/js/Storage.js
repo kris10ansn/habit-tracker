@@ -41,7 +41,10 @@ const rawText = (path) => {
 
 function writeFile(path, body, onDone) {
     if (!BuildProfile.canWrite(path)) {
-        reportWrite(onDone, `Test build: refusing write outside its app directory: ${path}`);
+        reportWrite(
+            onDone,
+            `Test build: refusing write outside its app directory: ${path}`,
+        );
         return;
     }
 
@@ -106,11 +109,18 @@ function readBinary(path) {
     return BinaryFiles.read(path);
 }
 
+function readBinaryAsync(path, onDone) {
+    BinaryFiles.readAsync(path, onDone);
+}
+
 function writeBinary(path, buffer, onDone) {
     if (!BuildProfile.canWrite(path)) {
-        reportWrite(onDone, `Test build: refusing write outside its app directory: ${path}`);
+        reportWrite(
+            onDone,
+            `Test build: refusing write outside its app directory: ${path}`,
+        );
         return;
     }
 
-    BinaryFiles.write(path, buffer, error => reportWrite(onDone, error));
+    BinaryFiles.write(path, buffer, (error) => reportWrite(onDone, error));
 }
