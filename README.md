@@ -192,7 +192,7 @@ on the tablet, then build and deploy the client from your computer:
 ```sh
 cd apps/remarkable
 make build
-make deploy CONFIRM_STABLE=1
+make deploy
 ```
 
 Open the tracker from the tablet's app launcher. It stores habits locally; Settings contains the

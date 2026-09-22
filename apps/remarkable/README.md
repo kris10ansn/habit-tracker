@@ -44,10 +44,10 @@ Then build and deploy this app:
 
 ```sh
 make build      # produces build/resources.rcc + staged icon/manifest
-make deploy CONFIRM_STABLE=1  # scps build/* to /home/root/xovi/exthome/appload/habit-tracker/
+make deploy     # scps build/* to /home/root/xovi/exthome/appload/habit-tracker/
 ```
 
-(`make deploy` needs `ssh remarkable` to resolve to the tablet — set it up in `~/.ssh/config`, or use `make REMARKABLE_HOST=<host> deploy CONFIRM_STABLE=1`. If the tablet's address moves — a phone hotspot re-leases every session — `make find-hotspot-ip` locates it and updates the config; see [below](#finding-the-tablet-after-its-address-changes).)
+(`make deploy` needs `ssh remarkable` to resolve to the tablet — set it up in `~/.ssh/config`, or use `make REMARKABLE_HOST=<host> deploy`. If the tablet's address moves — a phone hotspot re-leases every session — `make find-hotspot-ip` locates it and updates the config; see [below](#finding-the-tablet-after-its-address-changes).)
 
 On the tablet, hold the middle button for ~3 seconds to open apploader, then tap the **reMarkable habit tracker** tile.
 
@@ -92,7 +92,7 @@ This includes the roster, month files, and sync bookkeeping. It does **not** inc
 `settings.json` (preferences and pairing token) or the system power-state image backups. Keep
 the backup directory somewhere safe. Sync propagates deletions and is not a substitute for a backup.
 
-For a normal stable update, close the app and run `make deploy CONFIRM_STABLE=1`; it replaces
+For a normal stable update, close the app and run `make deploy`; it replaces
 application assets while preserving data and settings. If the storage format changed, follow the
 [migration procedure](#upgrading-across-a-storage-format-change) first.
 
@@ -224,14 +224,13 @@ then choose **Connect** in the tablet's test Settings. Enter its code and approv
 **Linked devices → Link a device** screen. Features added on other branches, such as QR scanning,
 can use the same test-install workflow once those changes are present in the worktree.
 
-Replacing the stable app requires an explicit choice:
+To update the stable app, close it and run:
 
 ```sh
-make deploy CONFIRM_STABLE=1
+make deploy
 ```
 
-Plain `make deploy` refuses before contacting the device. The confirmation also works from the
-monorepo root as `pnpm remarkable:deploy CONFIRM_STABLE=1`. Back up stable habits with
+From the monorepo root, use `pnpm remarkable:deploy`. Back up stable habits with
 `pnpm remarkable:backup` before a stable upgrade. Existing unreadable-file protection remains in
 place: incompatible or corrupt habit files block saves and sync.
 
@@ -248,7 +247,7 @@ Override the binary with `make RCC=<path>` if it isn't on `$PATH` as `rcc-qt5`.
 ```sh
 make build      # produces build/resources.rcc + staged icon/manifest
 make test       # runs the test suite (see below)
-make deploy CONFIRM_STABLE=1  # scps build/* to the device
+make deploy     # scps build/* to the device
 make remove     # uninstalls from the device
 make backup     # pulls the device's data/ into a timestamped .backup/ dir
 make find-hotspot-ip  # relocates the tablet on the current network (see below)
@@ -318,7 +317,7 @@ back and deploy:
 
 ```sh
 rsync -avz /tmp/migrated/ remarkable:/home/root/xovi/exthome/appload/habit-tracker/data/
-make deploy CONFIRM_STABLE=1
+make deploy
 ```
 
 Then reopen the app. If you get the order wrong, nothing is lost: the new build refuses files it

@@ -85,7 +85,6 @@ test:
 # The data/ subdir must exist before first launch: QML/XHR cannot create it, so
 # a missing dir turns every save into a visible failure (see ADR 0002).
 deploy: build
-	@test "$(PROFILE)" = test || test "$(CONFIRM_STABLE)" = 1 || { echo "Stable install protected. Use make deploy-test, or make deploy CONFIRM_STABLE=1 to replace the stable app."; exit 1; }
 	ssh $(REMARKABLE_HOST) "mkdir -p $(REMOTE_DIR)/data"
 	scp $(BUILD_DIR)/resources.rcc $(BUILD_DIR)/manifest.json $(BUILD_DIR)/icon.png $(REMARKABLE_HOST):$(REMOTE_DIR)/
 
