@@ -4,7 +4,7 @@ import { Toaster } from "sonner-native";
 
 import { AppProviders } from "@/components/AppProviders";
 import { Icon } from "@/components/ui/Icon";
-import { TabBarBackground } from "@/components/ui/TabBarBackground";
+import { ScrubbableTabBar } from "@/components/ui/ScrubbableTabBar";
 import { colors } from "@/theme/colors";
 
 import { PlatformPressable } from "expo-router/build/react-navigation";
@@ -31,6 +31,9 @@ export default function RootLayout() {
             <View className="flex-1 bg-surface-2">
                 <Tabs
                     backBehavior="history"
+                    tabBar={(props) => (
+                        <ScrubbableTabBar {...props} routeNames={TAB_ROUTES} />
+                    )}
                     // Safe-area clearance belongs outside the capsule; the surrounding
                     // area stays transparent so screen content can scroll behind it.
                     safeAreaInsets={{ bottom: 0, left: 0, right: 0 }}
@@ -48,12 +51,6 @@ export default function RootLayout() {
                         tabBarButtonTestID: `tab-${route.name}`,
                         tabBarActiveTintColor: colors.accent,
                         tabBarInactiveTintColor: colors.ink2,
-                        tabBarBackground: () => (
-                            <TabBarBackground
-                                activeIndex={TAB_ROUTES.indexOf(route.name)}
-                                tabCount={TAB_ROUTES.length}
-                            />
-                        ),
                         tabBarLabelPosition: "below-icon",
                         tabBarHideOnKeyboard: true,
                         tabBarStyle: {

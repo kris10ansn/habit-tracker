@@ -1,0 +1,42 @@
+appId: host.exp.exponent
+name: Spring tab scrubbing
+---
+- openLink: exp://10.0.2.2:8082
+- extendedWaitUntil:
+      visible:
+          id: tab-index
+      timeout: 60000
+- tapOn:
+      id: tab-index
+- assertVisible: Read 20 min
+- startRecording: tab-scrub
+# Pixel 9a portrait: y=91% is the center of the floating tab bar.
+# Slow swipes make the preview visible while the original page stays in place.
+- swipe:
+      start: 17%, 91%
+      end: 83%, 91%
+      duration: 2400
+- assertVisible: Keep every device in step
+- swipe:
+      start: 83%, 91%
+      end: 39%, 91%
+      duration: 1800
+- assertVisible: Your habits across the month
+- swipe:
+      start: 39%, 91%
+      end: 61%, 91%
+      duration: 1200
+- assertVisible: Rename, reorder, set polarity, or add
+- swipe:
+      start: 61%, 91%
+      end: 17%, 91%
+      duration: 1800
+- assertVisible: Read 20 min
+# Stationary taps must still navigate without requiring a MOVE event.
+- tapOn:
+      id: tab-month
+- assertVisible: Your habits across the month
+- tapOn:
+      id: tab-index
+- assertVisible: Read 20 min
+- stopRecording

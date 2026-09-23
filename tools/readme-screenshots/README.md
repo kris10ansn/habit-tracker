@@ -187,6 +187,33 @@ and [short preview](../../docs/assets/demos/tab-pages.gif) for the slide-and-fad
 The preview removes idle waits, retaining the original transition speed. Still captures should wait
 for both the page transition and tab highlight to settle; settled screen layouts are unchanged.
 
+### Press-and-drag tab recording
+
+With the isolated Expo Go server running on port 8082, run:
+
+```sh
+maestro --device emulator-5554 test --test-output-dir .screenshots/tab-scrub tools/readme-screenshots/maestro/tab-scrub.yaml
+```
+
+This flow opens the test project, records slow drags across all four tabs in both directions,
+and asserts the destination after each release. It also checks ordinary stationary taps. The
+swipe coordinates target the floating tab bar on the Pixel 9a in portrait at default font size;
+adjust the vertical coordinate for other device layouts. The existing tab button IDs are unchanged.
+
+The [full emulator recording](../../docs/assets/demos/tab-scrub.mp4) is the unedited Maestro
+capture. The [GIF preview](../../docs/assets/demos/tab-scrub.gif) shows seconds 4–14 at their
+original speed: the highlight follows the finger while Sync stays visible, then releasing opens
+Month. The recording uses the isolated fixture and Expo Go on Android; iOS was not exercised.
+
+Additional ADB checks held a touch over Month, moved to Sync, reversed to Habits, and verified
+that Today remained selected until `UP` selected Habits. Injecting `CANCEL` instead restored the
+Today highlight without navigating. These checks use `adb shell input touchscreen motionevent`
+and UIAutomator's selected tab state, with screenshots to inspect the preview highlight.
+
+Settled Today, Month, Habits, and Sync layouts still match the existing README capture assumptions.
+Wait for release and for the spring/page transition to settle before capturing stills; the new
+interaction requires video evidence rather than refreshed static README images.
+
 ### Test isolation
 
 With `APP_TEST_MODE=1`, Metro replaces the root layout's `AppProviders` import and `expo-camera`
