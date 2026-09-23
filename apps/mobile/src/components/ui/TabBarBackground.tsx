@@ -1,36 +1,44 @@
-import { useEffect } from "react";
 import { I18nManager, View } from "react-native";
 import Animated, {
     ReduceMotion,
+    useAnimatedReaction,
     useAnimatedStyle,
     useSharedValue,
     withSpring,
+    type SharedValue,
 } from "react-native-reanimated";
 
 interface Props {
     activeIndex: number;
     tabCount: number;
+    previewIndex: SharedValue<number>;
+    width: SharedValue<number>;
 }
 
-export function TabBarBackground({ activeIndex, tabCount }: Props) {
-    const width = useSharedValue(0);
+export function TabBarBackground({
+    activeIndex,
+    tabCount,
+    previewIndex,
+    width,
+}: Props) {
     const position = useSharedValue(Math.max(activeIndex, 0));
     const isRTL = I18nManager.isRTL;
 
-    useEffect(() => {
-        // Hidden routes have no selected tab. Keep the last position for the return trip.
-        if (activeIndex < 0) return;
-
-        position.set(
-            withSpring(activeIndex, {
-                stiffness: 520,
-                damping: 38,
-                mass: 0.8,
-                overshootClamping: true,
-                reduceMotion: ReduceMotion.System,
-            }),
-        );
-    }, [activeIndex, position]);
+    useAnimatedReaction(
+        () => (previewIndex.get() >= 0 ? previewIndex.get() : activeIndex),
+        (target, previous) => {
+            // Hidden routes have no selected tab. Keep the last position for the return trip.
+            if (target < 0 || target === previous) return;
+            position.set(
+                withSpring(target, {
+                    stiffness: 520,
+                    damping: 27,
+                    mass: 0.8,
+                    reduceMotion: ReduceMotion.System,
+                }),
+            );
+        },
+    );
 
     const highlightStyle = useAnimatedStyle(() => {
         const tabWidth = width.get() / tabCount;
@@ -42,7 +50,10 @@ export function TabBarBackground({ activeIndex, tabCount }: Props) {
             // Match the navigator's 2px horizontal item margins. Normalized position
             // keeps the pill aligned when the bar resizes, including mid-animation.
             width: Math.max(0, tabWidth - 4),
-            opacity: activeIndex >= 0 && width.get() > 0 ? 1 : 0,
+            opacity:
+                (activeIndex >= 0 || previewIndex.get() >= 0) && width.get() > 0
+                    ? 1
+                    : 0,
             transform: [{ translateX: visualIndex * tabWidth + 2 }],
         };
     });
