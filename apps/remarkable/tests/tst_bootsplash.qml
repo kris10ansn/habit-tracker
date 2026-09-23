@@ -16,6 +16,8 @@ TestCase {
     function initTestCase() {
         const pixels = new Uint8Array(1872 * 1404 * 4);
         pixels.set([0, 0, 0, 255], 0);
+        pixels.set([0, 0, 0, 128], 4);
+        pixels.set([255, 0, 0, 0], 8);
         pixels.set([255, 0, 0, 255], (1872 - 1) * 4);
         pixels.set([0, 255, 0, 255], (1404 - 1) * 1872 * 4);
         pixels.set([0, 0, 255, 255], (1872 * 1404 - 1) * 4);
@@ -31,6 +33,8 @@ TestCase {
         compare(bytes[1078], 149);
         compare(bytes[1078 + 1871], 29);
         compare(bytes[1078 + 1403 * 1872], 0);
+        compare(bytes[1078 + 1403 * 1872 + 1], 127);
+        compare(bytes[1078 + 1403 * 1872 + 2], 255);
         compare(bytes[bytes.length - 1], 77);
         compare(bytes[1079], 255);
     }

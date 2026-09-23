@@ -25,6 +25,15 @@ stable/test path separation.
 image and its signature have been saved. `SuspendCanvas` only renders PNGs;
 developer actions use the same renderers through `SuspendController`.
 
+For each PNG batch, `SuspendDraw.drawBase` paints the common grid once and
+`drawState` replaces the label/badge band. A new batch always redraws its captured
+snapshot; there is no cross-job cache. Repeated states copy the first encoded PNG
+with readback verification. `draw` remains the complete-image interface used by
+the boot canvas and standalone suspend-writer. BMP conversion iterates rows
+directly and skips alpha blending for opaque pixels. Binary verification compares
+32-bit words and remaining bytes, retaining the existing yielding chunk size and
+full-content check.
+
 ## Build and test locally
 
 ```sh

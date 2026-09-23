@@ -73,6 +73,30 @@ TestCase {
         compare(results[0], false);
     }
 
+    function test_stateOverlaysAndDuplicateCopiesMatchStandaloneRenders() {
+        const canvas = createCanvas("overlay-preview.png");
+        const states = ["sleep", "off", "empty", "starting", "rebooting", "overheating", "rebooting"];
+        const snapshot = [{ name: "Visible", isPrivate: false, polarity: "Positive", entries: {} }];
+        const date = new Date(2026, 8, 22);
+        const targets = states.map((state, index) => ({ state: state, path: TestPaths.tmpPath("overlay-" + index + ".png") }));
+        let finished = false;
+        canvas.renderImagesOnce(targets, ok => finished = ok, snapshot, date);
+        tryVerify(() => finished, 10000);
+        targets.forEach(target => {
+            let saved = false;
+            canvas.renderImagesOnce([{ state: target.state, path: canvas.targetPath }], ok => saved = ok, snapshot, date);
+            tryVerify(() => saved, 10000);
+            compare(new Uint8Array(Storage.readBinary(target.path)), new Uint8Array(Storage.readBinary(canvas.targetPath)));
+        });
+        const previous = new Uint8Array(Storage.readBinary(targets[0].path));
+        snapshot[0].name = "Next snapshot";
+        finished = false;
+        canvas.renderImagesOnce([targets[0]], ok => finished = ok, snapshot, date);
+        tryVerify(() => finished);
+        const updated = new Uint8Array(Storage.readBinary(targets[0].path));
+        verify(previous.length !== updated.length || previous.some((value, index) => value !== updated[index]));
+    }
+
     function test_batchUsesOneSnapshotAndReportsFailedPath() {
         const canvas = createCanvas("batch-preview.png");
         const baseline = ["sleep", "off"].map(state => ({ state: state, path: TestPaths.tmpPath("baseline-" + state + ".png") }));

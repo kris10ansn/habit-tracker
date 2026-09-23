@@ -73,20 +73,22 @@ function encodeLandscape(pixels, width, height) {
         bytes[offset + 1] = shade;
         bytes[offset + 2] = shade;
     }
-    for (let index = 0; index < WIDTH * HEIGHT; index++) {
-        const x = index % WIDTH;
-        const y = HEIGHT - 1 - Math.floor(index / WIDTH);
-        const source = (y * WIDTH + x) * 4;
-        const gray =
-            (pixels[source] * 77 +
-                pixels[source + 1] * 150 +
-                pixels[source + 2] * 29 +
-                128) >>
-            8;
-        const alpha = pixels[source + 3];
-        bytes[PIXEL_OFFSET + index] = Math.round(
-            (gray * alpha) / 255 + 255 - alpha,
-        );
+    let destination = PIXEL_OFFSET;
+    for (let row = HEIGHT - 1; row >= 0; row--) {
+        const end = (row + 1) * WIDTH * 4;
+        for (let source = row * WIDTH * 4; source < end; source += 4) {
+            const gray =
+                (pixels[source] * 77 +
+                    pixels[source + 1] * 150 +
+                    pixels[source + 2] * 29 +
+                    128) >>
+                8;
+            const alpha = pixels[source + 3];
+            bytes[destination++] =
+                alpha === 255
+                    ? gray
+                    : Math.round((gray * alpha) / 255 + 255 - alpha);
+        }
     }
     return buffer;
 }
