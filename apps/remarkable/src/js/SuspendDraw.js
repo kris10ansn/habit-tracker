@@ -32,6 +32,11 @@ function draw(
     cfg,
     state = "sleep",
 ) {
+    drawBase(ctx, canvasWidth, canvasHeight, habits, today, cfg);
+    drawState(ctx, canvasWidth, canvasHeight, cfg, state);
+}
+
+function drawState(ctx, canvasWidth, canvasHeight, cfg, state) {
     const states = {
         sleep: ["Sleeping", "Press power to wake"],
         off: ["Powered off", "Hold power to turn on"],
@@ -42,14 +47,27 @@ function draw(
     };
     if (!states[state]) throw new Error(`Unknown power state: ${state}`);
 
+    beginLandscape(ctx, canvasWidth, canvasHeight, cfg);
     ctx.fillStyle = cfg.bg;
-    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+    ctx.fillRect(0, 1100, 1872, 140);
+    drawStateBadge(ctx, state, states[state][0]);
+    drawText(ctx, states[state][1], 1776, 1168, 29, "sans-serif", "right");
+    ctx.restore();
+}
+
+const beginLandscape = (ctx, canvasWidth, canvasHeight, cfg) => {
     ctx.save();
     ctx.translate(canvasWidth, 0);
     ctx.rotate(Math.PI / 2);
     ctx.scale(canvasHeight / 1872, canvasWidth / 1404);
     ctx.fillStyle = cfg.fg;
     ctx.textBaseline = "middle";
+};
+
+function drawBase(ctx, canvasWidth, canvasHeight, habits, today, cfg) {
+    ctx.fillStyle = cfg.bg;
+    ctx.fillRect(0, 0, canvasWidth, canvasHeight);
+    beginLandscape(ctx, canvasWidth, canvasHeight, cfg);
 
     const monthTitle = DateUtils.monthName(today).replace(/\s+\d{4}$/, "");
     drawText(ctx, "HABIT TRACKER", 96, 100, 23);
@@ -72,8 +90,6 @@ function draw(
         today,
     );
     drawLine(ctx, 96, 1085, 1776, 1085, "#111111", 2);
-    drawStateBadge(ctx, state, states[state][0]);
-    drawText(ctx, states[state][1], 1776, 1168, 29, "sans-serif", "right");
     drawText(
         ctx,
         `Snapshot · ${today.getDate()} ${monthTitle} ${today.getFullYear()}`,

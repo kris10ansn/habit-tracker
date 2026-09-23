@@ -77,7 +77,7 @@ lint:
 # deploy create data/ — ADR 0002), so a HabitsStore test cannot make its own: habits/ is the
 # shared working dir, habits-seed/ is left empty for the first-run seeding test.
 test:
-	node --test tests/build-profile.test.mjs
+	node --test tests/build-profile.test.mjs tests/binary-files.test.mjs
 	@command -v $(QMLTESTRUNNER) >/dev/null 2>&1 || { echo "$(QMLTESTRUNNER) not found (install qt5-declarative)"; exit 1; }
 	rm -rf $(TEST_TMP)
 	mkdir -p $(TEST_TMP)/habits $(TEST_TMP)/habits-seed $(TEST_TMP)/power-images $(TEST_TMP)/power-images-linked

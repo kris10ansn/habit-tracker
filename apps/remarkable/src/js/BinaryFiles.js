@@ -35,8 +35,20 @@ function readAsync(path, onDone) {
     }
 }
 
-const equalChunk = (actual, expected, start, end) => {
-    for (let index = start; index < end; index++) {
+const equalChunk = (
+    actual,
+    expected,
+    actualWords,
+    expectedWords,
+    start,
+    end,
+) => {
+    const wordEnd = Math.floor(end / 4);
+    for (let word = start / 4; word < wordEnd; word++) {
+        if (actualWords[word] !== expectedWords[word]) return false;
+    }
+    // The final chunk can end between words; every trailing byte still matters.
+    for (let index = wordEnd * 4; index < end; index++) {
         if (actual[index] !== expected[index]) return false;
     }
     return true;
@@ -49,10 +61,23 @@ const verifyBytes = (written, expected, onDone) => {
     }
 
     const actual = new Uint8Array(written);
+    const wordCount = Math.floor(expected.length / 4);
+    const actualWords = new Uint32Array(written, 0, wordCount);
+    const expectedWords = new Uint32Array(expected.buffer, 0, wordCount);
     let offset = 0;
     const next = () => {
         const end = Math.min(offset + 16384, expected.length);
-        if (!equalChunk(actual, expected, offset, end)) return onDone(false);
+        if (
+            !equalChunk(
+                actual,
+                expected,
+                actualWords,
+                expectedWords,
+                offset,
+                end,
+            )
+        )
+            return onDone(false);
         offset = end;
         if (offset === expected.length) onDone(true);
         else Qt.callLater(next);

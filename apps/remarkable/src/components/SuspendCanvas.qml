@@ -2,6 +2,7 @@ import QtQuick 2.15
 import "../js/SuspendDraw.js" as SuspendDraw
 import "../js/HabitsModel.js" as HabitsModel
 import "../js/BuildProfile.js" as BuildProfile
+import "../js/SuspendRender.js" as SuspendRender
 
 Canvas {
     id: canvas
@@ -54,7 +55,7 @@ Canvas {
     function _renderImages(imageTargets, snapshot, date, onDone) {
         canvas._batch = {
             targets: imageTargets.map(target => Object.assign({}, target)),
-            snapshot: snapshot, date: date, onDone: onDone, index: 0
+            snapshot: snapshot, date: date, onDone: onDone, index: 0, baseDrawn: false, savedStates: ({})
         };
         imageTimer.start();
     }
@@ -67,11 +68,21 @@ Canvas {
             return;
         }
         const target = batch.targets[batch.index++];
-        if (!canvas._renderTarget(target, batch.snapshot, batch.date)) {
+        const savedPath = batch.savedStates[target.state];
+        if (savedPath) {
+            SuspendRender.copyFile(savedPath, target.path, ok => canvas._finishImage(batch, target, ok));
+            return;
+        }
+        canvas._finishImage(batch, target, canvas._renderTarget(target, batch.snapshot, batch.date));
+    }
+
+    function _finishImage(batch, target, ok) {
+        if (!ok) {
             canvas._batch = null;
             batch.onDone(false, target.path);
             return;
         }
+        batch.savedStates[target.state] = target.path;
         canvas.imageSaved(target.path);
         imageTimer.restart();
     }
@@ -84,7 +95,13 @@ Canvas {
     }
 
     function _renderTarget(target, snapshot, date) {
-        SuspendDraw.draw(canvas.getContext("2d"), canvas.width, canvas.height, snapshot, date, { fg: "#000000", bg: "#ffffff" }, target.state);
+        const context = canvas.getContext("2d");
+        const colors = { fg: "#000000", bg: "#ffffff" };
+        if (!canvas._batch.baseDrawn) {
+            SuspendDraw.drawBase(context, canvas.width, canvas.height, snapshot, date, colors);
+            canvas._batch.baseDrawn = true;
+        }
+        SuspendDraw.drawState(context, canvas.width, canvas.height, colors, target.state);
         return BuildProfile.canWrite(target.path) && canvas.save(target.path);
     }
 }
