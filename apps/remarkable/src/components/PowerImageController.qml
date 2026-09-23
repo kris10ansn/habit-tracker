@@ -16,6 +16,7 @@ Item {
     property int remainingSeconds: 0
     property string lastRenderedSignature: ""
     property bool _renderRequested: false
+    property bool closing: false
 
     onRenderAllowedChanged: if (!renderAllowed) cancelPending()
     onBusyChanged: if (!busy && _renderRequested) Qt.callLater(controller.scheduleRender)
@@ -43,7 +44,7 @@ Item {
         if (phase === "pending") phase = "";
     }
     function scheduleRender() {
-        if (!renderAllowed || restorationPending) return;
+        if (closing || !renderAllowed || restorationPending) return;
         if (busy) { _renderRequested = true; return; }
         if (upToDate()) { cancelPending(); return; }
         _renderRequested = false;
@@ -53,7 +54,7 @@ Item {
         countdown.restart();
     }
     function renderAsync() {
-        if (!renderAllowed || restorationPending) return;
+        if (closing || !renderAllowed || restorationPending) return;
         if (busy) { _renderRequested = true; return; }
         if (upToDate()) { cancelPending(); return; }
         cancelPending();
@@ -73,6 +74,21 @@ Item {
         submit("backup", {}, result => {
             finish(result, "backed-up", "backup-failed");
             if (result.ok) restorationPending = false;
+            onDone(result.ok);
+        });
+    }
+    function handoff(onDone) {
+        cancelPending();
+        if (!renderAllowed || restorationPending || (!busy && upToDate())) {
+            onDone(true);
+            return;
+        }
+        const payload = {
+            snapshot: snapshot(),
+            date: DateUtils.dateKey(today.getFullYear(), today.getMonth(), today.getDate())
+        };
+        backend.handoff(payload, result => {
+            if (!result.ok) finish(result, "", "save-failed");
             onDone(result.ok);
         });
     }

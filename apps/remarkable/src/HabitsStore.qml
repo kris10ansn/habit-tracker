@@ -41,6 +41,7 @@ QtObject {
     property var habitTombstones: []
 
     readonly property bool isLoaded: _roster.isLoaded && _month.isLoaded
+    readonly property bool saving: _roster.saving || _month.saving
 
     // True while either file holds data this version cannot read. Those files are rendered as empty
     // and never written to, so sync must stay off as well — it would push the empty month to the
@@ -55,6 +56,7 @@ QtObject {
         store.hasLoadedOnce = true
 
     signal saved
+    signal saveFailed(string message)
 
     property string saveError: ""
     function clearSaveError() {
@@ -78,7 +80,7 @@ QtObject {
             store._applyRoster(data);
         }
         onSaved: store.saved()
-        onSaveFailed: store.saveError = message
+        onSaveFailed: { store.saveError = message; store.saveFailed(message); }
     }
 
     property JsonStore _month: JsonStore {
@@ -93,7 +95,7 @@ QtObject {
             store._applyMonth(data);
         }
         onSaved: store.saved()
-        onSaveFailed: store.saveError = message
+        onSaveFailed: { store.saveError = message; store.saveFailed(message); }
     }
 
     // A habit that came off disk or off the wire, as a model row. Both sources carry every field,

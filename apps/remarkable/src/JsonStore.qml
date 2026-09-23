@@ -9,6 +9,9 @@ QtObject {
 
     property string filePath: ""
     property bool isLoaded: false
+    property int _pendingWrites: 0
+    property bool _immediatePending: false
+    readonly property bool saving: _pendingWrites > 0 || _immediatePending
 
     // Set by applyLoaded when the file holds something this version cannot read. What is in memory
     // is then not what is on disk, so a write would destroy the real data — saves stay off until
@@ -53,12 +56,22 @@ QtObject {
     }
 
     function flushPendingSave() {
-        if (!jsonStore._saveTimer.running) {
+        if (!jsonStore._saveTimer.running && !_immediatePending) {
             return;
         }
 
         jsonStore._saveTimer.stop();
+        _immediatePending = false;
         jsonStore._doSave();
+    }
+
+    function scheduleImmediateSave() {
+        _immediatePending = true;
+        Qt.callLater(jsonStore._flushImmediateSave);
+    }
+
+    function _flushImmediateSave() {
+        if (_immediatePending) flushPendingSave();
     }
 
     function _doSave() {
@@ -67,6 +80,7 @@ QtObject {
             return;
         }
 
+        _pendingWrites++;
         try {
             Storage.writeJson(jsonStore.filePath, jsonStore.serialize(), jsonStore._onWriteDone);
         } catch (e) {
@@ -78,6 +92,7 @@ QtObject {
     // than merely queued — which is what makes a missing data/ dir a visible modal instead of a
     // silent no-op the session then believes it persisted.
     function _onWriteDone(error) {
+        _pendingWrites--;
         if (error) {
             console.warn("JsonStore: save failed for", jsonStore.filePath, "-", error);
             jsonStore.saveFailed("Check that the data/ folder exists on the device.\n\n" + error);

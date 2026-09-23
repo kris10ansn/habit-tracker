@@ -57,7 +57,7 @@ JsonStore {
     // and corrupt it, so same-tick setter calls coalesce into a single write of the final
     // state (Qt.callLater collapses repeated calls to the same function).
     function _saveCoalesced() {
-        Qt.callLater(settingsStore._doSave);
+        settingsStore.scheduleImmediateSave();
     }
 
     function setSuspendImageEnabled(value) {

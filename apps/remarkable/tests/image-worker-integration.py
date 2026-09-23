@@ -201,6 +201,45 @@ class WorkerIntegration(unittest.TestCase):
         for path, original in self.originals.items():
             self.assertNotEqual(path.read_bytes(), original)
 
+    def test_handoff_accepts_latest_snapshot_before_detach_and_finishes_it(self):
+        worker, directory = self.worker()
+        first = worker.start("render", snapshot=SNAPSHOT, date="2026-09-22")
+        while worker.receive().get("kind") != "progress":
+            pass
+        latest = [dict(SNAPSHOT[0], name="Latest before closing")]
+        final = worker.start("handoff", snapshot=latest, date="2026-09-22")
+        while True:
+            message = worker.receive()
+            self.assertNotEqual(message.get("kind"), "done", message)
+            if message.get("kind") == "accepted":
+                self.assertEqual(message["id"], final)
+                break
+        worker.send(0, -3)
+        self.assertTrue(worker.done(first)["busy"])
+        self.assert_success(worker.done(final))
+        self.assertEqual(worker.process.wait(5), 0)
+        signature = json.loads((directory / ".sleep-sig").read_text())
+        self.assertIn("Latest before closing", signature)
+        for path, original in self.originals.items():
+            self.assertNotEqual(path.read_bytes(), original)
+
+    def test_identical_handoff_does_not_render_twice_and_keeps_lock(self):
+        worker, _ = self.worker()
+        other, _ = self.worker("test")
+        first = worker.start("render", snapshot=SNAPSHOT, date="2026-09-22")
+        while worker.receive().get("kind") != "progress":
+            pass
+        final = worker.start("handoff", snapshot=SNAPSHOT, date="2026-09-22")
+        while worker.receive().get("kind") != "accepted":
+            pass
+        rejected = other.run("handoff", snapshot=SNAPSHOT, date="2026-09-22")
+        self.assertFalse(rejected["ok"])
+        worker.send(0, -3)
+        result = worker.done(first)
+        self.assert_success(result)
+        self.assertFalse(result["busy"])
+        self.assertEqual(worker.process.wait(5), 0)
+
     def test_disconnected_worker_finishes_render(self):
         worker, _ = self.worker()
         worker.start("render", snapshot=SNAPSHOT, date="2026-09-22")
