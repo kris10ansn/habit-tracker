@@ -56,6 +56,7 @@ QtObject {
         store.hasLoadedOnce = true
 
     signal saved
+    signal saveFailed(string message)
 
     property string saveError: ""
     function clearSaveError() {
@@ -79,7 +80,7 @@ QtObject {
             store._applyRoster(data);
         }
         onSaved: store.saved()
-        onSaveFailed: store.saveError = message
+        onSaveFailed: { store.saveError = message; store.saveFailed(message); }
     }
 
     property JsonStore _month: JsonStore {
@@ -94,7 +95,7 @@ QtObject {
             store._applyMonth(data);
         }
         onSaved: store.saved()
-        onSaveFailed: store.saveError = message
+        onSaveFailed: { store.saveError = message; store.saveFailed(message); }
     }
 
     // A habit that came off disk or off the wire, as a model row. Both sources carry every field,

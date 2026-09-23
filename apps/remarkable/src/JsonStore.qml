@@ -10,7 +10,8 @@ QtObject {
     property string filePath: ""
     property bool isLoaded: false
     property int _pendingWrites: 0
-    readonly property bool saving: _pendingWrites > 0
+    property bool _immediatePending: false
+    readonly property bool saving: _pendingWrites > 0 || _immediatePending
 
     // Set by applyLoaded when the file holds something this version cannot read. What is in memory
     // is then not what is on disk, so a write would destroy the real data — saves stay off until
@@ -55,12 +56,22 @@ QtObject {
     }
 
     function flushPendingSave() {
-        if (!jsonStore._saveTimer.running) {
+        if (!jsonStore._saveTimer.running && !_immediatePending) {
             return;
         }
 
         jsonStore._saveTimer.stop();
+        _immediatePending = false;
         jsonStore._doSave();
+    }
+
+    function scheduleImmediateSave() {
+        _immediatePending = true;
+        Qt.callLater(jsonStore._flushImmediateSave);
+    }
+
+    function _flushImmediateSave() {
+        if (_immediatePending) flushPendingSave();
     }
 
     function _doSave() {

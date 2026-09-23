@@ -108,6 +108,25 @@ TestCase {
         compare(store._pendingWrites, 0);
         store.destroy();
     }
+    function test_flushIncludesImmediateAndLaterScheduledWrites() {
+        const store = makeStore("immediate-quit.json", { value: "first" });
+        let writes = 0;
+        store.saved.connect(() => writes++);
+        store.scheduleImmediateSave();
+        verify(store.saving);
+        store.flushPendingSave();
+        tryVerify(() => !store.saving);
+        compare(writes, 1);
+        store.writes = { value: "sync response" };
+        store.scheduleSave();
+        store.flushPendingSave();
+        tryVerify(() => !store.saving);
+        compare(writes, 2);
+        compare(Storage.readJson(store.filePath).value, "sync response");
+        wait(30);
+        compare(writes, 2);
+        store.destroy();
+    }
 
     // Rapid edits (a run of grid taps) must coalesce into one write, or e-ink stutters.
     function test_scheduleSaveIsDebounced() {

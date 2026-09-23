@@ -73,18 +73,25 @@ Item {
             onDone({ ok: false, error: _uncertain ? "Image completion is unknown. Close and reopen the app before retrying." : "Image helper is busy or unavailable" });
             return;
         }
-        const job = Object.assign({}, payload, { version: ImageProtocol.version, id: Ids.newId(), operation: operation });
-        const body = JSON.stringify(job);
-        const invalid = ImageProtocol.validate(job, BuildProfile.isTest);
-        if (invalid || unescape(encodeURIComponent(body)).length > 60000) {
-            onDone({ ok: false, error: invalid || "Image snapshot is too large" });
-            return;
-        }
+        const prepared = prepare(operation, payload, onDone);
+        if (!prepared) return;
+        const job = prepared.request;
+        const body = prepared.body;
         if (!ready) _handshakeAttempts = 0;
         _pending = { request: job, body: body, onDone: onDone, sent: false };
         deadline.interval = ready ? operationTimeout : startupTimeout;
         deadline.restart();
         dispatch();
+    }
+    function prepare(operation, payload, onDone) {
+        const job = Object.assign({}, payload, { version: ImageProtocol.version, id: Ids.newId(), operation: operation });
+        const body = JSON.stringify(job);
+        const invalid = ImageProtocol.validate(job, BuildProfile.isTest);
+        if (invalid || unescape(encodeURIComponent(body)).length > 60000) {
+            onDone({ ok: false, error: invalid || "Image snapshot is too large" });
+            return null;
+        }
+        return { request: job, body: body };
     }
     function dispatch() {
         if (!ready || !endpoint) return;
@@ -104,13 +111,10 @@ Item {
             onDone({ ok: false, error: "Image helper is busy or unavailable" });
             return;
         }
-        const job = Object.assign({}, payload, { version: ImageProtocol.version, id: Ids.newId(), operation: "handoff" });
-        const body = JSON.stringify(job);
-        const invalid = ImageProtocol.validate(job, BuildProfile.isTest);
-        if (invalid || unescape(encodeURIComponent(body)).length > 60000) {
-            onDone({ ok: false, error: invalid || "Image snapshot is too large" });
-            return;
-        }
+        const prepared = prepare("handoff", payload, onDone);
+        if (!prepared) return;
+        const job = prepared.request;
+        const body = prepared.body;
         _handoff = { id: job.id, body: body, onDone: onDone, sent: false };
         if (!ready) _handshakeAttempts = 0;
         handoffDeadline.interval = ready ? operationTimeout : startupTimeout;

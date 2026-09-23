@@ -30,9 +30,17 @@ Rectangle {
 
     signal close
     property bool _quitting: false
+    property string _quitSaveError: ""
     enabled: !_quitting
 
     function _waitForPendingOperations() {
+        if (!_quitting) return;
+        // Sync and settings callbacks can schedule saves after Quit's first flush.
+        habitsStore.flushPendingSave();
+        settingsStore.flushPendingSave();
+        syncStore.flushPendingSave();
+        if (!_quitting) return;
+
         const syncInProgress = syncStore.isRequestInFlight || syncStore.status === "pending";
         const localSaveInProgress = habitsStore.saving || settingsStore.saving || syncStore.saving;
         const mustFinishImages = !suspendCanvas.renderAllowed || suspendCanvas.restorationPending
@@ -46,11 +54,15 @@ Rectangle {
 
         suspendCanvas.handoff(ok => {
             if (ok) root.close();
-            else {
-                root._quitting = false;
-                suspendCanvas.closing = false;
-            }
+            else root._cancelQuit();
         });
+    }
+
+    function _cancelQuit(message = "") {
+        quitWaitTimer.stop();
+        root._quitting = false;
+        suspendCanvas.closing = false;
+        root._quitSaveError = message;
     }
 
     function quit() {
@@ -164,6 +176,7 @@ Rectangle {
 
     Connections {
         target: habitsStore
+        function onSaveFailed(message) { if (root._quitting) root._cancelQuit(message); }
         function onSaved() {
             if (!landscape.editing && landscape.canRenderSuspend)
                 suspendCanvas.scheduleRender();
@@ -177,6 +190,7 @@ Rectangle {
 
     Connections {
         target: syncStore
+        function onSaveFailed(message) { if (root._quitting) root._cancelQuit(message); }
         function onIsLoadedChanged() {
             root._maybeSyncOnLoad();
         }
@@ -186,6 +200,7 @@ Rectangle {
     // and settings.json loading after the grid is already built.
     Connections {
         target: settingsStore
+        function onSaveFailed(message) { if (root._quitting) root._cancelQuit(message); }
         function onIsLoadedChanged() {
             root._maybeStartInitialEditing();
         }
@@ -411,12 +426,12 @@ Rectangle {
         }
 
         App.ConfirmDialog {
-            visible: habitsStore.saveError !== ""
+            visible: habitsStore.saveError !== "" || root._quitSaveError !== ""
             acknowledgeOnly: true
             confirmText: "Dismiss"
-            message: "Couldn’t save to storage — your changes are only in memory.\n\n" + habitsStore.saveError
-            onConfirmed: habitsStore.clearSaveError()
-            onCancelled: habitsStore.clearSaveError()
+            message: "Couldn’t save to storage — your changes are only in memory.\n\n" + (habitsStore.saveError || root._quitSaveError)
+            onConfirmed: { habitsStore.clearSaveError(); root._quitSaveError = ""; }
+            onCancelled: { habitsStore.clearSaveError(); root._quitSaveError = ""; }
         }
 
         App.ConfirmDialog {
