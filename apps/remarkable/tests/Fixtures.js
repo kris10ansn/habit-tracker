@@ -4,8 +4,7 @@
 const EPOCH = 1750000000000;
 
 // The duck-typed { count, get(i) } slice of ListModel that HabitsModel.js actually uses, so its
-// projections can be tested without a QML component. tools/suspend-writer/main.cpp builds the
-// same stand-in to drive the renderer off-device.
+// projections can be tested without a QML component.
 function fakeModel(rows) {
     return {
         count: rows.length,

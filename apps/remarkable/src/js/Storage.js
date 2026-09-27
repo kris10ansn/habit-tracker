@@ -1,5 +1,4 @@
 .import "BuildProfile.js" as BuildProfile
-.import "BinaryFiles.js" as BinaryFiles
 
 const MISSING = "missing";
 const CORRUPT = "corrupt";
@@ -103,24 +102,4 @@ function isMissing(result) {
 }
 function isCorrupt(result) {
     return result === CORRUPT;
-}
-
-function readBinary(path) {
-    return BinaryFiles.read(path);
-}
-
-function readBinaryAsync(path, onDone) {
-    BinaryFiles.readAsync(path, onDone);
-}
-
-function writeBinary(path, buffer, onDone) {
-    if (!BuildProfile.canWrite(path)) {
-        reportWrite(
-            onDone,
-            `Test build: refusing write outside its app directory: ${path}`,
-        );
-        return;
-    }
-
-    BinaryFiles.write(path, buffer, (error) => reportWrite(onDone, error));
 }

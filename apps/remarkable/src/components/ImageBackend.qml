@@ -9,11 +9,13 @@ Item {
     property var transport: null
     readonly property var endpoint: transport || connection.item
     property bool ready: false
-    readonly property bool busy: _pending !== null || _remoteBusy
+    readonly property bool busy: _pending !== null || _handoff !== null || _remoteBusy
     property int startupTimeout: 10000
     property int operationTimeout: 120000
     property int maximumOperationDuration: 600000
     property var _pending: null
+    property var _handoff: null
+    property var backgroundFailure: null
     property bool _remoteBusy: false
     property bool _uncertain: false
     property int _handshakeAttempts: 0
@@ -45,6 +47,15 @@ Item {
         onTriggered: client.timeOut()
     }
 
+    Timer {
+        id: handoffDeadline
+        interval: client.startupTimeout
+        onTriggered: {
+            client._uncertain = !!client._handoff && client._handoff.sent;
+            client.finishHandoff({ ok: false, error: "The image writer did not acknowledge the background save. The app is still open." });
+        }
+    }
+
     function timeOut() {
         deadline.stop();
         operationLimit.stop();
@@ -59,7 +70,7 @@ Item {
     }
 
     function request(operation, payload, onDone) {
-        if (!enabled || _uncertain || _pending || _remoteBusy) {
+        if (!enabled || _uncertain || _pending || _handoff || _remoteBusy) {
             onDone({ ok: false, error: _uncertain ? "Image completion is unknown. Close and reopen the app before retrying." : "Image helper is busy or unavailable" });
             return;
         }
@@ -77,17 +88,66 @@ Item {
         dispatch();
     }
     function dispatch() {
-        if (_remoteBusy || !ready || !endpoint || !_pending || _pending.sent) return;
+        if (!ready || !endpoint) return;
+        if (_handoff && !_handoff.sent) {
+            _handoff.sent = true;
+            endpoint.send(_handoff.body);
+        }
+        if (_remoteBusy || !_pending || _pending.sent) return;
         _pending.sent = true;
         deadline.interval = operationTimeout;
         deadline.restart();
         operationLimit.restart();
         endpoint.send(_pending.body);
     }
+    function handoff(operation, payload, onDone) {
+        if (!enabled || _uncertain || _handoff || (_pending && _pending.request.operation !== "render")) {
+            onDone({ ok: false, error: "The image writer is unavailable for background saving" });
+            return;
+        }
+
+        const job = Object.assign({}, payload, { version: ImageProtocol.version, id: Ids.newId(), operation: operation });
+        const invalid = ImageProtocol.validate(job, BuildProfile.isTest);
+        if (invalid) {
+            onDone({ ok: false, error: invalid });
+            return;
+        }
+
+        // A not-yet-sent render is replaced by the confirmed snapshot handed over at Quit.
+        if (_pending && !_pending.sent) finish({ ok: false, superseded: true });
+        _handoff = { request: job, body: JSON.stringify(job), onDone: onDone, sent: false };
+        if (!ready) _handshakeAttempts = 0;
+        handoffDeadline.restart();
+        dispatch();
+    }
+
+    function finishHandoff(result) {
+        if (!_handoff) return;
+        handoffDeadline.stop();
+        const callback = _handoff.onDone;
+        _handoff = null;
+        callback(result);
+    }
+
+    function dismissBackgroundFailure() {
+        if (!backgroundFailure) return;
+        endpoint.send(JSON.stringify({ version: ImageProtocol.version, id: Ids.newId(),
+            operation: "acknowledge-background", resultId: backgroundFailure.id }));
+        backgroundFailure = null;
+    }
+
     function receive(body) {
         let message;
         try { message = JSON.parse(body); } catch (error) { return; }
         if (!message || _uncertain) return;
+        if (message.backgroundFailure && message.backgroundFailure.error) {
+            backgroundFailure = message.backgroundFailure;
+        }
+        if (_handoff && message.id === _handoff.request.id && (message.kind === "accepted" || message.kind === "done")) {
+            _remoteBusy = message.busy === true;
+            finishHandoff(message);
+            return;
+        }
         if (message.kind === "ready") {
             ready = message.version === ImageProtocol.version && message.ready === true;
             _remoteBusy = message.busy === true;
@@ -95,12 +155,17 @@ Item {
                 if (!operationLimit.running) operationLimit.start();
                 deadline.interval = operationTimeout;
                 deadline.restart();
-            } else if (ready) dispatch();
+            }
+            dispatch();
             return;
         }
         if (message.kind === "done" && (!_pending || message.id !== _pending.request.id)) {
             if (!_remoteBusy || (_pending && _pending.sent)) return;
-            _remoteBusy = false;
+            _remoteBusy = message.busy === true;
+            if (_remoteBusy) {
+                deadline.restart();
+                return;
+            }
             deadline.stop();
             operationLimit.stop();
             dispatch();
@@ -119,7 +184,12 @@ Item {
         if (!_pending) return;
         deadline.stop();
         operationLimit.stop();
-        _remoteBusy = false;
+        _remoteBusy = result.busy === true;
+        if (_remoteBusy) {
+            deadline.interval = operationTimeout;
+            deadline.restart();
+            operationLimit.restart();
+        }
         const onDone = _pending.onDone;
         _pending = null;
         onDone(result);

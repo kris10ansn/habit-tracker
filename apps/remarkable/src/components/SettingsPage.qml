@@ -7,6 +7,7 @@ Item {
 
     property bool suspendImageEnabled: false
     property bool suspendImageBusy: false
+    property bool restorationPending: false
     property bool showPrivateHabits: false
     property string serverUrl: ""
     property string syncStatusText: ""
@@ -29,6 +30,7 @@ Item {
     readonly property bool serverUrlReady: serverUrl.trim() !== "" && !urlDirty
     readonly property bool pairingRequestInFlight: pairingStatus === "requesting" || pairingStatus === "waiting"
 
+    signal restoreRequested
     signal applyRequested(bool value)
     signal showPrivateHabitsApplied(bool value)
     signal serverUrlApplied(string url)
@@ -486,6 +488,17 @@ Item {
         disabled: settingsPage.dirty
         text: "Developer options"
         onClicked: settingsPage.developerRequested()
+    }
+
+    AppButton {
+        visible: settingsPage.restorationPending
+        anchors.horizontalCenter: parent.horizontalCenter
+        y: parent.height - 244
+        width: 560
+        height: 72
+        text: "Restoration incomplete · Retry"
+        disabled: settingsPage.suspendImageBusy
+        onClicked: settingsPage.restoreRequested()
     }
 
     ScreenStatus {

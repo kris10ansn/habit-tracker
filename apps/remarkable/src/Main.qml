@@ -26,36 +26,12 @@ Rectangle {
     readonly property bool screenshotReady: habitsStore.isLoaded && settingsStore.isLoaded
         && syncStore.isLoaded && (!root.initialEditing || editSession.active)
         && (landscape.currentView === "settings" || landscape.editing || landscape.gridReady)
-    readonly property string suspendStatusText: SuspendStatus.text(suspendCanvas.phase, suspendCanvas.remainingSeconds, suspendCanvas.failedPath, suspendCanvas.imageProgress)
+    readonly property string suspendStatusText: quitController.quitting ? "Preparing to close…" : SuspendStatus.text(suspendCanvas.phase, suspendCanvas.remainingSeconds, suspendCanvas.failedPath, suspendCanvas.imageProgress)
 
     signal close
 
-    function _waitForPendingOperations() {
-        const syncInProgress = syncStore.isRequestInFlight || syncStore.status === "pending";
-        const renderInProgress = suspendCanvas.busy || suspendCanvas.phase === "saving" || suspendCanvas.phase === "pending";
-
-        if (syncInProgress || renderInProgress) {
-            quitWaitTimer.restart();
-            return;
-        }
-
-        root.close();
-    }
-
     function quit() {
-        habitsStore.flushPendingSave();
-        settingsStore.flushPendingSave();
-        syncStore.flushPendingSave();
-
-        if (landscape.canRenderSuspend) {
-            suspendCanvas.renderAsync();
-        }
-
-        if (!syncStore.hasSyncedSuccessfully) {
-            syncStore.abortSync();
-        }
-
-        root._waitForPendingOperations();
+        quitController.requestQuit();
     }
 
     // Teardown flushes local state only — deliberately never syncs. A network round-trip here has
@@ -82,22 +58,7 @@ Rectangle {
     }
 
     function applySuspendSetting(enabled) {
-        if (BuildProfile.isTest) {
-            settingsStore.setSuspendImageEnabled(enabled);
-            return;
-        }
-
-        if (!enabled) {
-            suspendCanvas.restore(restored => {
-                if (restored) settingsStore.setSuspendImageEnabled(false);
-            });
-            return;
-        }
-        suspendCanvas.backup(ok => {
-            if (!ok) return;
-            suspendCanvas.restorationPending = false;
-            settingsStore.setSuspendImageEnabled(true);
-        });
+        suspendCanvas.setEnabled(enabled);
     }
 
     property bool _initialEditStarted: false
@@ -141,12 +102,20 @@ Rectangle {
         active: !root.screenshotMode && landscape.currentView === "settings"
     }
 
-    Timer { id: quitWaitTimer; interval: 100; onTriggered: root._waitForPendingOperations() }
+    App.QuitController {
+        id: quitController
+        habitsStore: habitsStore
+        settingsStore: settingsStore
+        syncStore: syncStore
+        powerImages: suspendCanvas
+        onReadyToClose: root.close()
+    }
     App.ImageBackend { id: imageBackend; enabled: !root.screenshotMode }
     App.PowerImageController {
         id: suspendCanvas
         backend: imageBackend
-        habits: habitsStore.habits
+        habitsStore: habitsStore
+        settingsStore: settingsStore
         today: root.today
         renderAllowed: landscape.canRenderSuspend && landscape.gridReady && !landscape.editing
     }
@@ -186,6 +155,7 @@ Rectangle {
 
     Item {
         id: landscape
+        enabled: !quitController.quitting
         anchors.centerIn: parent
         width: parent.height
         height: parent.width
@@ -360,6 +330,8 @@ Rectangle {
             visible: landscape.currentView === "settings"
             suspendImageEnabled: settingsStore.suspendImageEnabled
             suspendImageBusy: suspendCanvas.busy
+            restorationPending: suspendCanvas.restorationPending
+            onRestoreRequested: suspendCanvas.restore()
             showPrivateHabits: settingsStore.showPrivateHabits
             serverUrl: settingsStore.serverUrl
             syncStatusText: syncStore.statusText
@@ -388,7 +360,7 @@ Rectangle {
             source: "testing/DeveloperTools.qml"
             onLoaded: {
                 item.backend = imageBackend;
-                item.habits = Qt.binding(() => habitsStore.habits);
+                item.habitsStore = habitsStore;
                 item.canRender = Qt.binding(() => !root.screenshotMode && landscape.isCurrentMonth && habitsStore.isLoaded && !habitsStore.hasUnreadableData);
                 item.dataDirectory = Qt.binding(() => root.dataDir);
             }
@@ -415,6 +387,24 @@ Rectangle {
             message: "Sync failed: " + syncStore.errorMessage
             onConfirmed: syncStore.clearError()
             onCancelled: syncStore.clearError()
+        }
+        App.ConfirmDialog {
+            visible: quitController.errorMessage !== ""
+            acknowledgeOnly: true
+            confirmText: "Dismiss"
+            message: quitController.errorMessage
+            onConfirmed: quitController.errorMessage = ""
+            onCancelled: quitController.errorMessage = ""
+        }
+
+        App.ConfirmDialog {
+            visible: !!imageBackend.backgroundFailure
+            acknowledgeOnly: true
+            confirmText: "Dismiss"
+            message: "Power-state images could not finish saving in the background.\n\n"
+                + (imageBackend.backgroundFailure ? imageBackend.backgroundFailure.error : "")
+            onConfirmed: imageBackend.dismissBackgroundFailure()
+            onCancelled: imageBackend.dismissBackgroundFailure()
         }
     }
 }

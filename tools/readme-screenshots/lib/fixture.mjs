@@ -249,6 +249,10 @@ export async function writeRemarkableFixture(fixture, directory) {
             `${JSON.stringify(pairing.settings, null, 2)}\n`,
         ),
         writeFile(
+            path.join(directory, "settings-restoration.json"),
+            `${JSON.stringify({ ...paired.settings, suspendImageEnabled: false, powerImageRestorePending: true }, null, 2)}\n`,
+        ),
+        writeFile(
             path.join(directory, "sync.json"),
             `${JSON.stringify(paired.sync, null, 2)}\n`,
         ),

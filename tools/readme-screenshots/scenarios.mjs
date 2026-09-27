@@ -20,6 +20,26 @@ export const scenarios = Object.freeze({
             view: "settings",
             pairing: "waiting",
         }),
+        restoration: Object.freeze({
+            output: "remarkable-restoration.png",
+            view: "settings",
+            settingsFile: "settings-restoration.json",
+        }),
+        starting: Object.freeze({
+            output: "remarkable-starting.png",
+            renderer: "suspend",
+            state: "starting",
+        }),
+        rebooting: Object.freeze({
+            output: "remarkable-rebooting.png",
+            renderer: "suspend",
+            state: "rebooting",
+        }),
+        overheating: Object.freeze({
+            output: "remarkable-overheating.png",
+            renderer: "suspend",
+            state: "overheating",
+        }),
         poweroff: Object.freeze({
             output: "remarkable-poweroff.png",
             renderer: "suspend",

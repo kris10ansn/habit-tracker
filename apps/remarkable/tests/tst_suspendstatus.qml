@@ -17,9 +17,9 @@ TestCase {
     }
 
     function test_savingNamesCurrentImageAndRemainingCount() {
-        compare(SuspendStatus.text("saving", 0, "", { path: "/usr/share/remarkable/poweroff.png", remainingImages: 7 }), "Saving poweroff.png (7 left)");
-        compare(SuspendStatus.text("saving", 0, "", { path: "/usr/share/remarkable/splash/splash.bmp", remainingImages: 1 }), "Saving splash/splash.bmp (1 left)");
-        compare(SuspendStatus.text("saving", 0, "", { path: "/var/lib/uboot/splash.bmp", remainingImages: 0 }), "Saving uboot/splash.bmp (0 left)");
+        compare(SuspendStatus.text("saving", 0, "", { path: "/usr/share/remarkable/poweroff.png", remainingImages: 7 }), "poweroff.png — Saving (7 left)");
+        compare(SuspendStatus.text("saving", 0, "", { path: "/usr/share/remarkable/splash/splash.bmp", remainingImages: 1 }), "splash/splash.bmp — Saving (1 left)");
+        compare(SuspendStatus.text("saving", 0, "", { path: "/var/lib/uboot/splash.bmp", remainingImages: 0 }), "uboot/splash.bmp — Saving (0 left)");
     }
 
     function test_everyPhaseHasALabel() {

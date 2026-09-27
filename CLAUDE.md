@@ -42,6 +42,7 @@ backend that owns the canonical records and reconciles them:
 ├── apps/
 │   ├── backend/      ASP.NET Core (.NET 10) + EF Core + PostgreSQL. Canonical store + Sync.
 │   ├── remarkable/   QML scene for the reMarkable 1 (XOVI + rm-appload). Built with make.
+│   ├── power-image-writer/  C++/Qt Core + Gui. Saved device JSON → power-state images.
 │   └── mobile/       expo (React Native, TypeScript) app. Built with pnpm/expo.
 └── CONTEXT.md        shared habit glossary (Habit, Entry, X/O, polarity, …)
 ```
@@ -84,8 +85,10 @@ the device, describe what to run and wait. This applies even when a `make` targe
 - **`apps/backend/`** — C# / ASP.NET Core + EF Core, the canonical store and the owner of Sync.
   Source of truth for the shared model and the sync contract.
   See [`apps/backend/CLAUDE.md`](./apps/backend/CLAUDE.md).
-- **`apps/remarkable/`** — QML frontend + native image worker, built by `make` (run from that dir). Qt 5.15 / e-ink display
+- **`apps/remarkable/`** — QML frontend, built by `make` (run from that dir). Qt 5.15 / e-ink display
   constraints, apploader loading quirks, never-SSH. See [`apps/remarkable/CLAUDE.md`](./apps/remarkable/CLAUDE.md).
+- **`apps/power-image-writer/`** — independent native writer; device JSON interpretation, rendering,
+  image installation, and AppLoad/CLI integration. See [its guidance](apps/power-image-writer/CLAUDE.md).
 - **`apps/mobile/`** — expo + TypeScript, SQLite (Drizzle) + TanStack Query.
   See [`apps/mobile/CLAUDE.md`](./apps/mobile/CLAUDE.md).
 
@@ -109,6 +112,7 @@ the device, describe what to run and wait. This applies even when a `make` targe
     - `pnpm remarkable:build` (also `remarkable:test` / `remarkable:clean` / `remarkable:backup` /
       `remarkable:deploy` / `remarkable:remove` / `remarkable:find-hotspot-ip`, which shell out to
       `make` — `deploy`/`remove`/`backup`/`find-hotspot-ip` touch the device, so user-only).
+      `remarkable:test:images` runs the native writer unit/process suites.
       `remarkable:test` runs that app's Qt Quick Test suite; it needs `qmltestrunner-qt5` and fails on test errors. `remarkable:find-hotspot-ip` nmap-scans the current network
       for the tablet (identifying it by SSH host key) and repoints `~/.ssh/config` at it.
     - `pnpm backend:start` (also `backend:build` / `backend:watch` / `backend:test`), plus the

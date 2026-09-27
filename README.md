@@ -258,10 +258,10 @@ pnpm remarkable:test
 ```
 
 The reMarkable tests need `qmltestrunner-qt5`. Changes to its drawing logic also use the host
-suspend-renderer smoke test, which requires a C++ toolchain and Qt 5 development headers:
+native writer unit and process tests, which require CMake, a C++17 toolchain, Qt 5 Core/Gui development headers, and Python 3:
 
 ```sh
-make -C apps/remarkable suspend-writer-test
+pnpm remarkable:test:images
 ```
 
 ### API and data changes

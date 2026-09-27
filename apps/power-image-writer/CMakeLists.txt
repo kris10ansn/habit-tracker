@@ -1,0 +1,40 @@
+cmake_minimum_required(VERSION 3.16)
+project(power_image_writer VERSION 1.0 LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+set(POWER_IMAGE_QT_MAJOR 6 CACHE STRING "Qt major version (5 or 6)")
+find_package(Qt${POWER_IMAGE_QT_MAJOR} REQUIRED COMPONENTS Core Gui)
+option(POWER_IMAGE_HOST_TEST "Enable trusted host fixture configuration" OFF)
+add_library(power_images src/Model.cpp src/Renderer.cpp src/Files.cpp src/Writer.cpp)
+target_include_directories(power_images PUBLIC src)
+target_link_libraries(power_images PUBLIC Qt${POWER_IMAGE_QT_MAJOR}::Core Qt${POWER_IMAGE_QT_MAJOR}::Gui)
+target_compile_options(power_images PRIVATE -Wall -Wextra -Wpedantic)
+add_executable(power-image-writer
+    src/main.cpp
+    src/LaunchConfiguration.cpp
+    src/AppLoadSession.cpp
+    src/AppLoadConnection.cpp
+    src/WriterProtocol.cpp
+    src/BackgroundResultStore.cpp)
+set_target_properties(power-image-writer PROPERTIES AUTOMOC ON)
+target_link_libraries(power-image-writer PRIVATE power_images)
+if(POWER_IMAGE_HOST_TEST)
+    target_compile_definitions(power-image-writer PRIVATE POWER_IMAGE_HOST_TEST)
+endif()
+target_compile_options(power-image-writer PRIVATE -Wall -Wextra -Wpedantic)
+include(CTest)
+if(BUILD_TESTING)
+    add_executable(writer-tests tests/writer_tests.cpp)
+    target_link_libraries(writer-tests PRIVATE power_images)
+    add_test(NAME writer-tests COMMAND writer-tests ${CMAKE_CURRENT_SOURCE_DIR}/tests)
+    set_tests_properties(writer-tests PROPERTIES ENVIRONMENT "QT_QPA_PLATFORM=offscreen")
+    if(POWER_IMAGE_HOST_TEST)
+        find_package(Python3 REQUIRED COMPONENTS Interpreter)
+        add_test(NAME writer-process-tests COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/process_tests.py)
+        set_tests_properties(writer-process-tests PROPERTIES
+            ENVIRONMENT "POWER_IMAGE_WRITER_BINARY=$<TARGET_FILE:power-image-writer>"
+            TIMEOUT 120)
+    endif()
+endif()
+install(TARGETS power-image-writer RUNTIME DESTINATION bin)

@@ -1,0 +1,15 @@
+{
+  "beforeCommit": "b7046f99c6d8e55b7e502f4fbc7a175a7aa89e9a",
+  "afterSource": "working tree",
+  "fixture": "tools/readme-screenshots/fixture.json",
+  "date": "2026-09-09",
+  "meanAbsoluteError": {
+    "sleep": "16.6171 (0.000253561)",
+    "off": "17.0345 (0.000259929)",
+    "empty": "16.7943 (0.000256265)",
+    "starting": "17.0345 (0.000259929)",
+    "rebooting": "16.9725 (0.000258983)",
+    "overheating": "16.9926 (0.000259291)"
+  },
+  "settings": "Fixture states: enabled versus disabled/pending; screenshots do not induce a disk failure."
+}

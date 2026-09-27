@@ -5,6 +5,10 @@ Status: accepted
 Amended by [ADR 0008](0008-private-habits.md): the per-habit control this ADR describes as hidden
 while the setting is off is now the always-visible Private toggle.
 
+Amended by [ADR 0009](0009-independent-power-state-image-writer.md): the independent writer
+requires disabling to be persisted before restoring originals. A failed restore leaves writing
+disabled and exposes a retry, superseding the restore-before-disable ordering below.
+
 ## Context
 
 The app overwrites the device suspend image (`/usr/share/remarkable/suspended.png`) with

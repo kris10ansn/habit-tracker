@@ -98,7 +98,7 @@ try {
         "-C",
         "apps/remarkable",
         "readme-screenshot-host",
-        "suspend-writer-host",
+        "power-image-writer-host",
     ]);
 
     for (const [name, scenario] of selected) {
@@ -111,9 +111,12 @@ try {
             run(
                 path.join(
                     repositoryRoot,
-                    "apps/remarkable/tools/suspend-writer/build/suspend-writer",
+                    "apps/power-image-writer/build/host/power-image-writer",
                 ),
                 [
+                    "preview",
+                    "--app-dir",
+                    fixtureDirectory,
                     "--roster",
                     path.join(fixtureDirectory, "roster.json"),
                     "--month",
@@ -121,7 +124,7 @@ try {
                         fixtureDirectory,
                         `${fixture.today.slice(0, 7)}.json`,
                     ),
-                    "--today",
+                    "--date",
                     fixture.today,
                     "--out",
                     deviceOutputPath,
@@ -134,7 +137,10 @@ try {
             run("magick", [deviceOutputPath, "-rotate", "-90", outputPath]);
         } else {
             const settingsName =
-                name === "pairing" ? "settings-pairing.json" : "settings.json";
+                scenario.settingsFile ??
+                (name === "pairing"
+                    ? "settings-pairing.json"
+                    : "settings.json");
             run(
                 path.join(
                     repositoryRoot,
@@ -142,7 +148,7 @@ try {
                 ),
                 [
                     "--scenario",
-                    name,
+                    name === "restoration" ? "settings" : name,
                     "--data-dir",
                     fixtureDirectory,
                     "--settings",

@@ -429,6 +429,34 @@ QtObject {
         store._month.reload();
     }
 
+    readonly property string lastSaveError: _roster.lastSaveError || _month.lastSaveError
+    readonly property bool hasPendingSave: _roster.hasPendingSave || _month.hasPendingSave
+
+    function prepareImageInput(onDone) {
+        if (!isLoaded || hasUnreadableData) {
+            onDone("Habit data is not ready", null);
+            return;
+        }
+        const capturedMonth = monthKey;
+        _roster.whenSaved(rosterError => _month.whenSaved(monthError => {
+            if (rosterError || monthError || _roster.lastSaveError || _month.lastSaveError || capturedMonth !== monthKey || !isLoaded) {
+                onDone(rosterError || monthError || _roster.lastSaveError || _month.lastSaveError || "Viewed month changed", null);
+                return;
+            }
+            if (hasPendingSave) {
+                Qt.callLater(() => prepareImageInput(onDone));
+                return;
+            }
+            const roster = Storage.readFile(_roster.filePath);
+            const month = Storage.readFile(_month.filePath);
+            if (Storage.isMissing(roster)) {
+                onDone("Saved roster is unavailable", null);
+                return;
+            }
+            onDone(null, { roster: Qt.md5(roster), month: Storage.isMissing(month) ? "missing" : Qt.md5(month) });
+        }));
+    }
+
     function flushPendingSave() {
         _roster.flushPendingSave();
         _month.flushPendingSave();

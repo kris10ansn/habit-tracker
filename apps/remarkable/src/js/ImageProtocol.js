@@ -1,5 +1,6 @@
-const version = 1;
+const version = 3;
 const operations = [
+    "finish-background",
     "backup",
     "restore",
     "render",
@@ -11,8 +12,9 @@ const operations = [
 ];
 
 function parseDate(value) {
-    if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value))
+    if (typeof value !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
         return null;
+    }
     const parts = value.split("-").map(Number);
     const date = new Date(parts[0], parts[1] - 1, parts[2]);
     return date.getFullYear() === parts[0] &&
@@ -22,54 +24,47 @@ function parseDate(value) {
         : null;
 }
 
-const validHabit = (habit) => {
-    if (
-        !habit ||
-        typeof habit.name !== "string" ||
-        typeof habit.isPrivate !== "boolean" ||
-        !["Positive", "Negative"].includes(habit.polarity)
-    )
-        return false;
-    if (
-        !habit.entries ||
-        typeof habit.entries !== "object" ||
-        Array.isArray(habit.entries)
-    )
-        return false;
-    return Object.keys(habit.entries).every(
-        (date) =>
-            parseDate(date) !== null &&
-            ["x", "o"].includes(habit.entries[date]),
-    );
-};
-
 function validate(request, isTest) {
     if (
         !request ||
         request.version !== version ||
         typeof request.id !== "string" ||
-        request.id.length > 100 ||
-        !request.id.length
-    )
+        !request.id.length ||
+        request.id.length > 100
+    ) {
         return "Unsupported image request";
-    if (!operations.includes(request.operation))
+    }
+    if (!operations.includes(request.operation)) {
         return "Unknown image operation";
-    if (request.operation.indexOf("developer-") === 0 && !isTest)
+    }
+    if (request.operation.indexOf("developer-") === 0 && !isTest) {
         return "Developer image writes require the test build";
+    }
+    if (
+        request.handoff !== undefined &&
+        (typeof request.handoff !== "boolean" || request.operation !== "render")
+    ) {
+        return "Only rendering can queue a background snapshot";
+    }
     if (
         [
+            "finish-background",
             "backup",
             "restore",
             "developer-restore",
             "developer-restore-all",
         ].includes(request.operation)
-    )
+    ) {
         return "";
+    }
+    const expected = request.expected;
     if (
         !parseDate(request.date) ||
-        !Array.isArray(request.snapshot) ||
-        !request.snapshot.every(validHabit)
-    )
-        return "Invalid image snapshot";
+        !expected ||
+        !/^[0-9a-f]{32}$/.test(expected.roster) ||
+        (expected.month !== "missing" && !/^[0-9a-f]{32}$/.test(expected.month))
+    ) {
+        return "Confirmed saved habit data is required";
+    }
     return "";
 }

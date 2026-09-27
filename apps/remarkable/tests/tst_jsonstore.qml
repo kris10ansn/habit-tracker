@@ -244,6 +244,45 @@ TestCase {
         store.destroy();
     }
 
+    function test_overlappingWritesAreSerializedAndWaitersSeeLatestSave() {
+        const store = makeStore("serialized.json", { value: 1 });
+        const writes = [];
+        store.writeFile = (file, body, done) => writes.push({ file: file, body: body, done: done });
+        store._doSave();
+        store.writes = { value: 2 };
+        store._doSave();
+        let settled = false;
+        store.whenSaved(error => { compare(error, ""); settled = true; });
+        compare(writes.length, 1);
+        verify(!settled);
+        writes[0].done(null);
+        compare(writes.length, 2);
+        compare(JSON.parse(writes[1].body).value, 2);
+        verify(!settled);
+        writes[1].done(null);
+        verify(settled);
+        store.destroy();
+    }
+
+    function test_queuedWritesKeepTheirCapturedFilePath() {
+        const store = makeStore("old-path.json", { value: 1 });
+        const writes = [];
+        store.writeFile = (file, body, done) => writes.push({ file: file, body: body, done: done });
+        store._doSave();
+        store.writes = { value: 2 };
+        store._doSave();
+        store.filePath = path("new-path.json");
+        store.writes = { value: 3 };
+        store._doSave();
+        writes[0].done(null);
+        compare(writes[1].file, path("old-path.json"));
+        compare(JSON.parse(writes[1].body).value, 2);
+        writes[1].done(null);
+        compare(writes[2].file, path("new-path.json"));
+        writes[2].done(null);
+        store.destroy();
+    }
+
     Component {
         id: savedSpy
 

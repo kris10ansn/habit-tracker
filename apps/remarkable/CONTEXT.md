@@ -22,6 +22,11 @@ _Avoid_: lock screen, wallpaper.
 The power-state image displayed while the tablet sleeps.
 _Avoid_: sleep screen, sleep image, suspended.png.
 
+**Power-state image writer**:
+The device-local producer of power-state images from saved habit data, usable independently of
+the interactive habit tracker.
+_Avoid_: suspend writer (when referring to all power states).
+
 **Private**:
 Per-habit toggle (`isPrivate` in code; the editor’s Public / Private control) marking a habit hidden from
 glanceable surfaces. A private habit never appears in any power-state image, and is also hidden from

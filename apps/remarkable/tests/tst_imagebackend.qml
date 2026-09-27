@@ -42,7 +42,7 @@ TestCase {
         endpoint.destroy();
     }
     function ready(busy = false) {
-        endpoint.reply({ kind: "ready", version: 1, ready: true, busy: busy });
+        endpoint.reply({ kind: "ready", version: 3, ready: true, busy: busy });
     }
     function complete(index, ok = true) {
         endpoint.reply({ kind: "done", id: endpoint.sent[index].id, ok: ok });
@@ -184,97 +184,87 @@ TestCase {
         complete(0);
         verify(result.ok);
     }
-    function test_protocolRejectsMalformedAndOversizedSnapshots() {
-        const payload = { date: "2026-09-22", snapshot: [{ name: "a".repeat(61000), polarity: "Positive", isPrivate: false, entries: {} }] };
-        let result = null;
-        ready();
-        client.request("render", payload, reply => result = reply);
-        verify(!result.ok);
-        compare(endpoint.sent.length, 0);
+    function test_protocolRequiresConfirmedFileHashes() {
+        verify(ImageProtocol.validate({ version: 3, id: "id", operation: "render", date: "2026-09-22", expected: { roster: "a".repeat(32), month: "missing" } }, false) === "");
+        verify(ImageProtocol.validate({ version: 3, id: "id", operation: "render", date: "2026-09-22", snapshot: [] }, false) !== "");
+        verify(ImageProtocol.validate({ version: 3, id: "id", operation: "developer-restore" }, false) !== "");
         compare(ImageProtocol.parseDate("2026-02-30"), null);
-        verify(ImageProtocol.validate({ version: 1, id: "id", operation: "render", date: "2026-09-22", snapshot: [{}] }, true) !== "");
-        verify(ImageProtocol.validate({ version: 1, id: "id", operation: "developer-restore" }, false) !== "");
-    }
-    function makeController() {
-        ready();
-        controller = controllerComponent.createObject(testCase, {
-            backend: client, renderAllowed: true, today: new Date(2026, 8, 22),
-            habits: Fixtures.fakeModel([Fixtures.habitRow(), Fixtures.habitRow({ name: "Secret", isPrivate: true })])
-        });
-    }
-    function test_controllerCapturesPublicSnapshotAndCoalescesChanges() {
-        makeController();
-        controller.renderAsync();
-        compare(endpoint.sent.length, 1);
-        compare(endpoint.sent[0].snapshot.length, 1);
-        compare(endpoint.sent[0].date, "2026-09-22");
-        controller.habits = Fixtures.fakeModel([Fixtures.habitRow({ name: "Changed" })]);
-        controller.renderAsync();
-        controller.renderAsync();
-        compare(endpoint.sent.length, 1);
-        compare(endpoint.sent[0].snapshot[0].name, "Read 20 pages");
-        complete(0);
-        tryCompare(controller, "phase", "pending");
-        controller.renderAsync();
-        compare(endpoint.sent.length, 2);
-        compare(endpoint.sent[1].snapshot[0].name, "Changed");
-        complete(1);
-        controller.renderAsync();
-        compare(endpoint.sent.length, 2);
-    }
-    function test_controllerShowsProgressAndClearsItOnFailureAndRetry() {
-        makeController();
-        controller.renderAsync();
-        const progress = { path: "/usr/share/remarkable/poweroff.png", remainingImages: 7 };
-        endpoint.reply({ kind: "progress", id: "unrelated", phase: "saving", imageProgress: progress });
-        compare(controller.imageProgress, null);
-        endpoint.reply({ kind: "progress", id: endpoint.sent[0].id, phase: "saving", imageProgress: progress });
-        compare(SuspendStatus.text(controller.phase, controller.remainingSeconds, controller.failedPath, controller.imageProgress), "Saving poweroff.png (7 left)");
-        complete(0, false);
-        compare(controller.imageProgress, null);
-        compare(controller.phase, "save-failed");
-        controller.renderAsync();
-        compare(controller.failedPath, "");
-        compare(controller.imageProgress, null);
-        endpoint.reply({ kind: "progress", id: endpoint.sent[1].id, phase: "saving", imageProgress: { path: "/var/lib/uboot/splash.bmp", remainingImages: 0 } });
-        compare(controller.imageProgress.remainingImages, 0);
-        endpoint.reply({ kind: "progress", id: endpoint.sent[1].id, phase: "saving" });
-        compare(controller.imageProgress, null);
-        complete(1);
-        compare(controller.phase, "saved");
     }
 
-    function test_restoreSuppressesPendingAutomaticRender() {
-        makeController();
-        controller.scheduleRender();
-        let restored = null;
-        controller.restore(ok => restored = ok);
-        compare(endpoint.sent[0].operation, "restore");
-        complete(0);
-        verify(restored);
-        controller.renderAsync();
+    function renderPayload() {
+        return { handoff: true, date: "2026-09-22", expected: { roster: "a".repeat(32), month: "missing" } };
+    }
+
+    function test_handoffAcknowledgesBeforeActiveRenderCompletes() {
+        ready();
+        let active = null;
+        let handoff = null;
+        client.request("render", renderPayload(), result => active = result);
+        client.handoff("render", renderPayload(), result => handoff = result);
+        compare(endpoint.sent.length, 2);
+        endpoint.reply({ kind: "accepted", id: "unrelated", ok: true });
+        compare(handoff, null);
+        endpoint.reply({ kind: "accepted", id: endpoint.sent[1].id, ok: true, busy: true });
+        verify(handoff.ok);
+        compare(active, null);
+        verify(client.busy);
+        endpoint.reply({ kind: "done", id: endpoint.sent[0].id, ok: true, busy: true });
+        verify(active.ok);
+        verify(client.busy);
+        endpoint.reply({ kind: "done", id: endpoint.sent[1].id, ok: true, busy: false });
+        verify(!client.busy);
+    }
+
+    function test_handoffDispatchesToBusyWorkerAfterHandshake() {
+        let result = null;
+        client.handoff("render", renderPayload(), reply => result = reply);
+        ready(true);
         compare(endpoint.sent.length, 1);
-        compare(controller.phase, "restored");
+        compare(result, null);
+        endpoint.reply({ kind: "accepted", id: endpoint.sent[0].id, ok: true, busy: true });
+        verify(result.ok);
     }
-    function test_leavingCurrentMonthCancelsQueuedSnapshot() {
-        makeController();
-        controller.renderAsync();
-        controller.habits = Fixtures.fakeModel([Fixtures.habitRow({ name: "Changed" })]);
-        controller.scheduleRender();
-        controller.renderAllowed = false;
-        complete(0);
-        wait(30);
-        controller.renderAsync();
+
+    function test_reopenedFrontendWaitsForFinalQueuedBatch() {
+        let result = null;
+        client.request("backup", {}, reply => result = reply);
+        ready(true);
+        endpoint.reply({ kind: "done", id: "older", ok: true, busy: true });
+        compare(endpoint.sent.length, 0);
+        endpoint.reply({ kind: "done", id: "latest", ok: true, busy: false });
         compare(endpoint.sent.length, 1);
-        compare(controller.phase, "saved");
-        verify(!controller._renderRequested);
+        complete(0);
+        verify(result.ok);
     }
-    function test_backupFailureDoesNotReportEnabled() {
-        makeController();
-        let backedUp = null;
-        controller.backup(ok => backedUp = ok);
-        complete(0, false);
-        compare(backedUp, false);
-        compare(controller.phase, "backup-failed");
+
+    function test_handoffRequiresAcknowledgmentAndSurfacesRejection() {
+        ready();
+        let result = null;
+        client.handoff("render", renderPayload(), reply => result = reply);
+        compare(result, null);
+        endpoint.reply({ kind: "done", id: endpoint.sent[0].id, ok: false, error: "disk full" });
+        verify(!result.ok);
+        compare(result.error, "disk full");
     }
+
+    function test_missingHandoffAcknowledgmentTimesOut() {
+        client.startupTimeout = 30;
+        ready();
+        let result = null;
+        client.handoff("render", renderPayload(), reply => result = reply);
+        tryVerify(() => result !== null);
+        verify(!result.ok);
+        verify(client._uncertain);
+    }
+
+    function test_backgroundFailureIsShownAndAcknowledgedSeparately() {
+        endpoint.reply({ kind: "ready", version: 3, ready: true, busy: false,
+            backgroundFailure: { id: "previous", error: "write failed" } });
+        compare(client.backgroundFailure.error, "write failed");
+        client.dismissBackgroundFailure();
+        compare(client.backgroundFailure, null);
+        compare(endpoint.sent[0].operation, "acknowledge-background");
+        compare(endpoint.sent[0].resultId, "previous");
+    }
+
 }

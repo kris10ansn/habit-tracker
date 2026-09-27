@@ -74,7 +74,7 @@ only ImageMagick; it needs neither image generation nor a connected tablet.
 
 ## reMarkable captures
 
-Install host Qt 5.15 development packages and ImageMagick, then run:
+Install CMake, a C++17 compiler, Python 3, host Qt 5.15 Core/Gui/QML/Quick development packages, and ImageMagick, then run:
 
 ```sh
 pnpm screenshots:remarkable
@@ -82,10 +82,30 @@ pnpm screenshots:remarkable -- --scenario pairing
 ```
 
 The normal pages come from the live `apps/remarkable/src/Main.qml` scene through an offscreen Qt
-Quick host. The `suspend`, `poweroff`, and `batteryempty` images come from the production
-power-state renderer; the tool only
+Quick host. The `suspend`, `poweroff`, `batteryempty`, `starting`, `rebooting`, and `overheating` images come from the production
+native Qt Core/Gui writer; the tool only
 rotates its framebuffer-oriented result for readable README presentation. Each raw capture and its
 framed presentation copy are written together.
+
+The `restoration` scenario opens Settings with a persisted disabled/pending-restoration fixture,
+showing the real Retry action. All captures use temporary fictional data. The writer preview
+receives `--date`; the QML capture helper retains its separate `--today` option. No ARM SDK or
+tablet connection is needed, and the scripts never enable automatic system-image writing.
+
+To create review evidence against an explicit committed baseline:
+
+```sh
+pnpm screenshots:remarkable:compare -- --before-ref b7046f99c6d8e55b7e502f4fbc7a175a7aa89e9a
+```
+
+The comparison command archives only the baseline's reMarkable/writer source into a temporary
+directory, builds it locally, and renders both versions from the same current fixture. It supports
+the previous JS-backed renderer and the native writer. By default it writes full-size before/after
+PNGs, a six-state overview, Settings/restoration comparison, and provenance/metrics under
+`apps/power-image-writer/docs/comparison/`; use `--out-dir /tmp/comparison` for an uncommitted review.
+The Settings comparison uses explicit enabled and disabled/pending fixture states, not a simulated
+disk failure. Process tests separately verify the failure behavior. Compare images by eye before
+committing them; host captures do not establish tablet performance or e-ink appearance.
 
 ## Mobile test target and captures
 
