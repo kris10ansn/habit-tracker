@@ -39,6 +39,9 @@ export default function RootLayout() {
                     safeAreaInsets={{ bottom: 0, left: 0, right: 0 }}
                     screenOptions={({ route }) => ({
                         headerShown: false,
+                        // Prepare the four main pages before the first release; keep
+                        // device-management/linking pages lazy (including the camera).
+                        lazy: !TAB_ROUTES.includes(route.name),
                         // Let the navigator transition the existing scenes while the tab bar stays put.
                         animation: reduceMotion ? "none" : "shift",
                         transitionSpec: {

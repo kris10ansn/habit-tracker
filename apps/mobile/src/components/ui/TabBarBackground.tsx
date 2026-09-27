@@ -21,7 +21,7 @@ export function TabBarBackground({
     previewIndex,
     width,
 }: Props) {
-    const position = useSharedValue(Math.max(activeIndex, 0));
+    const targetIndex = useSharedValue(Math.max(activeIndex, 0));
     const isRTL = I18nManager.isRTL;
 
     useAnimatedReaction(
@@ -29,32 +29,37 @@ export function TabBarBackground({
         (target, previous) => {
             // Hidden routes have no selected tab. Keep the last position for the return trip.
             if (target < 0 || target === previous) return;
-            position.set(
-                withSpring(target, {
-                    stiffness: 520,
-                    damping: 27,
-                    mass: 0.8,
-                    reduceMotion: ReduceMotion.System,
-                }),
-            );
+            targetIndex.set(target);
         },
     );
 
     const highlightStyle = useAnimatedStyle(() => {
         const tabWidth = width.get() / tabCount;
         const visualIndex = isRTL
-            ? tabCount - 1 - position.get()
-            : position.get();
+            ? tabCount - 1 - targetIndex.get()
+            : targetIndex.get();
 
         return {
-            // Match the navigator's 2px horizontal item margins. Normalized position
-            // keeps the pill aligned when the bar resizes, including mid-animation.
+            // Match the navigator's 2px horizontal item margins and retarget the
+            // spring to the selected tab when the bar resizes.
             width: Math.max(0, tabWidth - 4),
             opacity:
                 (activeIndex >= 0 || previewIndex.get() >= 0) && width.get() > 0
                     ? 1
                     : 0,
-            transform: [{ translateX: visualIndex * tabWidth + 2 }],
+            // Spring the transform property itself. Reanimated then updates only
+            // that property per frame; width/visibility are sent when the target
+            // or layout changes, not on every tick of an animated shared value.
+            transform: [
+                {
+                    translateX: withSpring(visualIndex * tabWidth + 2, {
+                        stiffness: 520,
+                        damping: 27,
+                        mass: 0.8,
+                        reduceMotion: ReduceMotion.System,
+                    }),
+                },
+            ],
         };
     });
 

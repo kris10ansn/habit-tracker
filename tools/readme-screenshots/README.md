@@ -201,9 +201,17 @@ swipe coordinates target the floating tab bar on the Pixel 9a in portrait at def
 adjust the vertical coordinate for other device layouts. The existing tab button IDs are unchanged.
 
 The [full emulator recording](../../docs/assets/demos/tab-scrub.mp4) is the unedited Maestro
-capture. The [GIF preview](../../docs/assets/demos/tab-scrub.gif) shows seconds 4–14 at their
-original speed: the highlight follows the finger while Sync stays visible, then releasing opens
-Month. The recording uses the isolated fixture and Expo Go on Android; iOS was not exercised.
+capture. The [GIF preview](../../docs/assets/demos/tab-scrub.gif) shows a ten-second excerpt at
+original speed, including highlight previews and page transitions after release. The recording
+uses the isolated fixture and Expo Go on Android; iOS was not exercised.
+
+The performance follow-up prepares the four main pages at startup, keeping device-management
+and linking pages lazy. Allow startup and fixture queries to settle before recording; this moves
+initial render work ahead of the first tab release and uses more memory at startup. The highlight's
+spring runs on its transform property, keeping size/visibility out of per-frame updates. The recording verifies
+interaction behavior, not production frame rates on physical hardware. The refreshed capture used
+ADB reverse on port 8082 and the same flow with its `openLink` host changed to `127.0.0.1` because
+the emulator's host-network connection was intermittent.
 
 Additional ADB checks held a touch over Month, moved to Sync, reversed to Habits, and verified
 that Today remained selected until `UP` selected Habits. Injecting `CANCEL` instead restored the
