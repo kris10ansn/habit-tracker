@@ -16,25 +16,26 @@ It renders the Habit × Entry model in the backend's shape over a mobile-native,
 - **Month** — the whole grid at review scale, **transposed** for portrait: days are rows (vertical
   scroll), habits are columns, today's row highlighted.
 - **Habits** — manage the roster: rename, reorder, set polarity.
-- **Sync** — point the app at a backend, sign in, and manage linked devices, or stay standalone with
-  an empty Server URL.
+- **Settings** — choose light/dark appearance, point the app at a backend, sign in, and manage
+  linked devices, or stay standalone with an empty Server URL.
 
 ## Status
 
 **Persistent, editable, and synced.** Habits and entries live in on-device SQLite (`expo-sqlite` +
 Drizzle) read through TanStack Query, so marking a day, renaming a habit, flipping its polarity,
-reordering the roster, and adding or deleting habits all persist across restarts. The Sync screen
+reordering the roster, and adding or deleting habits all persist across restarts. The Settings screen
 stores a **Server URL** (blank = standalone) and offers a manual **Sync now**; the Month screen also
 passes whichever month is being viewed when you pull to refresh, while Today and Habits can also be
 refreshed to sync. A fresh install starts empty: add habits locally or pull them from your account
 with **Sync now**. Older history is fetched for the month you view and refresh. The backend at
 [`apps/backend/`](../backend/) owns the merge (last-write-wins on
 `editedAt`) — this client submits its state and accepts the result rather than resolving conflicts
-itself. From **Sync → Linked devices → Link a device**, scan a pairing QR code with the in-app
+itself. From **Settings → Linked devices → Link a device**, scan a pairing QR code with the in-app
 camera or enter its six-character code manually, review the requesting device, and approve it.
 
-The app follows the phone’s light or dark appearance, including changes made while it is open.
-Set the appearance in your phone’s system settings.
+In **Settings → Appearance**, choose **System**, **Light**, or **Dark**. System is the default
+and follows the phone’s appearance, including changes while the app is open. The choice saves
+on this device and applies across screens, navigation, and native controls.
 
 ## Daily use
 
@@ -52,14 +53,14 @@ has no working privacy toggle or hide-private setting.
 ## Connect and sync
 
 1. Set up the [backend](../backend/README.md#run-it), or get its base URL from its administrator.
-2. Enter that URL in **Sync → Server URL**, including `http://` or `https://`, and tap **Save**.
+2. Enter that URL in **Settings → Server URL**, including `http://` or `https://`, and tap **Save**.
    Use the server base address without `/api` or `/api/sync`.
 3. Create an account or sign in. Passwords require at least 10 characters; signups after the first
    server account need an invite from an administrator.
 4. Tap **Sync now**, or pull to refresh Today, Month, or Habits. To retrieve older history, open
    that month and pull to refresh. Saving an address or signing in alone does not run a sync.
 
-To connect a tablet, request a code in its Settings, then open **Sync → Linked devices → Link a
+To connect a tablet, request a code in its Settings, then open **Settings → Linked devices → Link a
 device** on mobile. Scan or enter the code, review the device name, and approve. Both devices must
 use the same backend; keep the tablet's Settings open until it receives its token. Codes expire
 after five minutes. **Linked devices** also lets you revoke sessions.
@@ -121,6 +122,7 @@ For isolated fictional data and README captures, use the [screenshot test workfl
 ```sh
 pnpm typecheck    # tsc --noEmit
 pnpm lint         # expo lint (config in eslint.config.js)
+node --test tests/*.test.mjs # SQLite migration regression checks (Node 22.13+)
 ```
 
 ## Layout
@@ -128,9 +130,9 @@ pnpm lint         # expo lint (config in eslint.config.js)
 ```
 src/
 ├── app/          expo-router routes (file-based). _layout.tsx is the Tabs navigator
-│                 (imports global.css); index=Today, month, habits, sync.
+│                 (imports global.css); index=Today, month, habits, settings (sync redirects).
 ├── components/   UI, grouped by feature — ui/ (primitives: Card, Button, Pill,
-│                 AppScreen, SortableList, …), today/, month/, habits/, sync/,
+│                 AppScreen, SortableList, …), today/, month/, habits/, settings/, sync/,
 │                 plus HabitMark.tsx and AppProviders.tsx (query client + DatabaseGate).
 ├── db/           SQLite via Drizzle — schema.ts, drizzle/ (generated migrations),
 │                 client.ts, migrations.ts, repo/ (the only DB access, incl. sync.ts).

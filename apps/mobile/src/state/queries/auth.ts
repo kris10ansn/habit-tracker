@@ -24,11 +24,11 @@ import { useSettings } from "@/state/queries/settings";
 import { authSessionKey, linkedSessionsKey, pairingCodeKey } from "./keys";
 
 const NO_SERVER_URL_MESSAGE =
-    "No Server URL set — set one on the Sync tab first.";
+    "No Server URL set — set one on the Settings tab first.";
 
 // The Server URL setting doubles as the backend account's address: there is nothing to sign up or
 // log into without one. Every mutation below reads it fresh rather than taking it as an argument,
-// same as useSync does, so it can never go stale against an in-flight edit on the Sync tab.
+// same as useSync does, so it can never go stale against an in-flight edit on the Settings tab.
 function useBaseUrl(): string {
     const settings = useSettings();
     return settings.data?.syncServerUrl.trim() ?? "";
@@ -36,7 +36,7 @@ function useBaseUrl(): string {
 
 /**
  * This device's own signed-in session — the SecureStore read, wrapped as a query so every screen
- * that cares (the Sync tab's account card, the devices list, pairing) re-renders together whenever
+ * that cares (the Settings tab's account card, the devices list, pairing) re-renders together whenever
  * it changes. `null` and standalone (no Server URL) look the same to callers: signed out.
  */
 export function useAuthSession() {

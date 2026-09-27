@@ -6,11 +6,13 @@ import { Toaster } from "sonner-native";
 import { AppProviders } from "@/components/AppProviders";
 import { Icon } from "@/components/ui/Icon";
 import { TabBarBackground } from "@/components/ui/TabBarBackground";
+import { useSettings } from "@/state/queries";
 import { useColors } from "@/theme/colors";
 
 import { PlatformPressable } from "expo-router/build/react-navigation";
 import React, { useEffect } from "react";
 import {
+    Appearance,
     Easing,
     StatusBar,
     useColorScheme,
@@ -25,7 +27,7 @@ const TabBarButton = (
     props: React.ComponentProps<typeof PlatformPressable>,
 ) => <PlatformPressable {...props} android_ripple={{ color: null }} />;
 
-const TAB_ROUTES = ["index", "month", "habits", "sync"];
+const TAB_ROUTES = ["index", "month", "habits", "settings"];
 
 export default function RootLayout() {
     return (
@@ -38,6 +40,17 @@ export default function RootLayout() {
 // Subscribe below SQLiteProvider: it memoizes by database configuration and does
 // not forward changes to its children prop. Keep the navigator mounted on theme changes.
 function ThemedApp() {
+    const settings = useSettings();
+    const appearance = settings.data?.appearance;
+    useEffect(() => {
+        if (appearance !== undefined) {
+            // One native override drives useColorScheme and NativeWind media queries.
+            Appearance.setColorScheme(
+                appearance === "system" ? "unspecified" : appearance,
+            );
+        }
+    }, [appearance]);
+
     const colorScheme = useColorScheme();
     const isDark = colorScheme === "dark";
     const colors = useColors();
@@ -160,20 +173,21 @@ function ThemedApp() {
                         }}
                     />
                     <Tabs.Screen
-                        name="sync"
+                        name="settings"
                         options={{
-                            title: "Sync",
+                            title: "Settings",
                             tabBarIcon: ({ color, size }) => (
                                 <Icon
-                                    name="cloud-queue"
+                                    name="settings"
                                     color={color}
                                     size={size}
                                 />
                             ),
                         }}
                     />
-                    {/* Reached by pushing from the Sync tab's Account card, not by tab — href: null
+                    {/* Reached by pushing from the Settings tab's Account card, not by tab — href: null
                     keeps them out of the tab bar while staying part of this navigator. */}
+                    <Tabs.Screen name="sync" options={{ href: null }} />
                     <Tabs.Screen name="devices" options={{ href: null }} />
                     <Tabs.Screen name="link-device" options={{ href: null }} />
                 </Tabs>

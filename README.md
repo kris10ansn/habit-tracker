@@ -107,12 +107,12 @@ Review a month of entries, manage your habits, and see which changes are waiting
   <tr>
     <td width="33%" align="center"><a href="docs/assets/screenshots/android-month.png"><img src="docs/assets/screenshots/framed/android-month.png" alt="Android Month view with days as rows, habits as columns, and September 9 highlighted" width="270"></a></td>
     <td width="33%" align="center"><a href="docs/assets/screenshots/android-habits.png"><img src="docs/assets/screenshots/framed/android-habits.png" alt="Android Habits view with positive and negative polarity controls and a new-habit field" width="270"></a></td>
-    <td width="33%" align="center"><a href="docs/assets/screenshots/android-sync.png"><img src="docs/assets/screenshots/framed/android-sync.png" alt="Android Sync view showing pending changes, a configured server, and the signed-in sample account" width="270"></a></td>
+    <td width="33%" align="center"><a href="docs/assets/screenshots/android-sync.png"><img src="docs/assets/screenshots/framed/android-sync.png" alt="Android Settings view with appearance choices and sync controls" width="270"></a></td>
   </tr>
   <tr>
     <td align="center"><sub>Review the month</sub></td>
     <td align="center"><sub>Manage habits and polarity</sub></td>
-    <td align="center"><sub>Sync and account controls</sub></td>
+    <td align="center"><sub>Appearance, sync, and account</sub></td>
   </tr>
 </table>
 
@@ -180,7 +180,7 @@ pnpm mobile:android
 ```
 
 For an existing development client or Expo Go, start the development server with `pnpm mobile:start`.
-You can add habits locally and configure a server later from the Sync tab.
+You can add habits locally and configure a server later from the Settings tab.
 
 [Mobile setup and development →](apps/mobile/README.md)
 
@@ -212,7 +212,7 @@ pnpm backend:start
 ```
 
 The development API listens on port `5137`, including your computer's network interfaces.
-On mobile, enter its reachable base address in **Sync → Server URL** and tap **Save**.
+On mobile, enter its reachable base address in **Settings → Server URL** and tap **Save**.
 Use `http://10.0.2.2:5137` for a local Android emulator, or your computer's LAN address
 (for example, `http://192.168.1.50:5137`) for a phone or tablet on the same network.
 `localhost` on a device refers to that device, not the computer running the API.
@@ -221,7 +221,7 @@ Sign up or log in on mobile, then tap **Sync now**. The first account on a new s
 its administrator; later signups require an administrator-issued invite.
 
 To link a tablet, save the same server's address in its Settings, request a code with **Connect**,
-and approve it from **Sync → Linked devices → Link a device** on the phone. Review the requesting
+and approve it from **Settings → Linked devices → Link a device** on the phone. Review the requesting
 device before approving, and keep tablet Settings open until pairing completes. **Linked devices**
 then lets you review or revoke its session.
 

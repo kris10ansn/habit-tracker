@@ -50,7 +50,7 @@ export function useSync() {
 
             if (!baseURL) {
                 throw new Error(
-                    "No Server URL set — the app is standalone. Set one on the Sync tab first.",
+                    "No Server URL set — the app is standalone. Set one on the Settings tab first.",
                 );
             }
 

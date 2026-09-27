@@ -12,7 +12,7 @@ import { Pill } from "@/components/ui/Pill";
 import { relativeTime } from "@/lib/relativeTime";
 import { useAuthSession, useRevokeSession, useSessions } from "@/state/queries";
 
-// Pushed from the Sync tab's Account card. Not a tab itself — see _layout.tsx, where it's
+// Pushed from the Settings tab's Account card. Not a tab itself — see _layout.tsx, where it's
 // registered with `href: null` so it's reachable via router.push without showing in the tab bar.
 export default function DevicesScreen() {
     const router = useRouter();
@@ -29,8 +29,8 @@ export default function DevicesScreen() {
             {!session.data ? (
                 <Card>
                     <Text className="text-[13px] text-ink-2">
-                        You’re signed out. Sign in again on the Sync tab to see
-                        linked devices.
+                        You’re signed out. Sign in again on the Settings tab to
+                        see linked devices.
                     </Text>
                 </Card>
             ) : (
@@ -47,8 +47,8 @@ export default function DevicesScreen() {
                         // it. `fetchStatus` is what tells the two apart.
                         <Card>
                             <Text className="text-[13px] text-ink-2">
-                                Set a Server URL on the Sync tab to see linked
-                                devices.
+                                Set a Server URL on the Settings tab to see
+                                linked devices.
                             </Text>
                         </Card>
                     ) : sessions.isPending ? (
