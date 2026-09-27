@@ -26,12 +26,13 @@ class AppLoadConnection final : public QObject {
         ~Socket();
         Socket(const Socket &) = delete;
         Socket &operator=(const Socket &) = delete;
+
         int descriptor() const {
-            return value;
+            return fileDescriptor;
         }
 
       private:
-        int value = -1;
+        int fileDescriptor = -1;
     };
 
     struct PacketHeader {

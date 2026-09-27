@@ -2,6 +2,7 @@
 
 #include "AppLoadConnection.h"
 #include "Writer.h"
+
 #include <QLockFile>
 #include <QThread>
 #include <QTimer>

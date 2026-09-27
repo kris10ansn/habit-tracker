@@ -1,5 +1,7 @@
 #pragma once
+
 #include "Model.h"
+
 #include <QImage>
 
 namespace powerimages {

@@ -16,5 +16,8 @@ contract is [ADR 0009](../remarkable/docs/adr/0009-independent-power-state-image
 - Keep the job interface typed (`Request`, `ProgressEvent`); JSON messages belong to `WriterProtocol`,
   socket framing to `AppLoadConnection`, and job lifetime to `AppLoadSession`. Prefer named methods
   and records that a reader from C#/Kotlin can follow; preserve scoped ownership and batch caching.
-- Format C++ with the local `.clang-format`. Prefer descriptive names and small functions around
-  parsing, rendering, installation, and transport responsibilities.
+- Format C++ with the local `.clang-format`; use braces for every control-flow block.
+- Separate logical phases with blank lines. Prefer descriptive names and explicit intermediate
+  values over dense expressions. Keep related statements together rather than spacing every line.
+- Prefer guard clauses and early returns to nested conditionals. Extract a named operation when
+  branches obscure the main flow; keep control-flow nesting to two levels where practical.

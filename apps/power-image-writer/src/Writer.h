@@ -1,10 +1,15 @@
 #pragma once
+
 #include "Files.h"
 #include "Model.h"
+
 #include <functional>
 #include <optional>
 
 namespace powerimages {
+
+class RenderedImages;
+
 struct Environment {
     QString appDirectory;
     QString imageDirectory = "/usr/share/remarkable";
@@ -12,6 +17,7 @@ struct Environment {
     QString deviceModel;
     bool testProfile = false;
 };
+
 struct ImageTarget {
     State state;
     QString path;
@@ -35,11 +41,13 @@ struct Request {
     std::optional<SavedDataFingerprint> expected;
 };
 enum class ProgressPhase { Captured, BackingUp, Saving, Restoring };
+
 struct ProgressEvent {
     ProgressPhase phase;
     QString path;
     std::optional<int> remainingImages;
 };
+
 using ProgressCallback = std::function<void(const ProgressEvent &)>;
 
 class Writer final {
@@ -58,10 +66,14 @@ class Writer final {
     void restore(const QVector<ImageTarget> &selected, const ProgressCallback &progress);
     void render(const QVector<ImageTarget> &selected, const Snapshot &snapshot, const ProgressCallback &progress,
                 bool deduplicate);
+
     struct Settings {
         bool writingEnabled = false;
         bool restorationPending = false;
     };
+
+    void writeDeveloperPreviews(const QVector<ImageTarget> &selected, RenderedImages &images);
+    void requireWritingEnabled() const;
     Settings settings() const;
     QString signaturePath() const;
 };

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Writer.h"
+
 #include <QJsonObject>
 
 namespace powerimages::WriterProtocol {

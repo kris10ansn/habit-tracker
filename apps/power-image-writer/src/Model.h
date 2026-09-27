@@ -26,6 +26,7 @@ struct Habit {
     Polarity polarity;
     QMap<int, Outcome> entries;
 };
+
 struct Snapshot {
     QDate date;
     QVector<Habit> habits;

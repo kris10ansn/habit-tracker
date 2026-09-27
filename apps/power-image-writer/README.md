@@ -34,6 +34,7 @@ The interactive grid, habit edits, and sync remain in the QML app. A small set o
 ```sh
 ./scripts/build-host.sh
 ctest --test-dir build/host --output-on-failure
+clang-format --dry-run --Werror src/*.cpp src/*.h tests/writer_tests.cpp
 make -C ../remarkable test
 ```
 

@@ -2,4 +2,9 @@ BasedOnStyle: LLVM
 IndentWidth: 4
 ColumnLimit: 120
 BreakBeforeBraces: Attach
+InsertBraces: true
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortBlocksOnASingleLine: Never
 AllowShortFunctionsOnASingleLine: Empty
+SeparateDefinitionBlocks: Always

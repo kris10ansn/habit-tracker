@@ -2,6 +2,7 @@
 #include "Model.h"
 #include "Renderer.h"
 #include "Writer.h"
+
 #include <QFile>
 #include <QFileInfo>
 #include <QGuiApplication>
@@ -15,59 +16,78 @@
 #include <iostream>
 
 using namespace powerimages;
+
 namespace {
 void require(bool condition, const char *message) {
-    if (!condition)
+    if (!condition) {
         throw std::runtime_error(message);
+    }
 }
+
 void rejects(const std::function<void()> &action) {
     try {
         action();
     } catch (const Error &) {
         return;
     }
+
     throw std::runtime_error("Expected operation to fail");
 }
+
 class MemoryFiles final : public Files {
   public:
     QHash<QString, QByteArray> contents;
     QString failPath;
     QStringList writes;
+
     bool exists(const QString &path) const override {
         return contents.contains(path);
     }
+
     QByteArray read(const QString &path) const override {
-        if (!contents.contains(path))
+        if (!contents.contains(path)) {
             throw Error("Missing file", path);
+        }
+
         return contents.value(path);
     }
+
     void write(const QString &path, const QByteArray &bytes) override {
-        if (path == failPath)
+        if (path == failPath) {
             throw Error("Injected write failure", path);
+        }
+
         writes.append(path);
         contents[path] = bytes;
     }
 };
+
 QByteArray json(const QJsonObject &object) {
     return QJsonDocument(object).toJson(QJsonDocument::Compact);
 }
+
 const ProgressCallback quiet = [](const ProgressEvent &) {};
+
 struct Fixture {
     MemoryFiles files;
     Environment environment{"/app", "/images", "/boot", "reMarkable 1.0", false};
     QDate date{2026, 8, 9};
+
     explicit Fixture(const QJsonObject &contract) {
         files.contents["/app/data/roster.json"] = json(contract["roster"].toObject());
         files.contents["/app/data/2026-08.json"] = json(contract["month"].toObject());
         files.contents["/app/settings.json"] = "{\"suspendImageEnabled\":true}";
-        for (const auto &name : {"suspended", "poweroff", "batteryempty", "starting", "rebooting", "restart-crashed"})
+        for (const auto &name : {"suspended", "poweroff", "batteryempty", "starting", "rebooting", "restart-crashed"}) {
             files.contents["/images/" + QString(name) + ".png"] = "original-" + QByteArray(name);
+        }
     }
+
     void disabled() {
         files.contents["/app/settings.json"] = "{\"suspendImageEnabled\":false,\"powerImageRestorePending\":true}";
     }
 };
 } // namespace
+
 int main(int argc, char **argv) {
     QGuiApplication app(argc, argv);
     LocalFiles local;
@@ -98,6 +118,7 @@ int main(int argc, char **argv) {
                 const auto mark = markFor(habit.entries.value(day, Outcome::Unmarked), habit.polarity);
                 marks += mark.isNull() ? QChar(' ') : mark;
             }
+
             require(marks == expected[index].toObject()["marks"].toString(), "Mark semantics drifted");
             require(habit.name == expected[index].toObject()["name"].toString(), "Roster order drifted");
         }
@@ -124,6 +145,7 @@ int main(int argc, char **argv) {
         } catch (const Error &error) {
             superseded = error.superseded;
         }
+
         require(superseded, "Changed input accepted");
         require(fixture.files.writes.isEmpty(), "Wrote before validating input");
     });
@@ -131,8 +153,9 @@ int main(int argc, char **argv) {
         Fixture fixture(contract);
         Writer writer(fixture.files, fixture.environment);
         writer.execute({Operation::Render, fixture.date, {}}, [&](const ProgressEvent &progress) {
-            if (progress.phase == ProgressPhase::Captured)
+            if (progress.phase == ProgressPhase::Captured) {
                 fixture.files.contents["/app/data/roster.json"] = "invalid";
+            }
         });
         const auto snapshot =
             parseSnapshot(json(contract["roster"].toObject()), json(contract["month"].toObject()), fixture.date);
@@ -224,8 +247,10 @@ int main(int argc, char **argv) {
         fixture.environment.testProfile = true;
         Writer writer(fixture.files, fixture.environment);
         writer.execute({Operation::Render, fixture.date, {}}, quiet);
-        for (const auto &path : fixture.files.writes)
+        for (const auto &path : fixture.files.writes) {
             require(path.startsWith("/app/"), "Test automatic write escaped app directory");
+        }
+
         require(fixture.files.read("/images/suspended.png") == "original-suspended", "Test touched system screen");
     });
     test("atomic local writes preserve symlink aliases and verify full bytes", [&] {
