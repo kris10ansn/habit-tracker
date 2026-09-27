@@ -15,13 +15,13 @@ name: Sliding tab highlight
       id: tab-habits
 - assertVisible: Rename, reorder, set polarity, or add
 - tapOn:
-      id: tab-sync
-- assertVisible: Keep every device in step
+      id: tab-settings
+- assertVisible: Make yourself at home
 - tapOn:
       id: tab-index
 - assertVisible: Read 20 min
 - tapOn:
-      id: tab-sync
+      id: tab-settings
 - tapOn:
       id: tab-month
 - tapOn:

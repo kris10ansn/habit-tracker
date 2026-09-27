@@ -157,9 +157,16 @@ refreshes `framed/device-linking.png` from the current phone captures and existi
 To update only Today, capture with `--scenario today` and frame with `--client android --scenario today`.
 The combined `mobile:test:readme` command always updates all six screens.
 
+The Android `sync` capture scenario retains its filenames (`android-sync.png`) for existing
+README links, but now opens the Settings route and checks the appearance and sync controls.
+Account and connection controls remain below; scroll to inspect them. The tab-animation
+Maestro flow targets `tab-settings`.
+
 ### Light and dark appearance
 
-The mobile app follows Android's system appearance. On your selected emulator, check the
+The mobile app defaults to following Android's system appearance. Choose **System** in
+**Settings → Appearance** before capturing a pair controlled by the emulator's night setting.
+On your selected emulator, check the
 current setting with `adb -s emulator-5554 shell cmd uimode night`, then use
 `adb -s emulator-5554 shell cmd uimode night yes` for dark or `night no` for light before
 running the capture command. Substitute your emulator's serial in both commands. Copy each
