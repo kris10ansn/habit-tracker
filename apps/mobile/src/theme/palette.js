@@ -1,13 +1,6 @@
-// Single source of truth for the app's color values. Consumed three ways:
-//   - `tailwind.config.js` shapes these into Tailwind's nested color scale
-//     (so `bg-accent`, `text-ink-2`, `bg-done-soft`, … exist as classes);
-//   - `colors.ts` re-exports it for the few APIs that take raw color values
-//     rather than NativeWind classes (the React Navigation tab bar,
-//     `placeholderTextColor`).
-// Plain CommonJS so the Tailwind config (Node) and app code (TS) can both read it.
-// The JSDoc `@type {const}` cast is the `.js` equivalent of `as const`: TS infers
-// literal, deeply-readonly types (so `colors.accent` is `'#6551c4'`, not `string`).
-const palette = /** @type {const} */ ({
+// Shared by NativeWind CSS variables and raw native color APIs.
+// Keep both schemes here so every surface uses the same semantic tokens.
+const light = /** @type {const} */ ({
     surface: "#ffffff",
     surface2: "#f7f6fa",
     ink: "#252332",
@@ -15,6 +8,8 @@ const palette = /** @type {const} */ ({
     ink3: "#807b8c",
     line: "#e9e5ef",
     accent: "#6551c4",
+    onAccent: "#ffffff",
+    shadow: "#252332",
     accentSoft: "#eeeafa",
     streak: "#b84308",
     streakSoft: "#ffdb9f",
@@ -26,4 +21,25 @@ const palette = /** @type {const} */ ({
     slipSoft: "#f9e9ed",
 });
 
-module.exports = { palette };
+const dark = /** @type {const} */ ({
+    surface: "#211e2b",
+    surface2: "#15131c",
+    ink: "#f1edf7",
+    ink2: "#bcb5ca",
+    ink3: "#9d94ad",
+    line: "#3b3449",
+    accent: "#b4a1fa",
+    onAccent: "#241a40",
+    shadow: "#000000",
+    accentSoft: "#34294e",
+    streak: "#ffb875",
+    streakSoft: "#49301e",
+    warm: "#dfb878",
+    warmSoft: "#3b3022",
+    done: "#72d4b4",
+    doneSoft: "#1c3a32",
+    slip: "#f29bad",
+    slipSoft: "#442631",
+});
+
+module.exports = { light, dark };

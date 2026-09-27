@@ -4,7 +4,7 @@
 // decides how mobile talks to the backend, and the only hand-written part of the seam.
 //
 // Deliberately stateless: there is no module-level base URL to fall stale. Mobile's Server URL is a
-// user-editable setting (empty = standalone, see the Sync tab), so every call passes the URL it
+// user-editable setting (empty = standalone, see the Settings tab), so every call passes the URL it
 // wants — `sync(request, { baseURL: settings.syncServerUrl })`. A caller with no server configured
 // is not supposed to reach here at all.
 //

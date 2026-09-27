@@ -45,6 +45,11 @@ export const settings = sqliteTable(
     {
         id: integer().notNull().default(0).primaryKey(),
 
+        // Device-local preference, never sent to the sync service.
+        appearance: text({ enum: ["system", "light", "dark"] })
+            .notNull()
+            .default("system"),
+
         syncServerUrl: text().notNull().default(""),
 
         // When the last sync succeeded, epoch ms. Null until the first one, which is what makes

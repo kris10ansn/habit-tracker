@@ -47,6 +47,29 @@ and Android captures fill their windows exactly. Smaller differences from other 
 are centered against the frame's off-white screen color rather than stretching or cropping the app
 UI. ImageMagick provides the only image-processing dependency.
 
+### Light/dark mobile showcase
+
+The README's first phone uses `framed/android-appearance-showcase.png`. ImageMagick slices
+the real `dark-mode/light-today.png` and `dark-mode/dark-today.png` captures diagonally from
+top right to bottom left, with light above/left and dark below/right. It keeps both screens
+aligned and applies the existing phone frame once. No UI pixels are invented.
+
+The normal `screenshots:frame` command (including its use in `mobile:test:readme`) regenerates
+this composite whenever it processes Android's `today` scenario. To rebuild just that scenario:
+
+```sh
+pnpm screenshots:frame -- --client android --scenario today
+```
+
+Both appearance captures are retained sources under `docs/assets/screenshots/dark-mode/`.
+Refreshing the regular light-only captures does not replace this pair: recapture Today in
+both modes with the same fixture, scroll position, and resolution, and save them as
+`light-today.png` and `dark-today.png` there before rebuilding. See
+[Light and dark appearance](#light-and-dark-appearance) for capture instructions.
+The compositor fails on missing or differently sized sources instead of silently using one mode.
+`--input-dir` relocates the source directory (including its `dark-mode/` child); `--out-dir`
+relocates the framed output. Regeneration from retained sources needs no emulator.
+
 ### Folio showcase
 
 The README's opening sleep-screen image uses `remarkable-showcase.png`. Its source is the blank
@@ -134,6 +157,31 @@ refreshes `framed/device-linking.png` from the current phone captures and existi
 To update only Today, capture with `--scenario today` and frame with `--client android --scenario today`.
 The combined `mobile:test:readme` command always updates all six screens.
 
+The Android `sync` capture scenario retains its filenames (`android-sync.png`) for existing
+README links, but now opens the Settings route and checks the appearance and sync controls.
+Account and connection controls remain below; scroll to inspect them. The tab-animation
+Maestro flow targets `tab-settings`.
+
+### Light and dark appearance
+
+The mobile app defaults to following Android's system appearance. Choose **System** in
+**Settings → Appearance** before capturing a pair controlled by the emulator's night setting.
+On your selected emulator, check the
+current setting with `adb -s emulator-5554 shell cmd uimode night`, then use
+`adb -s emulator-5554 shell cmd uimode night yes` for dark or `night no` for light before
+running the capture command. Substitute your emulator's serial in both commands. Copy each
+set of raw captures before the next run, since both appearances use the same output filenames.
+Keep the regular README captures in light mode. Save the paired Today captures as
+`docs/assets/screenshots/dark-mode/light-today.png` and `dark-today.png` for the
+[diagonal showcase](#lightdark-mobile-showcase); the other PR comparison images also live there.
+Restore the emulator's original setting afterward (`yes`, `no`, or `auto`).
+
+Also switch appearance while the app is open: the page, floating tabs, status bar, inputs, and
+polarity labels should update together without restarting or changing any entries. The camera
+viewfinder stays white in both modes. Use a separate emulator when another task is capturing;
+different Metro ports still share Expo Go on the same emulator.
+For clean captures on a fresh Expo Go installation, disable **Tools button** in its developer menu.
+
 Capture validates the full selected set before replacing raw images. A later framing failure
 leaves those new raw captures available; rerun framing without recapturing. Each replacement uses
 rename, but the set is not a filesystem transaction.
@@ -198,12 +246,15 @@ maestro --device emulator-5554 test --test-output-dir .screenshots/tab-scrub too
 This flow opens the test project, records slow drags across all four tabs in both directions,
 and asserts the destination after each release. It also checks ordinary stationary taps. The
 swipe coordinates target the floating tab bar on the Pixel 9a in portrait at default font size;
-adjust the vertical coordinate for other device layouts. The existing tab button IDs are unchanged.
+adjust the vertical coordinate for other device layouts. The fourth tab now uses `tab-settings`;
+the flow checks the Settings subtitle after releasing over it.
 
 The [full emulator recording](../../docs/assets/demos/tab-scrub.mp4) is the unedited Maestro
 capture. The [GIF preview](../../docs/assets/demos/tab-scrub.gif) shows a ten-second excerpt at
 original speed, including highlight previews and page transitions after release. The recording
-uses the isolated fixture and Expo Go on Android; iOS was not exercised.
+uses the isolated fixture and Expo Go on Android; iOS was not exercised. This recording predates
+the merge of Settings and dark mode: it shows the former Sync tab. Refresh the recording with
+the updated flow to demonstrate the merged interface in light and dark appearances.
 
 The performance follow-up prepares the four main pages at startup, keeping device-management
 and linking pages lazy. Allow startup and fixture queries to settle before recording; this moves
@@ -218,9 +269,9 @@ that Today remained selected until `UP` selected Habits. Injecting `CANCEL` inst
 Today highlight without navigating. These checks use `adb shell input touchscreen motionevent`
 and UIAutomator's selected tab state, with screenshots to inspect the preview highlight.
 
-Settled Today, Month, Habits, and Sync layouts still match the existing README capture assumptions.
-Wait for release and for the spring/page transition to settle before capturing stills; the new
-interaction requires video evidence rather than refreshed static README images.
+The merged README captures cover Today, Month, Habits, and Settings in both appearances.
+Wait for release and for the spring/page transition to settle before capturing stills. The
+updated scrub flow has not yet been rerun against the merged interface.
 
 ### Test isolation
 

@@ -16,7 +16,7 @@ name: Spring tab scrubbing
       start: 17%, 91%
       end: 83%, 91%
       duration: 2400
-- assertVisible: Keep every device in step
+- assertVisible: Make yourself at home
 - swipe:
       start: 83%, 91%
       end: 39%, 91%

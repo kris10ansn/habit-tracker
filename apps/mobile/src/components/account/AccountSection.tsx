@@ -5,7 +5,7 @@ import { AuthForms } from "@/components/account/AuthForms";
 import { Card } from "@/components/ui/Card";
 import { useAuthSession, useSettings } from "@/state/queries";
 
-// The Sync tab's Account block: signup/login when signed out, or the current account + linked-
+// The Settings tab's Account block: signup/login when signed out, or the current account + linked-
 // devices/log-out actions when signed in. An empty Server URL is standalone — decision 10 in
 // AUTH_PLAN.md — so there is nothing to sign into yet and the forms don't render at all.
 export function AccountSection() {

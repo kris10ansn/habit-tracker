@@ -8,6 +8,7 @@ Item {
     id: page
 
     property var habits
+    property var originalHabits: []
     property real scrollY: 0
     property int pendingDelete: -1
     property string syncStatusText: ""
@@ -29,6 +30,18 @@ Item {
         page.forceActiveFocus();
         Qt.inputMethod.hide();
         page.doneRequested();
+    }
+
+    function cancel() {
+        page.forceActiveFocus();
+        Qt.inputMethod.hide();
+        const changes = HabitEdits.changes(page.originalHabits, HabitEdits.snapshot(page.habits));
+        if (changes.added.length || changes.removed.length || changes.updated.length || changes.reordered || addRow.hasPendingName) {
+            discardDialog.visible = true;
+            return;
+        }
+
+        page.cancelRequested();
     }
 
     onMaxScrollYChanged: scrollY = Math.max(0, Math.min(scrollY, maxScrollY))
@@ -61,11 +74,12 @@ Item {
         spacing: 20
 
         AppButton {
+            objectName: "habit-editor-cancel"
             width: 160
             height: 72
             text: "Cancel"
             quiet: true
-            onClicked: discardDialog.visible = true
+            onClicked: page.cancel()
         }
 
         AppButton {
@@ -269,6 +283,8 @@ Item {
     }
 
     HabitAddRow {
+        id: addRow
+
         x: App.Theme.margin
         y: editor.y + editor.height + 26
         width: Math.min(1200, editor.width)
@@ -322,6 +338,7 @@ Item {
     ConfirmDialog {
         id: discardDialog
 
+        objectName: "habit-editor-discard"
         visible: false
         message: "Discard these habit edits?"
         confirmText: "Discard"
