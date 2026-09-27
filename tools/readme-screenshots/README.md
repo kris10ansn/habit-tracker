@@ -134,6 +134,22 @@ refreshes `framed/device-linking.png` from the current phone captures and existi
 To update only Today, capture with `--scenario today` and frame with `--client android --scenario today`.
 The combined `mobile:test:readme` command always updates all six screens.
 
+### Light and dark appearance
+
+The mobile app follows Android's system appearance. On your selected emulator, check the
+current setting with `adb -s emulator-5554 shell cmd uimode night`, then use
+`adb -s emulator-5554 shell cmd uimode night yes` for dark or `night no` for light before
+running the capture command. Substitute your emulator's serial in both commands. Copy each
+set of raw captures before the next run, since both appearances use the same output filenames.
+Keep the main README captures in light mode; PR comparison images can live in a separate directory.
+Restore the emulator's original setting afterward (`yes`, `no`, or `auto`).
+
+Also switch appearance while the app is open: the page, floating tabs, status bar, inputs, and
+polarity labels should update together without restarting or changing any entries. The camera
+viewfinder stays white in both modes. Use a separate emulator when another task is capturing;
+different Metro ports still share Expo Go on the same emulator.
+For clean captures on a fresh Expo Go installation, disable **Tools button** in its developer menu.
+
 Capture validates the full selected set before replacing raw images. A later framing failure
 leaves those new raw captures available; rerun framing without recapturing. Each replacement uses
 rename, but the set is not a filesystem transaction.

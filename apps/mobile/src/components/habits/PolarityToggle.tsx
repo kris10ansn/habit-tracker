@@ -2,7 +2,7 @@ import { Pressable, View } from "react-native";
 
 import { cn } from "@/lib/cn";
 import { useUpdateEffect } from "@/lib/useUpdateEffect";
-import { colors } from "@/theme/colors";
+import { useColors } from "@/theme/colors";
 import Animated, {
     Easing,
     interpolateColor,
@@ -32,6 +32,7 @@ const SLIDE_SPRING: WithSpringConfig = {
 const SLIDE_VELOCITY = 900;
 
 export function PolarityToggle({ negative, onChange }: Props) {
+    const colors = useColors();
     const slideTransformX = useSharedValue(negative ? SEGMENT_WIDTH : 0);
     const slidePadding = useSharedValue(0);
 
@@ -53,7 +54,7 @@ export function PolarityToggle({ negative, onChange }: Props) {
         color: interpolateColor(
             negativeProgress.get(),
             [0, 1],
-            ["#ffffff", colors.ink],
+            [colors.onAccent, colors.ink],
         ),
     }));
 
@@ -61,7 +62,7 @@ export function PolarityToggle({ negative, onChange }: Props) {
         color: interpolateColor(
             negativeProgress.get(),
             [0, 1],
-            [colors.ink, "#ffffff"],
+            [colors.ink, colors.onAccent],
         ),
     }));
 

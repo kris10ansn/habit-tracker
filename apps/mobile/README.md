@@ -33,6 +33,9 @@ with **Sync now**. Older history is fetched for the month you view and refresh. 
 itself. From **Sync → Linked devices → Link a device**, scan a pairing QR code with the in-app
 camera or enter its six-character code manually, review the requesting device, and approve it.
 
+The app follows the phone’s light or dark appearance, including changes made while it is open.
+Set the appearance in your phone’s system settings.
+
 ## Daily use
 
 1. Open **Habits** to add a habit. Choose positive for something you want to do, or negative for

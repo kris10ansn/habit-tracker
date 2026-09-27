@@ -1,3 +1,4 @@
+import { useColors } from "@/theme/colors";
 import { useMemo, useState } from "react";
 import { RefreshControl } from "react-native";
 
@@ -18,6 +19,7 @@ import {
 // Month: the whole grid at review scale — days down, habits across. Navigable to any month;
 // past and the current month are editable, future days are view-only.
 export default function MonthScreen() {
+    const colors = useColors();
     const today = todayKey();
     const [cursor, setCursor] = useState(() => {
         const now = new Date();
@@ -74,6 +76,9 @@ export default function MonthScreen() {
                         onToggle={toggle}
                         refreshControl={
                             <RefreshControl
+                                tintColor={colors.accent}
+                                colors={[colors.accent]}
+                                progressBackgroundColor={colors.surface}
                                 refreshing={
                                     habitsQuery.isPending || sync.isPending
                                 }

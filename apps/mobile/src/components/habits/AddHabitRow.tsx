@@ -3,11 +3,12 @@ import { Pressable, TextInput, View } from "react-native";
 
 import { Icon } from "@/components/ui/Icon";
 import { useCreateHabit } from "@/state/queries";
-import { colors } from "@/theme/colors";
+import { useColors } from "@/theme/colors";
 
 // The add-new affordance at the bottom of the habits list. New habits are Positive; flipping
 // polarity is one tap on the row that appears, so asking up front would buy nothing.
 export function AddHabitRow() {
+    const colors = useColors();
     const create = useCreateHabit();
     const [name, setName] = useState("");
 
@@ -43,7 +44,7 @@ export function AddHabitRow() {
                 <Icon
                     name="add"
                     size={22}
-                    className={trimmed ? "text-white" : "text-accent"}
+                    className={trimmed ? "text-on-accent" : "text-accent"}
                 />
             </Pressable>
         </View>

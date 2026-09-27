@@ -46,7 +46,9 @@ export function HabitListItem({ habit, outcome, streak, onToggle }: Props) {
                     {displayed > 1 ? (
                         <StreakPill streak={displayed} success={success} />
                     ) : (
-                        <Text>Tap to {success ? "unmark" : "mark"}</Text>
+                        <Text className="text-ink-2">
+                            Tap to {success ? "unmark" : "mark"}
+                        </Text>
                     )}
                 </View>
             </View>

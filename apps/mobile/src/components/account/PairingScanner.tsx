@@ -73,7 +73,7 @@ export function PairingScanner({ onCodeScanned }: Props) {
                 pointerEvents="none"
                 className="absolute inset-0 items-center justify-center"
             >
-                <View className="h-48 w-48 rounded-2xl border-2 border-surface" />
+                <View className="h-48 w-48 rounded-2xl border-2 border-white" />
             </View>
         </View>
     );

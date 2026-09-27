@@ -1,15 +1,22 @@
-import { Tabs } from "expo-router";
+import { DarkTheme, DefaultTheme, Tabs, ThemeProvider } from "expo-router";
+import { setBackgroundColorAsync } from "expo-system-ui";
 
 import { Toaster } from "sonner-native";
 
 import { AppProviders } from "@/components/AppProviders";
 import { Icon } from "@/components/ui/Icon";
 import { TabBarBackground } from "@/components/ui/TabBarBackground";
-import { colors } from "@/theme/colors";
+import { useColors } from "@/theme/colors";
 
 import { PlatformPressable } from "expo-router/build/react-navigation";
-import React from "react";
-import { Easing, StatusBar, useWindowDimensions, View } from "react-native";
+import React, { useEffect } from "react";
+import {
+    Easing,
+    StatusBar,
+    useColorScheme,
+    useWindowDimensions,
+    View,
+} from "react-native";
 import { useReducedMotion } from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import "../../global.css";
@@ -21,13 +28,43 @@ const TabBarButton = (
 const TAB_ROUTES = ["index", "month", "habits", "sync"];
 
 export default function RootLayout() {
+    return (
+        <AppProviders>
+            <ThemedApp />
+        </AppProviders>
+    );
+}
+
+// Subscribe below SQLiteProvider: it memoizes by database configuration and does
+// not forward changes to its children prop. Keep the navigator mounted on theme changes.
+function ThemedApp() {
+    const colorScheme = useColorScheme();
+    const isDark = colorScheme === "dark";
+    const colors = useColors();
+    const baseTheme = isDark ? DarkTheme : DefaultTheme;
+    const navigationTheme = {
+        ...baseTheme,
+        colors: {
+            ...baseTheme.colors,
+            primary: colors.accent,
+            background: colors.surface2,
+            card: colors.surface,
+            text: colors.ink,
+            border: colors.line,
+            notification: colors.slip,
+        },
+    };
     const insets = useSafeAreaInsets();
     const { fontScale } = useWindowDimensions();
     const reduceMotion = useReducedMotion();
 
+    useEffect(() => {
+        void setBackgroundColorAsync(colors.surface2);
+    }, [colors.surface2]);
+
     return (
-        <AppProviders>
-            <StatusBar barStyle={"dark-content"} />
+        <ThemeProvider value={navigationTheme}>
+            <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
             <View className="flex-1 bg-surface-2">
                 <Tabs
                     backBehavior="history"
@@ -69,7 +106,7 @@ export default function RootLayout() {
                             paddingTop: 8,
                             paddingBottom: 8,
                             paddingHorizontal: 8,
-                            shadowColor: colors.ink,
+                            shadowColor: colors.shadow,
                             shadowOffset: { width: 0, height: 4 },
                             shadowOpacity: 0.1,
                             shadowRadius: 12,
@@ -142,7 +179,10 @@ export default function RootLayout() {
                 </Tabs>
             </View>
 
-            <Toaster position="bottom-center" />
-        </AppProviders>
+            <Toaster
+                position="bottom-center"
+                theme={isDark ? "dark" : "light"}
+            />
+        </ThemeProvider>
     );
 }

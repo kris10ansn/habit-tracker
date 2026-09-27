@@ -1,7 +1,7 @@
 import { Text, TextInput, View } from "react-native";
 
 import { cn } from "@/lib/cn";
-import { colors } from "@/theme/colors";
+import { useColors } from "@/theme/colors";
 
 type Props = {
     label: string;
@@ -24,6 +24,7 @@ export function TextInputField({
     className,
     ...props
 }: React.ComponentProps<typeof TextInput>) {
+    const colors = useColors();
     return (
         <TextInput
             placeholderTextColor={colors.ink3}

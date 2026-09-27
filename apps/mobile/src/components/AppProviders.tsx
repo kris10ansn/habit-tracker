@@ -2,7 +2,7 @@ import { ApiError } from "@/api/client";
 import { useDatabase } from "@/db/client";
 import { migrations } from "@/db/migrations";
 import { authSessionKey } from "@/state/queries/keys";
-import { colors } from "@/theme/colors";
+import { useColors } from "@/theme/colors";
 
 import {
     MutationCache,
@@ -41,15 +41,18 @@ const enableWal = async (db: SQLiteDatabase) => {
     await db.execAsync("PRAGMA journal_mode = WAL;");
 };
 
-const BootScreen = ({ children }: { children?: string }) => (
-    <View className="flex-1 items-center justify-center bg-surface px-8">
-        {children ? (
-            <Text className="text-center text-ink-2">{children}</Text>
-        ) : (
-            <ActivityIndicator color={colors.accent} />
-        )}
-    </View>
-);
+function BootScreen({ children }: { children?: string }) {
+    const colors = useColors();
+    return (
+        <View className="flex-1 items-center justify-center bg-surface px-8">
+            {children ? (
+                <Text className="text-center text-ink-2">{children}</Text>
+            ) : (
+                <ActivityIndicator color={colors.accent} />
+            )}
+        </View>
+    );
+}
 
 // Applies Drizzle migrations before any screen queries the database.
 function DatabaseGate({ children }: { children: ReactNode }) {
