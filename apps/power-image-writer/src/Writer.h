@@ -55,6 +55,8 @@ namespace powerimages {
         Writer(Files &files, Environment environment);
         void execute(const Request &request, const ProgressCallback &progress);
         Snapshot capture(const QDate &date, const std::optional<SavedDataFingerprint> &expected = std::nullopt) const;
+        Snapshot captureForRender(const Request &request) const;
+        void renderCaptured(const Snapshot &snapshot, const ProgressCallback &progress);
 
       private:
         Files &files;

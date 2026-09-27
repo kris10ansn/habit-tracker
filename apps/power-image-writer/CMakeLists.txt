@@ -10,7 +10,13 @@ add_library(power_images src/Model.cpp src/Renderer.cpp src/Files.cpp src/Writer
 target_include_directories(power_images PUBLIC src)
 target_link_libraries(power_images PUBLIC Qt${POWER_IMAGE_QT_MAJOR}::Core Qt${POWER_IMAGE_QT_MAJOR}::Gui)
 target_compile_options(power_images PRIVATE -Wall -Wextra -Wpedantic)
-add_executable(power-image-writer src/main.cpp src/LaunchConfiguration.cpp src/AppLoadSession.cpp src/AppLoadConnection.cpp src/WriterProtocol.cpp)
+add_executable(power-image-writer
+    src/main.cpp
+    src/LaunchConfiguration.cpp
+    src/AppLoadSession.cpp
+    src/AppLoadConnection.cpp
+    src/WriterProtocol.cpp
+    src/BackgroundResultStore.cpp)
 set_target_properties(power-image-writer PROPERTIES AUTOMOC ON)
 target_link_libraries(power-image-writer PRIVATE power_images)
 if(POWER_IMAGE_HOST_TEST)

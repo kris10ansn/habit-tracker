@@ -22,13 +22,22 @@ namespace powerimages::WriterProtocol {
         return found.value();
     }
 
-    Request parseRequest(const QJsonObject &message, bool testProfile) {
+    QString requestId(const QJsonObject &message) {
         const auto requestId = message["id"].toString();
         if (message["version"].toInt() != version || requestId.isEmpty() || requestId.size() > 100) {
             throw Error("Unsupported image request");
         }
 
+        return requestId;
+    }
+
+    Request parseRequest(const QJsonObject &message, bool testProfile) {
+        requestId(message);
+
         const auto operation = parseOperation(message["operation"].toString());
+        if (message.contains("handoff") && (!message["handoff"].isBool() || operation != Operation::Render)) {
+            throw Error("Only rendering can queue a background snapshot");
+        }
         if (isDeveloper(operation) && !testProfile) {
             throw Error("Unsupported image operation");
         }

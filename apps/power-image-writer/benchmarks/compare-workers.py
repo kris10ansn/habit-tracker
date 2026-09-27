@@ -96,6 +96,7 @@ class Worker:
             self.send({'operation': 'hello', 'version': 1 if version == 'qml_pr53' else 2})
             response = self.receive()
             if response.get('ready'):
+                self.protocol_version = response['version']
                 self.startup_ms = (time.perf_counter_ns() - start) / 1e6
                 break
             time.sleep(0.005)
@@ -137,7 +138,7 @@ class Worker:
 
     def render(self):
         self.identifier += 1
-        payload = dict(version=1, snapshot=self.snapshot) if self.version == 'qml_pr53' else dict(version=2, expected=self.expected)
+        payload = dict(version=1, snapshot=self.snapshot) if self.version == 'qml_pr53' else dict(version=self.protocol_version, expected=self.expected)
         start = time.perf_counter_ns()
         self.send(dict(id=str(self.identifier), operation='render', date=DATE, **payload))
         images_started = 0

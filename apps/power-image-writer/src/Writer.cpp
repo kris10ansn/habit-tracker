@@ -259,6 +259,11 @@ namespace powerimages {
             throw Error("Developer operations require the test build");
         }
 
+        if (request.operation == Operation::Render) {
+            renderCaptured(captureForRender(request), progress);
+            return;
+        }
+
         const auto selected = targets(request.operation);
         if (request.operation == Operation::Backup) {
             backup(selected, progress);
@@ -281,10 +286,6 @@ namespace powerimages {
             return;
         }
 
-        if (request.operation == Operation::Render) {
-            requireWritingEnabled();
-        }
-
         const auto snapshot = capture(request.date, request.expected);
         progress({ProgressPhase::Captured, {}, {}});
 
@@ -295,7 +296,19 @@ namespace powerimages {
             return;
         }
 
-        render(selected, snapshot, progress, request.operation == Operation::Render);
+        render(selected, snapshot, progress, false);
+    }
+
+    Snapshot Writer::captureForRender(const Request &request) const {
+        requireWritingEnabled();
+        return capture(request.date, request.expected);
+    }
+
+    void Writer::renderCaptured(const Snapshot &snapshot, const ProgressCallback &progress) {
+        // Opt-in can change while an accepted snapshot waits behind another batch.
+        requireWritingEnabled();
+        progress({ProgressPhase::Captured, {}, {}});
+        render(targets(Operation::Render), snapshot, progress, true);
     }
 
 } // namespace powerimages

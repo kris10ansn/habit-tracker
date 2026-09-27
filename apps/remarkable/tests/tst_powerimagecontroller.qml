@@ -17,6 +17,10 @@ TestCase {
         Item {
             property bool busy: false
             property var requests: []
+            property var handoffs: []
+            function handoff(operation, payload, callback) {
+                handoffs = handoffs.concat([{ operation: operation, payload: payload, onDone: callback }]);
+            }
             signal progress(string operation, string phase, string message, var imageProgress)
             signal failed(string message)
             function request(operation, payload, onDone) {
@@ -152,4 +156,42 @@ TestCase {
         compare(controller.phase, "restored");
         verify(!controller._renderRequested);
     }
+    function test_quitHandsLatestSavedDataOverDuringActiveRender() {
+        controller.renderAsync();
+        habits.prepared();
+        controller.beginQuit();
+        controller.scheduleRender();
+        verify(!controller._renderRequested);
+        let result = null;
+        controller.finishInBackground(reply => result = reply);
+        compare(backend.handoffs.length, 0);
+        habits.prepared();
+        compare(backend.handoffs.length, 1);
+        verify(backend.handoffs[0].payload.handoff);
+        compare(backend.handoffs[0].payload.expected.roster, "a".repeat(32));
+        compare(result, null);
+        backend.handoffs[0].onDone({ ok: true });
+        verify(result.ok);
+        verify(backend.busy);
+    }
+
+    function test_quitFromAnotherMonthHandsOffOnlyTheExistingBatch() {
+        controller.renderAsync();
+        habits.prepared();
+        controller.renderAllowed = false;
+        controller.beginQuit();
+        controller.finishInBackground(() => {});
+        compare(backend.handoffs[0].operation, "finish-background");
+        compare(habits.pending, null);
+    }
+
+    function test_quitDoesNotHandoffFailedLocalSaves() {
+        controller.beginQuit();
+        let result = null;
+        controller.finishInBackground(reply => result = reply);
+        habits.prepared("disk full");
+        verify(!result.ok);
+        compare(backend.handoffs.length, 0);
+    }
+
 }

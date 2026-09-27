@@ -13,7 +13,8 @@ records, comparable to C# records, Kotlin data classes, or TypeScript object typ
 | `Renderer` / `RenderedImages` | Draws the layout; caches one base grid and each encoded state per batch | Screen appearance or encoding                     |
 | `Files` / `LocalFiles`        | File access interface and its atomic, verified implementation           | Disk behavior or failure injection                |
 | `WriterProtocol`              | Converts between JSON messages and typed requests/progress              | QML ↔ writer message format                       |
-| `AppLoadSession`              | Runs one accepted job on a worker thread and forwards progress          | App lifecycle, busy state, job completion         |
+| `AppLoadSession`              | Owns an active job, a latest pending snapshot, and progress             | App lifecycle, busy state, job completion         |
+| `BackgroundResultStore`       | Persists handoff/completion and reports interrupted or failed work      | Background-save errors and acknowledgment         |
 | `AppLoadConnection`           | Exchanges packets over the launcher's local socket                      | AppLoad's transport format                        |
 | `LaunchConfiguration`         | Resolves installed settings and build-specific host fixture overrides   | Launch paths, profiles, and host test options     |
 | `main.cpp`                    | Constructs dependencies and selects standalone or AppLoad mode          | CLI options and startup                           |
@@ -38,8 +39,15 @@ QML: render saved data
 The session uses ordinary Qt signals for connection events, much like C# events. CMake runs Qt's
 `moc` code generator automatically. Image work runs on one `QThread`; queued calls deliver its
 progress back to the event-loop thread, which alone touches the socket and timers. The session
-waits for accepted work before destruction. The standalone CLI calls the same writer directly
-and does not need an AppLoad connection.
+drains the active job and latest pending snapshot even after the frontend disconnects. The
+standalone CLI calls the same writer directly and does not need an AppLoad connection.
+
+`QuitController.qml` owns the frontend close sequence. It settles local saves and sync, then asks
+`PowerImageController` to hand off its final snapshot. `ImageBackend` correlates the `accepted`
+reply separately from job completion; closing the UI no longer waits for PNG/BMP output.
+`AppLoadSession` captures confirmed JSON before acknowledging the handoff, while rendering stays
+on the worker thread. `BackgroundResultStore` retains only the latest handoff result and reports
+an interrupted pending record after restart. These lifecycle concerns remain outside `Writer`.
 
 ## Why build configuration has a preprocessor branch
 

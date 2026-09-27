@@ -31,10 +31,19 @@ policy separate from JSON interpretation, rendering, and image installation so i
 or replaced when concurrent standalone use is supported. It must not grow into a new general
 coordination service or make ordinary habit editing depend on the renderer.
 
-Normal Quit waits for the latest saved data to reach every selected image. Unexpected frontend
-unload lets the writer finish its already accepted batch. Closing immediately while the writer
-finishes may be added later; keeping job execution independent of frontend lifetime supports
-that future change without enabling it now.
+Normal Quit waits for confirmed local saves and pending sync, then closes once the writer
+acknowledges ownership of the latest immutable snapshot. The writer owns one active batch and
+at most one pending snapshot; newer handoffs replace only the pending one. Capturing before
+acknowledgment protects the accepted work from later edits in a reopened frontend. Ordinary
+edits still coalesce in the frontend until a render is requested.
+
+The writer finishes accepted work after frontend detach or socket loss. It retains a small
+completion record so failed or interrupted background saves are visible on next launch; this
+is not a durable job queue or autonomous scheduler. Reopening during work reattaches to the busy
+session and waits for its final completion before ordinary image operations. Backup/restore
+and their settings transitions finish in the foreground. A failed save or missing handoff
+acknowledgment keeps the app open rather than discarding pending work. This replaces the original
+wait-for-all-images Quit policy following the requested background-close behavior.
 
 Use native C++ and Qt Core/Gui for the writer, rendering through QPainter into QImage without
 QML, Canvas, or a JavaScript engine. Move image layout and writing into this single implementation

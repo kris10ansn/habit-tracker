@@ -15,6 +15,8 @@ Item {
     property string failedPath: ""
     property var imageProgress: null
     property int remainingSeconds: 0
+    readonly property bool canHandOff: !_preparing && !_changingSetting
+    property bool _quitting: false
     property bool _renderRequested: false
     property bool _preparing: false
     property bool _changingSetting: false
@@ -40,7 +42,7 @@ Item {
         if (phase === "pending") phase = "";
     }
     function scheduleRender() {
-        if (!renderAllowed || restorationPending || _changingSetting) return;
+        if (_quitting || !renderAllowed || restorationPending || _changingSetting) return;
         if (busy) { _renderRequested = true; return; }
         _renderRequested = false;
         phase = "pending";
@@ -49,7 +51,7 @@ Item {
         countdown.restart();
     }
     function renderAsync() {
-        if (!renderAllowed || restorationPending || _changingSetting) return;
+        if (_quitting || !renderAllowed || restorationPending || _changingSetting) return;
         if (busy) { _renderRequested = true; return; }
         cancelPending();
         phase = "saving";
@@ -73,6 +75,42 @@ Item {
             _preparing = false;
         });
     }
+    function beginQuit() {
+        _quitting = true;
+        cancelPending();
+    }
+
+    function cancelQuit() {
+        _quitting = false;
+        scheduleRender();
+    }
+
+    function finishInBackground(onDone) {
+        if (!renderAllowed || restorationPending) {
+            if (!backend || !backend.busy) {
+                onDone({ ok: true });
+                return;
+            }
+            backend.handoff("finish-background", {}, onDone);
+            return;
+        }
+
+        _preparing = true;
+        prepareInput((error, expected) => {
+            _preparing = false;
+            if (error) {
+                onDone({ ok: false, error: error });
+                return;
+            }
+            if (!backend) {
+                onDone({ ok: false, error: "Image writer is unavailable" });
+                return;
+            }
+            const date = DateUtils.dateKey(today.getFullYear(), today.getMonth(), today.getDate());
+            backend.handoff("render", { handoff: true, expected: expected, date: date }, onDone);
+        });
+    }
+
     function prepareInput(onDone) {
         if (!habitsStore || !settingsStore) { onDone("Saved habit data is unavailable", null); return; }
         settingsStore.whenSaved(error => {

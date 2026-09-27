@@ -429,6 +429,7 @@ QtObject {
         store._month.reload();
     }
 
+    readonly property string lastSaveError: _roster.lastSaveError || _month.lastSaveError
     readonly property bool hasPendingSave: _roster.hasPendingSave || _month.hasPendingSave
 
     function prepareImageInput(onDone) {

@@ -50,6 +50,7 @@
         <file>src/components/AppLoadTransport.qml</file>
         <file>src/components/ImageBackend.qml</file>
         <file>src/components/PowerImageController.qml</file>
+        <file>src/components/QuitController.qml</file>
         <file>src/js/ImageProtocol.js</file>
     </qresource>
 </RCC>
