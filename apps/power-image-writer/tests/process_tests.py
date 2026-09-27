@@ -36,10 +36,10 @@ class Worker:
         self.connection, _ = self.listener.accept()
         self.connection.settimeout(15)
         self.sequence = 0
-        self.send({"operation": "hello", "version": 3})
+        self.send({"operation": "hello", "version": 4})
         response = self.receive()
         self.ready = response
-        assert response["ready"] and response["version"] == 3, response
+        assert response["ready"] and response["version"] == 4, response
 
     def send(self, message, kind=1):
         body = json.dumps(message).encode() if kind == 1 else str(message).encode()
@@ -69,7 +69,7 @@ class Worker:
             },
         }
         defaults.update(payload)
-        self.send(dict(version=3, id=identifier, operation=operation, **defaults))
+        self.send(dict(version=4, id=identifier, operation=operation, **defaults))
         return identifier
 
     def done(self, identifier):
@@ -152,6 +152,8 @@ class Integration(unittest.TestCase):
         self.success(worker.run("backup")[0])
         result, messages = worker.run("render")
         self.success(result)
+        self.assertEqual(messages[0]["kind"], "accepted")
+        self.assertTrue(messages[0]["busy"])
         progress = [message["imageProgress"] for message in messages if message.get("imageProgress")]
         selected = list(self.originals)
         self.assertEqual(progress, [{"path": str(path), "remainingImages": len(selected) - index - 1}
@@ -177,6 +179,7 @@ class Integration(unittest.TestCase):
     def test_detach_finishes_the_accepted_batch(self):
         worker, _ = self.worker()
         identifier = worker.start("render")
+        self.receive_until(worker, "accepted", identifier)
         worker.send(0, -3)
         self.success(worker.done(identifier)[0])
         self.assertEqual(worker.process.wait(5), 0)
@@ -208,15 +211,15 @@ class Integration(unittest.TestCase):
         self.workers.append(restarted)
         return restarted
 
-    def test_handoff_keeps_only_latest_pending_snapshot_and_survives_disconnect(self):
+    def test_render_keeps_only_latest_pending_snapshot_and_survives_disconnect(self):
         worker, directory = self.worker()
         first = worker.start("render")
         self.receive_until(worker, "captured", first)
         roster_path = directory / "data/roster.json"
         roster = json.loads(roster_path.read_text())
-        roster["habits"][0]["name"] = "Intermediate handoff"
+        roster["habits"][0]["name"] = "Intermediate render"
         roster_path.write_text(json.dumps(roster))
-        second = worker.start("render", handoff=True)
+        second = worker.start("render")
         accepted, earlier = self.receive_until(worker, "accepted", second)
         self.assertTrue(accepted["busy"])
         self.assertFalse(any(message.get("kind") == "done" and message.get("id") == first for message in earlier))
@@ -224,7 +227,7 @@ class Integration(unittest.TestCase):
         roster["habits"][0]["name"] = "Latest accepted snapshot"
         accepted_roster = json.dumps(roster)
         roster_path.write_text(accepted_roster)
-        latest = worker.start("render", handoff=True)
+        latest = worker.start("render")
         _, earlier = self.receive_until(worker, "accepted", latest)
         self.assertTrue(any(message.get("superseded") and message.get("id") == second for message in earlier))
         self.assertFalse(any(message.get("kind") == "captured" and message.get("id") == second for message in earlier))
@@ -248,11 +251,11 @@ class Integration(unittest.TestCase):
         worker, _ = self.worker()
         first = worker.start("render")
         self.receive_until(worker, "captured", first)
-        latest = worker.start("render", handoff=True)
+        latest = worker.start("render")
         self.receive_until(worker, "accepted", latest)
         worker.send(0, -3)
         worker.send(1, -3)
-        worker.send({"operation": "hello", "version": 3})
+        worker.send({"operation": "hello", "version": 4})
         ready, _ = self.receive_until(worker, "ready", None)
         self.assertTrue(ready["busy"])
         first_result, _ = worker.done(first)
@@ -268,7 +271,7 @@ class Integration(unittest.TestCase):
         target = self.system / "poweroff.png"
         target.unlink()
         target.mkdir()
-        identifier = worker.start("render", handoff=True)
+        identifier = worker.start("render")
         self.receive_until(worker, "accepted", identifier)
         worker.send(0, -3)
         result, _ = worker.done(identifier)
@@ -278,26 +281,26 @@ class Integration(unittest.TestCase):
         failure = restarted.ready["backgroundFailure"]
         self.assertEqual(failure["id"], identifier)
         self.assertTrue(failure["error"])
-        restarted.send({"operation": "acknowledge-background", "version": 3, "id": "dismiss", "resultId": identifier})
-        restarted.send({"operation": "hello", "version": 3})
+        restarted.send({"operation": "acknowledge-background", "version": 4, "id": "dismiss", "resultId": identifier})
+        restarted.send({"operation": "hello", "version": 4})
         self.assertEqual(restarted.receive()["backgroundFailure"], {})
 
-    def test_interrupted_handoff_is_reported_on_next_launch(self):
+    def test_interrupted_render_is_reported_on_next_launch(self):
         worker, directory = self.worker()
-        identifier = worker.start("render", handoff=True)
+        identifier = worker.start("render")
         self.receive_until(worker, "accepted", identifier)
         worker.process.kill()
         worker.process.wait(5)
         restarted = self.restart(worker, directory)
         self.assertIn("did not finish", restarted.ready["backgroundFailure"]["error"])
 
-    def test_handoff_rejects_stale_files_and_unwritable_result_record(self):
+    def test_render_rejects_stale_files_and_unwritable_result_record(self):
         worker, directory = self.worker()
-        result, messages = worker.run("render", handoff=True, expected={"roster": "0" * 32, "month": "missing"})
+        result, messages = worker.run("render", expected={"roster": "0" * 32, "month": "missing"})
         self.assertTrue(result["superseded"])
         self.assertFalse(any(message.get("kind") == "accepted" for message in messages))
         (directory / "power-image-result.json").mkdir()
-        result, messages = worker.run("render", handoff=True)
+        result, messages = worker.run("render")
         self.assertFalse(result["ok"])
         self.assertFalse(any(message.get("kind") == "accepted" for message in messages))
         for path, original in self.originals.items():
@@ -315,6 +318,38 @@ class Integration(unittest.TestCase):
         self.success(worker.done(identifier)[0])
         self.assertEqual(worker.process.wait(5), 0)
         self.success(json.loads((directory / "power-image-result.json").read_text()))
+
+    def test_acceptance_persists_input_ownership_before_rendering_finishes(self):
+        worker, directory = self.worker()
+        identifier = worker.start("render")
+        accepted, earlier = self.receive_until(worker, "accepted", identifier)
+        self.success(accepted)
+        self.assertFalse(earlier)
+        record = json.loads((directory / "power-image-result.json").read_text())
+        self.assertEqual(record, {"id": identifier, "pending": True})
+        (directory / "data/roster.json").write_text("invalid later edit")
+        self.success(worker.done(identifier)[0])
+        self.success(json.loads((directory / "power-image-result.json").read_text()))
+
+    def test_render_queue_never_overlaps_foreground_operations(self):
+        worker, _ = self.worker(testing=True)
+        foreground = worker.start("developer-write-all")
+        self.receive_until(worker, "captured", foreground)
+        for operation in ["render", "finish-background", "restore"]:
+            result, _ = worker.run(operation)
+            self.assertFalse(result["ok"])
+            self.assertTrue(result["busy"])
+        self.success(worker.done(foreground)[0])
+        self.success(worker.run("render")[0])
+
+    def test_previous_protocol_is_rejected_before_image_changes(self):
+        worker, _ = self.worker()
+        worker.send({"version": 3, "id": "old", "operation": "render"})
+        result, messages = worker.done("old")
+        self.assertFalse(result["ok"])
+        self.assertFalse(any(message.get("kind") == "accepted" for message in messages))
+        for path, original in self.originals.items():
+            self.assertEqual(path.read_bytes(), original)
 
     def test_standalone_policy_refuses_an_active_app_session(self):
         _, directory = self.worker()

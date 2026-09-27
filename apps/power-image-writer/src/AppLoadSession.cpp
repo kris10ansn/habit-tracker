@@ -67,25 +67,16 @@ namespace powerimages {
                 return;
             }
 
-            const auto request = WriterProtocol::parseRequest(message, testProfile);
-            if (message["handoff"].toBool()) {
-                acceptRenderHandoff(requestId, request);
-                return;
-            }
-
-            if (activeJob || !imageLock.tryLock(0)) {
-                throw Error("Image writer is busy");
-            }
-
-            startJob({requestId, request, {}});
+            submitJob(requestId, WriterProtocol::parseRequest(message, testProfile));
         } catch (const Error &error) {
             sendResult(WriterProtocol::failure(requestId, error));
         }
     }
 
-    void AppLoadSession::acceptRenderHandoff(const QString &requestId, const Request &request) {
-        if (activeJob && activeJob->request.operation != Operation::Render) {
-            throw Error("Wait for the current image operation before closing");
+    void AppLoadSession::submitJob(const QString &requestId, const Request &request) {
+        const bool rendering = request.operation == Operation::Render;
+        if (activeJob && (!rendering || activeJob->request.operation != Operation::Render)) {
+            throw Error("Image writer is busy");
         }
 
         if (!activeJob && !imageLock.tryLock(0)) {
@@ -94,10 +85,12 @@ namespace powerimages {
 
         Job job{requestId, request, {}};
         try {
-            // Only saved-data capture runs here; rendering stays on the worker thread.
-            // The accepted snapshot must survive later edits in a reopened frontend.
-            job.snapshot = writer.captureForRender(request);
-            backgroundResults.accepted(requestId);
+            if (rendering) {
+                // Every accepted render owns its saved input, even if the frontend later unloads.
+                // Only capture runs here; image work stays on the worker thread.
+                job.snapshot = writer.captureForRender(request);
+                backgroundResults.accepted(requestId);
+            }
         } catch (...) {
             if (!activeJob) {
                 imageLock.unlock();
@@ -105,37 +98,31 @@ namespace powerimages {
             throw;
         }
 
-        if (!activeJob) {
+        if (activeJob) {
+            const auto replaced = std::exchange(pendingJob, std::move(job));
+            if (replaced) {
+                sendResult(WriterProtocol::failure(replaced->id, Error("Replaced by newer saved data", {}, true)));
+            }
+        } else {
             startJob(std::move(job));
-            acknowledgeHandoff(requestId);
-            return;
         }
 
-        const auto replaced = pendingJob;
-        pendingJob = std::move(job);
-        if (replaced) {
-            sendResult(WriterProtocol::failure(replaced->id, Error("Replaced by newer saved data", {}, true)));
-        }
-
-        acknowledgeHandoff(requestId);
+        acknowledgeAccepted(requestId);
     }
 
     void AppLoadSession::finishCurrentInBackground(const QString &requestId) {
         const auto &lastJob = pendingJob ? pendingJob : activeJob;
-        if (!lastJob) {
-            acknowledgeHandoff(requestId);
-            return;
-        }
-
-        if (lastJob->request.operation != Operation::Render) {
+        if (lastJob && lastJob->request.operation != Operation::Render) {
             throw Error("Wait for the current image operation before closing");
         }
 
-        backgroundResults.accepted(lastJob->id);
-        acknowledgeHandoff(requestId);
+        // A past-month view cannot submit a new snapshot. Confirm that existing work may finish
+        // after close; its outcome was already recorded when the render was accepted.
+        acknowledgeAccepted(requestId);
+        sendResult({{"kind", "done"}, {"id", requestId}, {"ok", true}});
     }
 
-    void AppLoadSession::acknowledgeHandoff(const QString &requestId) {
+    void AppLoadSession::acknowledgeAccepted(const QString &requestId) {
         sendResult({{"kind", "accepted"}, {"id", requestId}, {"ok", true}});
     }
 

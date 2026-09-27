@@ -5,7 +5,7 @@
 #include <QJsonObject>
 
 namespace powerimages::WriterProtocol {
-    constexpr int version = 3;
+    constexpr int version = 4;
     QString requestId(const QJsonObject &message);
     Operation parseOperation(const QString &name);
     Request parseRequest(const QJsonObject &message, bool testProfile);

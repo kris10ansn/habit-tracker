@@ -42,10 +42,13 @@ TestCase {
         endpoint.destroy();
     }
     function ready(busy = false) {
-        endpoint.reply({ kind: "ready", version: 3, ready: true, busy: busy });
+        endpoint.reply({ kind: "ready", version: 4, ready: true, busy: busy });
     }
     function complete(index, ok = true) {
         endpoint.reply({ kind: "done", id: endpoint.sent[index].id, ok: ok });
+    }
+    function accept(index) {
+        endpoint.reply({ kind: "accepted", id: endpoint.sent[index].id, ok: true, busy: true });
     }
 
     function test_queuesUntilHandshakeAndCorrelatesReplies() {
@@ -185,22 +188,24 @@ TestCase {
         verify(result.ok);
     }
     function test_protocolRequiresConfirmedFileHashes() {
-        verify(ImageProtocol.validate({ version: 3, id: "id", operation: "render", date: "2026-09-22", expected: { roster: "a".repeat(32), month: "missing" } }, false) === "");
-        verify(ImageProtocol.validate({ version: 3, id: "id", operation: "render", date: "2026-09-22", snapshot: [] }, false) !== "");
-        verify(ImageProtocol.validate({ version: 3, id: "id", operation: "developer-restore" }, false) !== "");
+        verify(ImageProtocol.validate({ version: 4, id: "id", operation: "render", date: "2026-09-22", expected: { roster: "a".repeat(32), month: "missing" } }, false) === "");
+        verify(ImageProtocol.validate({ version: 4, id: "id", operation: "render", date: "2026-09-22", snapshot: [] }, false) !== "");
+        verify(ImageProtocol.validate({ version: 4, id: "id", operation: "developer-restore" }, false) !== "");
         compare(ImageProtocol.parseDate("2026-02-30"), null);
     }
 
     function renderPayload() {
-        return { handoff: true, date: "2026-09-22", expected: { roster: "a".repeat(32), month: "missing" } };
+        return { date: "2026-09-22", expected: { roster: "a".repeat(32), month: "missing" } };
     }
 
-    function test_handoffAcknowledgesBeforeActiveRenderCompletes() {
+    function test_sameRequestSupportsAcceptanceAndCompletion() {
         ready();
         let active = null;
         let handoff = null;
         client.request("render", renderPayload(), result => active = result);
-        client.handoff("render", renderPayload(), result => handoff = result);
+        accept(0);
+        compare(active, null);
+        client.request("render", renderPayload(), result => handoff = result, "accepted");
         compare(endpoint.sent.length, 2);
         endpoint.reply({ kind: "accepted", id: "unrelated", ok: true });
         compare(handoff, null);
@@ -215,9 +220,9 @@ TestCase {
         verify(!client.busy);
     }
 
-    function test_handoffDispatchesToBusyWorkerAfterHandshake() {
+    function test_renderDispatchesToBusyWorkerAfterHandshake() {
         let result = null;
-        client.handoff("render", renderPayload(), reply => result = reply);
+        client.request("render", renderPayload(), reply => result = reply, "accepted");
         ready(true);
         compare(endpoint.sent.length, 1);
         compare(result, null);
@@ -237,28 +242,113 @@ TestCase {
         verify(result.ok);
     }
 
-    function test_handoffRequiresAcknowledgmentAndSurfacesRejection() {
+    function test_acceptanceRequiresAcknowledgmentAndSurfacesRejection() {
         ready();
         let result = null;
-        client.handoff("render", renderPayload(), reply => result = reply);
+        client.request("render", renderPayload(), reply => result = reply, "accepted");
         compare(result, null);
         endpoint.reply({ kind: "done", id: endpoint.sent[0].id, ok: false, error: "disk full" });
         verify(!result.ok);
         compare(result.error, "disk full");
     }
 
-    function test_missingHandoffAcknowledgmentTimesOut() {
+    function test_missingRenderAcknowledgmentTimesOut() {
         client.startupTimeout = 30;
         ready();
         let result = null;
-        client.handoff("render", renderPayload(), reply => result = reply);
+        client.request("render", renderPayload(), reply => result = reply, "accepted");
         tryVerify(() => result !== null);
         verify(!result.ok);
         verify(client._uncertain);
     }
 
+    function test_normalRenderWaitsForCompletionAfterAcceptance() {
+        client.startupTimeout = 30;
+        ready();
+        let result = null;
+        client.request("render", renderPayload(), reply => result = reply);
+        accept(0);
+        wait(70);
+        compare(result, null);
+        verify(client.busy);
+        complete(0);
+        verify(result.ok);
+        verify(!client.busy);
+    }
+
+    function test_latestUnsentRenderReplacesEarlierRequest() {
+        let earlier = null;
+        let latest = null;
+        client.request("render", renderPayload(), reply => earlier = reply);
+        client.request("render", renderPayload(), reply => latest = reply, "accepted");
+        verify(earlier.superseded);
+        ready();
+        compare(endpoint.sent.length, 1);
+        verify(endpoint.sent[0].handoff === undefined);
+        accept(0);
+        verify(latest.ok);
+    }
+
+    function test_supersededPendingRenderDoesNotFinishActiveOrLatestJob() {
+        ready();
+        let active = null;
+        let pending = null;
+        let latest = null;
+        client.request("render", renderPayload(), reply => active = reply);
+        accept(0);
+        client.request("render", renderPayload(), reply => pending = reply);
+        accept(1);
+        client.request("render", renderPayload(), reply => latest = reply);
+        endpoint.reply({ kind: "done", id: endpoint.sent[1].id, ok: false, superseded: true, busy: true });
+        accept(2);
+        verify(pending.superseded);
+        compare(active, null);
+        compare(latest, null);
+        endpoint.reply({ kind: "done", id: endpoint.sent[0].id, ok: true, busy: true });
+        verify(active.ok);
+        verify(client.busy);
+        complete(2);
+        verify(latest.ok);
+        verify(!client.busy);
+    }
+
+    function test_activeProgressCannotHideMissingAcceptanceOfLatestRender() {
+        client.startupTimeout = 60;
+        ready();
+        let activeCalls = 0;
+        let latestCalls = 0;
+        client.request("render", renderPayload(), () => activeCalls++);
+        accept(0);
+        client.request("render", renderPayload(), reply => {
+            latestCalls++;
+            verify(!reply.ok);
+        }, "accepted");
+        for (let index = 0; index < 5; index++) {
+            endpoint.reply({ kind: "progress", id: endpoint.sent[0].id, phase: "saving" });
+            wait(25);
+        }
+        compare(activeCalls, 1);
+        compare(latestCalls, 1);
+        verify(client._uncertain);
+        accept(1);
+        complete(0);
+        compare(activeCalls, 1);
+        compare(latestCalls, 1);
+    }
+
+    function test_protocolMismatchDoesNotSendQueuedRender() {
+        client.startupTimeout = 30;
+        let result = null;
+        client.request("render", renderPayload(), reply => result = reply);
+        endpoint.reply({ kind: "ready", version: 3, ready: true });
+        verify(!client.ready);
+        tryVerify(() => result !== null);
+        verify(!result.ok);
+        compare(endpoint.sent.length, 0);
+    }
+
     function test_backgroundFailureIsShownAndAcknowledgedSeparately() {
-        endpoint.reply({ kind: "ready", version: 3, ready: true, busy: false,
+        endpoint.reply({ kind: "ready", version: 4, ready: true, busy: false,
             backgroundFailure: { id: "previous", error: "write failed" } });
         compare(client.backgroundFailure.error, "write failed");
         client.dismissBackgroundFailure();

@@ -56,23 +56,13 @@ Item {
         cancelPending();
         phase = "saving";
         imageProgress = null;
-        _preparing = true;
-        const date = DateUtils.dateKey(today.getFullYear(), today.getMonth(), today.getDate());
-        prepareInput((error, expected) => {
-            if (error || !renderAllowed || restorationPending) {
-                _preparing = false;
-                finish({ ok: !error, error: error }, "", "save-failed");
+        submitRender(result => {
+            if (result.superseded) {
+                phase = "";
+                scheduleRender();
                 return;
             }
-            submit("render", { expected: expected, date: date }, result => {
-                if (result.superseded) {
-                    phase = "";
-                    scheduleRender();
-                    return;
-                }
-                finish(result, "saved", "save-failed");
-            });
-            _preparing = false;
+            finish(result, result.skipped ? "" : "saved", "save-failed");
         });
     }
     function beginQuit() {
@@ -91,23 +81,25 @@ Item {
                 onDone({ ok: true });
                 return;
             }
-            backend.handoff("finish-background", {}, onDone);
+            submit("finish-background", {}, onDone, "accepted");
             return;
         }
 
+        submitRender(onDone, "accepted");
+    }
+
+    function submitRender(onDone, waitFor = "done") {
         _preparing = true;
         prepareInput((error, expected) => {
-            _preparing = false;
-            if (error) {
-                onDone({ ok: false, error: error });
+            if (error || !renderAllowed || restorationPending) {
+                _preparing = false;
+                onDone({ ok: !error, error: error, skipped: !error });
                 return;
             }
-            if (!backend) {
-                onDone({ ok: false, error: "Image writer is unavailable" });
-                return;
-            }
+
             const date = DateUtils.dateKey(today.getFullYear(), today.getMonth(), today.getDate());
-            backend.handoff("render", { handoff: true, expected: expected, date: date }, onDone);
+            submit("render", { expected: expected, date: date }, onDone, waitFor);
+            _preparing = false;
         });
     }
 
@@ -185,11 +177,11 @@ Item {
             });
         });
     }
-    function submit(operation, payload, onDone) {
+    function submit(operation, payload, onDone, waitFor = "done") {
         imageProgress = null;
         failedPath = "";
         if (!backend) { onDone({ ok: false, error: "Image writer is unavailable" }); return; }
-        backend.request(operation, payload, onDone);
+        backend.request(operation, payload, onDone, waitFor);
     }
     function finish(result, success, failure) {
         imageProgress = null;
