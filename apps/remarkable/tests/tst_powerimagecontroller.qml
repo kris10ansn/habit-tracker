@@ -79,7 +79,7 @@ TestCase {
         compare(backend.requests[0].payload.expected.month, "missing");
         verify(!backend.requests[0].payload.snapshot);
         backend.progress("render", "saving", "", { path: "/usr/share/remarkable/poweroff.png", remainingImages: 7 });
-        compare(SuspendStatus.text(controller.phase, 0, controller.failedPath, controller.imageProgress), "Saving poweroff.png (7 left)");
+        compare(SuspendStatus.text(controller.phase, 0, controller.failedPath, controller.imageProgress), "poweroff.png — Saving (7 left)");
         backend.complete({ ok: false, error: "write failed" });
         compare(controller.phase, "save-failed");
         compare(controller.imageProgress, null);

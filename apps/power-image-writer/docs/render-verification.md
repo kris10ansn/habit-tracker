@@ -29,3 +29,19 @@ Settings uses explicit fixture states: enabled in the baseline, disabled with pe
 in the new app. This shows the recovery UI added by the PR; the process and frontend tests verify
 actual failure/retry ordering. These are host captures. Target fonts, firmware activation, and
 e-ink appearance still need a user-run device check.
+
+## Stable saving-status text
+
+The shared `ScreenStatus` footer is right-aligned. Placing the filename before `— Saving (N left)`
+keeps the label and the single-digit remaining count in the same positions throughout the current
+nine-image batch. Only the text order changes; the footer layout, font, and update cadence stay
+unchanged. The current filename remains abbreviated, with distinct paths for both boot images.
+
+These host Qt 5 captures use the actual `ScreenStatus` component. Each image shows two successive
+progress examples on separate rows for comparison. The before text is from `0dc5567`; the after
+text comes from the current `SuspendStatus.text` function. Captions and left-hand row labels are
+comparison annotations. This verifies layout stability, not physical e-ink refresh behavior.
+
+![Before: the Saving label shifts as the filename changes](comparison/status-before.png)
+
+![After: the Saving label and count stay in place](comparison/status-after.png)
