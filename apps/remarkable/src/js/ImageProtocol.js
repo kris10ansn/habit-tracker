@@ -1,4 +1,4 @@
-const version = 3;
+const version = 4;
 const operations = [
     "finish-background",
     "backup",
@@ -39,12 +39,6 @@ function validate(request, isTest) {
     }
     if (request.operation.indexOf("developer-") === 0 && !isTest) {
         return "Developer image writes require the test build";
-    }
-    if (
-        request.handoff !== undefined &&
-        (typeof request.handoff !== "boolean" || request.operation !== "render")
-    ) {
-        return "Only rendering can queue a background snapshot";
     }
     if (
         [

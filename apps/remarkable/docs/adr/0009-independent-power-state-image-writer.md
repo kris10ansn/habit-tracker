@@ -33,14 +33,17 @@ coordination service or make ordinary habit editing depend on the renderer.
 
 Normal Quit waits for confirmed local saves and pending sync, then closes once the writer
 acknowledges ownership of the latest immutable snapshot. The writer owns one active batch and
-at most one pending snapshot; newer handoffs replace only the pending one. Capturing before
-acknowledgment protects the accepted work from later edits in a reopened frontend. Ordinary
-edits still coalesce in the frontend until a render is requested.
+at most one pending snapshot; newer renders replace only the pending one. All renders use one
+submission path and capture before acknowledgment, protecting accepted work from later edits in
+a reopened frontend. Ordinary saves observe completion; Quit observes acceptance. This choice
+stays in the frontend, with no separate handoff flag or background render mode. Ordinary edits
+still coalesce in the frontend until a render is requested.
 
 The writer finishes accepted work after frontend detach or socket loss. It retains a small
-completion record so failed or interrupted background saves are visible on next launch; this
-is not a durable job queue or autonomous scheduler. Reopening during work reattaches to the busy
-session and waits for its final completion before ordinary image operations. Backup/restore
+completion record for the latest accepted render, including ordinary saves, so failed or interrupted
+work is visible on next launch; this is not a durable job queue or autonomous scheduler. Reopening
+during work reattaches to the busy session and may submit a newer render through the same path;
+other image operations wait for its final completion. Backup/restore
 and their settings transitions finish in the foreground. A failed save or missing handoff
 acknowledgment keeps the app open rather than discarding pending work. This replaces the original
 wait-for-all-images Quit policy following the requested background-close behavior.

@@ -17,15 +17,11 @@ TestCase {
         Item {
             property bool busy: false
             property var requests: []
-            property var handoffs: []
-            function handoff(operation, payload, callback) {
-                handoffs = handoffs.concat([{ operation: operation, payload: payload, onDone: callback }]);
-            }
             signal progress(string operation, string phase, string message, var imageProgress)
             signal failed(string message)
-            function request(operation, payload, onDone) {
+            function request(operation, payload, onDone, waitFor = "done") {
                 busy = true;
-                requests = requests.concat([{ operation: operation, payload: payload, onDone: onDone }]);
+                requests = requests.concat([{ operation: operation, payload: payload, onDone: onDone, waitFor: waitFor }]);
             }
             function complete(result) {
                 const callback = requests[requests.length - 1].onDone;
@@ -164,13 +160,15 @@ TestCase {
         verify(!controller._renderRequested);
         let result = null;
         controller.finishInBackground(reply => result = reply);
-        compare(backend.handoffs.length, 0);
+        compare(backend.requests.length, 1);
         habits.prepared();
-        compare(backend.handoffs.length, 1);
-        verify(backend.handoffs[0].payload.handoff);
-        compare(backend.handoffs[0].payload.expected.roster, "a".repeat(32));
+        compare(backend.requests.length, 2);
+        compare(backend.requests[0].waitFor, "done");
+        compare(backend.requests[1].waitFor, "accepted");
+        verify(backend.requests[1].payload.handoff === undefined);
+        compare(backend.requests[1].payload.expected.roster, "a".repeat(32));
         compare(result, null);
-        backend.handoffs[0].onDone({ ok: true });
+        backend.requests[1].onDone({ ok: true });
         verify(result.ok);
         verify(backend.busy);
     }
@@ -181,7 +179,7 @@ TestCase {
         controller.renderAllowed = false;
         controller.beginQuit();
         controller.finishInBackground(() => {});
-        compare(backend.handoffs[0].operation, "finish-background");
+        compare(backend.requests[1].operation, "finish-background");
         compare(habits.pending, null);
     }
 
@@ -191,7 +189,7 @@ TestCase {
         controller.finishInBackground(reply => result = reply);
         habits.prepared("disk full");
         verify(!result.ok);
-        compare(backend.handoffs.length, 0);
+        compare(backend.requests.length, 0);
     }
 
 }

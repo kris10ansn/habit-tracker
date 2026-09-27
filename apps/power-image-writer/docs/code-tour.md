@@ -14,7 +14,7 @@ records, comparable to C# records, Kotlin data classes, or TypeScript object typ
 | `Files` / `LocalFiles`        | File access interface and its atomic, verified implementation           | Disk behavior or failure injection                |
 | `WriterProtocol`              | Converts between JSON messages and typed requests/progress              | QML ↔ writer message format                       |
 | `AppLoadSession`              | Owns an active job, a latest pending snapshot, and progress             | App lifecycle, busy state, job completion         |
-| `BackgroundResultStore`       | Persists handoff/completion and reports interrupted or failed work      | Background-save errors and acknowledgment         |
+| `BackgroundResultStore`       | Persists render acceptance/completion and reports interrupted or failed work | Background-save errors and acknowledgment     |
 | `AppLoadConnection`           | Exchanges packets over the launcher's local socket                      | AppLoad's transport format                        |
 | `LaunchConfiguration`         | Resolves installed settings and build-specific host fixture overrides   | Launch paths, profiles, and host test options     |
 | `main.cpp`                    | Constructs dependencies and selects standalone or AppLoad mode          | CLI options and startup                           |
@@ -43,11 +43,12 @@ drains the active job and latest pending snapshot even after the frontend discon
 standalone CLI calls the same writer directly and does not need an AppLoad connection.
 
 `QuitController.qml` owns the frontend close sequence. It settles local saves and sync, then asks
-`PowerImageController` to hand off its final snapshot. `ImageBackend` correlates the `accepted`
-reply separately from job completion; closing the UI no longer waits for PNG/BMP output.
-`AppLoadSession` captures confirmed JSON before acknowledging the handoff, while rendering stays
-on the worker thread. `BackgroundResultStore` retains only the latest handoff result and reports
-an interrupted pending record after restart. These lifecycle concerns remain outside `Writer`.
+`PowerImageController` to submit its final snapshot. Ordinary saves and Quit share `submitRender`
+and `ImageBackend.request`; the caller chooses whether its callback waits for `done` or `accepted`.
+One collection correlates requests and their acknowledgments. `AppLoadSession::submitJob` captures
+every render before acknowledging it, while rendering stays on the worker thread.
+`BackgroundResultStore` retains the latest accepted render's result and reports an interrupted
+pending record after restart. These lifecycle concerns remain outside `Writer`.
 
 ## Why build configuration has a preprocessor branch
 

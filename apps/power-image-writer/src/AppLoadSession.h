@@ -39,9 +39,9 @@ namespace powerimages {
 
         void handleRequest(const QJsonObject &message);
         void setFrontendAttached(bool attached);
-        void acceptRenderHandoff(const QString &requestId, const Request &request);
+        void submitJob(const QString &requestId, const Request &request);
         void finishCurrentInBackground(const QString &requestId);
-        void acknowledgeHandoff(const QString &requestId);
+        void acknowledgeAccepted(const QString &requestId);
         void startJob(Job job);
         QJsonObject executeJob(const Job &job);
         void postProgress(const QString &requestId, const ProgressEvent &progress);

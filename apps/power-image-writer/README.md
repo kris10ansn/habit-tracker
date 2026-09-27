@@ -100,7 +100,7 @@ migration policy. Private habits are always excluded, regardless of the interact
 setting. All outputs in a batch use the same date and immutable snapshot.
 
 The frontend drains both store write queues, checks save errors, and fingerprints the exact
-saved files in one UI turn. Protocol version 3 sends `date` and `expected: {roster, month}` (MD5
+saved files in one UI turn. Protocol version 4 sends `date` and `expected: {roster, month}` (MD5
 hex digests; `month: "missing"` for an absent month). The worker reads the files once and verifies
 the fingerprints before any image installation. A mismatch returns `superseded` for a fresh
 request. Fingerprints are change detectors, not authentication. No serialized habit model or
@@ -114,26 +114,37 @@ the count excludes the current image and includes only selected targets. Operati
 backup, restore, and the five test-build developer actions. The native framing remains compatible
 with rm-appload's sequenced-packet transport.
 
-Normal Quit waits for confirmed local saves, pending sync, and any enable/disable or restore
-transition. It then sends `render` with `handoff: true`. The writer validates and captures the
-saved JSON before replying `accepted`; the frontend closes on that acknowledgment while image
-work continues. New input is disabled during this short save-and-handoff phase. A failed save,
-rejected handoff, or missing acknowledgment keeps the app open with an error.
+Every render follows the same lifecycle: capture confirmed saved JSON, persist a pending result,
+reply `accepted`, then send progress and `done`. `ImageBackend.request` uses one submission path;
+its optional `waitFor` argument selects the callback milestone (`"done"` by default, `"accepted"`
+for Quit). This choice never crosses the socket. Backup/restore and developer jobs also acknowledge
+acceptance, but only renders may queue and have their results persisted.
 
-The session owns one active job and at most one pending render snapshot. A newer handoff replaces
+Normal Quit waits for confirmed local saves, pending sync, and any enable/disable or restore
+transition. It submits the latest render through the same path and closes on acceptance while
+image work continues. New input is disabled during this short save-and-handoff phase. A failed
+save, rejected request, or missing acknowledgment keeps the app open with an error.
+
+The session owns one active job and at most one pending render snapshot. A newer render replaces
 the pending snapshot; the active batch finishes normally. The pending snapshot is immutable, so
 reopening and editing the app cannot change it. The image lock remains held between batches.
-A `finish-background` request hands over an existing render without capturing the viewed month,
-for example when quitting after navigating to a past month. Backup and restore remain foreground
-operations so their settings transitions finish before closing.
+A `finish-background` request confirms existing work can finish after close without capturing the
+viewed month, for example when quitting after navigating to a past month. It uses the same request
+method and does not create another job or rewrite its result record. Backup and restore remain
+foreground operations so their settings transitions finish before closing.
 
 The writer drains accepted work after frontend detach or socket loss and exits when idle.
 [AppLoad supports backends remaining alive after frontend closure](https://github.com/asivery/rm-appload#applications-format).
-A reopened frontend receives `busy: true` until the final queued job completes. `done` replies
-also include `busy`, preventing an older completion from prematurely releasing a waiting request.
+A reopened frontend receives `busy: true` until the final queued job completes. It may submit a
+new render while the writer is busy; other operations wait for idle. `done` replies also include
+`busy`, preventing an older completion from prematurely releasing a waiting request. Each submitted
+request has an acknowledgment deadline, independent of active-job progress. Heartbeats, progress
+timeouts, and the overall operation limit are retained.
 
-Before acknowledgment, `power-image-result.json` records the pending handoff; completion replaces
-it with the outcome. Failures are included as `backgroundFailure` in the handshake/result replies
+Before acknowledgment, `power-image-result.json` records the latest accepted render; completion
+replaces it with the outcome. This applies to ordinary saves as well as Quit, so a frontend unload
+does not need to promote an accepted render into a background job. Failures are included as
+`backgroundFailure` in the handshake/result replies
 and shown in a dismissible dialog. `acknowledge-background` with `resultId` clears the matching
 finished result. An interrupted process leaves a pending record and is reported on next launch.
 This is a completion record, not a durable job queue: a device restart does not resume a captured

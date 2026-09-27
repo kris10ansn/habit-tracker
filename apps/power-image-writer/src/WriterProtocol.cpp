@@ -35,9 +35,6 @@ namespace powerimages::WriterProtocol {
         requestId(message);
 
         const auto operation = parseOperation(message["operation"].toString());
-        if (message.contains("handoff") && (!message["handoff"].isBool() || operation != Operation::Render)) {
-            throw Error("Only rendering can queue a background snapshot");
-        }
         if (isDeveloper(operation) && !testProfile) {
             throw Error("Unsupported image operation");
         }
