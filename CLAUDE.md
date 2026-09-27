@@ -112,6 +112,7 @@ the device, describe what to run and wait. This applies even when a `make` targe
     - `pnpm remarkable:build` (also `remarkable:test` / `remarkable:clean` / `remarkable:backup` /
       `remarkable:deploy` / `remarkable:remove` / `remarkable:find-hotspot-ip`, which shell out to
       `make` — `deploy`/`remove`/`backup`/`find-hotspot-ip` touch the device, so user-only).
+      `remarkable:test:images` runs the native writer unit/process suites.
       `remarkable:test` runs that app's Qt Quick Test suite; it needs `qmltestrunner-qt5` and fails on test errors. `remarkable:find-hotspot-ip` nmap-scans the current network
       for the tablet (identifying it by SSH host key) and repoints `~/.ssh/config` at it.
     - `pnpm backend:start` (also `backend:build` / `backend:watch` / `backend:test`), plus the

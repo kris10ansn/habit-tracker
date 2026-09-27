@@ -1,6 +1,6 @@
 # Native power-state image writer
 
-Read the root guidance and [README](README.md) before changing the writer. The architectural
+Read the root guidance and [README](README.md) before changing the writer. For module ownership and C++ conventions, read the [code tour](docs/code-tour.md). The architectural
 contract is [ADR 0009](../remarkable/docs/adr/0009-independent-power-state-image-writer.md).
 
 - Keep the renderer on Qt Core/Gui and value-owned input. QML and JavaScript runtimes belong to
@@ -13,5 +13,8 @@ contract is [ADR 0009](../remarkable/docs/adr/0009-independent-power-state-image
   selection fixed in production; arbitrary test directories are compiled in only for host tests.
 - Run native unit/process tests and the frontend tests for integration changes. Compare previews
   when changing layout; font antialiasing is host-dependent. Build scripts never access the device.
+- Keep the job interface typed (`Request`, `ProgressEvent`); JSON messages belong to `WriterProtocol`,
+  socket framing to `AppLoadConnection`, and job lifetime to `AppLoadSession`. Prefer named methods
+  and records that a reader from C#/Kotlin can follow; preserve scoped ownership and batch caching.
 - Format C++ with the local `.clang-format`. Prefer descriptive names and small functions around
   parsing, rendering, installation, and transport responsibilities.

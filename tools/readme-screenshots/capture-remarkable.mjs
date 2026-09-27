@@ -98,7 +98,7 @@ try {
         "-C",
         "apps/remarkable",
         "readme-screenshot-host",
-        "suspend-writer-host",
+        "power-image-writer-host",
     ]);
 
     for (const [name, scenario] of selected) {
@@ -137,7 +137,10 @@ try {
             run("magick", [deviceOutputPath, "-rotate", "-90", outputPath]);
         } else {
             const settingsName =
-                name === "pairing" ? "settings-pairing.json" : "settings.json";
+                scenario.settingsFile ??
+                (name === "pairing"
+                    ? "settings-pairing.json"
+                    : "settings.json");
             run(
                 path.join(
                     repositoryRoot,
@@ -145,7 +148,7 @@ try {
                 ),
                 [
                     "--scenario",
-                    name,
+                    name === "restoration" ? "settings" : name,
                     "--data-dir",
                     fixtureDirectory,
                     "--settings",

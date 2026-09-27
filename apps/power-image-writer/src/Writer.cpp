@@ -3,6 +3,7 @@
 #include <QDir>
 #include <QFileInfo>
 #include <QJsonDocument>
+#include <QJsonObject>
 #include <QJsonParseError>
 #include <utility>
 
@@ -15,24 +16,7 @@ QJsonObject readObject(const Files &files, const QString &path) {
         throw Error("Invalid JSON: " + path, path);
     return document.object();
 }
-void report(const Progress &progress, const QString &phase, const QString &path = {}) {
-    progress({{"kind", "progress"}, {"phase", phase}, {"message", path}});
-}
 } // namespace
-Operation parseOperation(const QString &name) {
-    static const QStringList names{"render",
-                                   "backup",
-                                   "restore",
-                                   "developer-preview",
-                                   "developer-write",
-                                   "developer-write-all",
-                                   "developer-restore",
-                                   "developer-restore-all"};
-    const auto index = names.indexOf(name);
-    if (index < 0)
-        throw Error("Unknown image operation: " + name);
-    return static_cast<Operation>(index);
-}
 bool isDeveloper(Operation operation) {
     return operation == Operation::Preview || operation == Operation::WriteOne || operation == Operation::WriteAll ||
            operation == Operation::RestoreOne || operation == Operation::RestoreAll;
@@ -48,30 +32,32 @@ Writer::Writer(Files &files, Environment environment) : files(files), environmen
 QString Writer::signaturePath() const {
     return environment.appDirectory + "/.sleep-sig";
 }
-QJsonObject Writer::settings() const {
+Writer::Settings Writer::settings() const {
     const auto path = environment.appDirectory + "/settings.json";
     if (!files.exists(path))
         return {};
-    return readObject(files, path);
+    const auto saved = readObject(files, path);
+    return {saved["suspendImageEnabled"].toBool(), saved["powerImageRestorePending"].toBool()};
 }
 
-Snapshot Writer::capture(const QDate &date, const QJsonObject &expected) const {
+Snapshot Writer::capture(const QDate &date, const std::optional<SavedDataFingerprint> &expected) const {
     const auto rosterPath = environment.appDirectory + "/data/roster.json";
     const auto monthPath = environment.appDirectory + "/data/" + date.toString("yyyy-MM") + ".json";
     const auto roster = files.read(rosterPath);
     const auto month = files.exists(monthPath) ? files.read(monthPath) : QByteArray();
-    if (!expected.isEmpty() &&
-        (expected["roster"].toString() != contentHash(roster) || expected["month"].toString() != contentHash(month)))
+    if (expected.has_value() && (expected->roster != contentHash(roster) || expected->month != contentHash(month)))
         throw Error("Saved habit data changed before capture", {}, true);
     return parseSnapshot(roster, month, date);
 }
 
-QVector<Target> Writer::targets(bool developer, bool single) const {
+QVector<ImageTarget> Writer::targets(Operation operation) const {
+    const bool developer = isDeveloper(operation);
+    const bool single = operation == Operation::WriteOne || operation == Operation::RestoreOne;
     const auto app = environment.appDirectory;
     if (environment.testProfile && !developer)
         return {{State::Sleep, app + "/suspend-preview.png", app + "/suspend-preview.png.bak", false, true}};
     const auto system = environment.imageDirectory;
-    QVector<Target> all;
+    QVector<ImageTarget> all;
     const QVector<QPair<State, QString>> pngs{{State::Sleep, "suspended"},          {State::Off, "poweroff"},
                                               {State::Empty, "batteryempty"},       {State::Starting, "starting"},
                                               {State::Rebooting, "rebooting"},      {State::Overheating, "overheating"},
@@ -91,36 +77,36 @@ QVector<Target> Writer::targets(bool developer, bool single) const {
         all.append({State::Starting, environment.bootDirectory + "/splash.bmp",
                     app + "/device-boot-splash-original.bmp", true, true});
     }
-    QVector<Target> selected;
+    QVector<ImageTarget> selected;
     for (const auto &target : all)
-        if (!target.optional || files.exists(target.path) || files.exists(target.backup))
+        if (!target.isOptional || files.exists(target.path) || files.exists(target.backupPath))
             selected.append(target);
     return selected;
 }
 
-void Writer::validateBootTargets(const QVector<Target> &selected, bool restoring) const {
+void Writer::validateBootTargets(const QVector<ImageTarget> &selected, bool restoring) const {
     for (const auto &target : selected) {
-        if (!target.boot)
+        if (!target.isBootImage)
             continue;
         if (environment.deviceModel != "reMarkable 1.0")
             throw Error("Boot images require reMarkable 1.0", target.path);
-        const auto path = restoring || !files.exists(target.path) ? target.backup : target.path;
+        const auto path = restoring || !files.exists(target.path) ? target.backupPath : target.path;
         try {
             validateBootImage(files.read(path));
-            if (!restoring && files.exists(target.backup))
-                validateBootImage(files.read(target.backup));
+            if (!restoring && files.exists(target.backupPath))
+                validateBootImage(files.read(target.backupPath));
         } catch (const Error &error) {
             throw Error(QString::fromUtf8(error.what()), error.path.isEmpty() ? path : error.path);
         }
     }
 }
-void Writer::backup(const QVector<Target> &selected, const Progress &progress) {
+void Writer::backup(const QVector<ImageTarget> &selected, const ProgressCallback &progress) {
     validateBootTargets(selected, false);
     for (const auto &target : selected) {
-        report(progress, "backing-up", target.path);
-        if (files.exists(target.backup)) {
-            if (files.read(target.backup).isEmpty())
-                throw Error("Original backup is empty", target.backup);
+        progress({ProgressPhase::BackingUp, target.path, {}});
+        if (files.exists(target.backupPath)) {
+            if (files.read(target.backupPath).isEmpty())
+                throw Error("Original backup is empty", target.backupPath);
             continue;
         }
         if (environment.testProfile && target.path == environment.appDirectory + "/suspend-preview.png")
@@ -128,28 +114,28 @@ void Writer::backup(const QVector<Target> &selected, const Progress &progress) {
         const auto original = files.read(target.path);
         if (original.isEmpty())
             throw Error("Original image is empty", target.path);
-        files.write(target.backup, original);
+        files.write(target.backupPath, original);
     }
 }
-void Writer::restore(const QVector<Target> &selected, const Progress &progress) {
+void Writer::restore(const QVector<ImageTarget> &selected, const ProgressCallback &progress) {
     validateBootTargets(selected, true);
     lastSignature.clear();
     QVector<QByteArray> originals;
     for (const auto &target : selected) {
-        const auto original = files.read(target.backup);
+        const auto original = files.read(target.backupPath);
         if (original.isEmpty())
-            throw Error("Original backup is empty", target.backup);
+            throw Error("Original backup is empty", target.backupPath);
         originals.append(original);
     }
     for (int index = 0; index < selected.size(); ++index) {
-        report(progress, "restoring", selected[index].path);
+        progress({ProgressPhase::Restoring, selected[index].path, {}});
         files.write(selected[index].path, originals[index]);
     }
     files.write(signaturePath(), "\"\"");
     lastSignature.clear();
 }
 
-void Writer::render(const QVector<Target> &selected, const Snapshot &snapshot, const Progress &progress,
+void Writer::render(const QVector<ImageTarget> &selected, const Snapshot &snapshot, const ProgressCallback &progress,
                     bool deduplicate) {
     QByteArray signature = snapshotSignature(snapshot);
     for (const auto &target : selected)
@@ -158,82 +144,62 @@ void Writer::render(const QVector<Target> &selected, const Snapshot &snapshot, c
         return;
     backup(selected, progress);
     lastSignature.clear();
-    QImage base;
-    QMap<State, QByteArray> pngs;
-    QByteArray boot;
-    const auto bytesFor = [&](const Target &target) -> QByteArray {
-        if (base.isNull())
-            base = renderBase(snapshot);
-        if (target.boot) {
-            if (boot.isEmpty())
-                boot = encodeBootImage(renderState(base, State::Starting));
-            return boot;
-        }
-        if (!pngs.contains(target.state))
-            pngs.insert(target.state, encodePng(renderState(base, target.state)));
-        return pngs.value(target.state);
-    };
+    RenderedImages images(snapshot);
     if (!deduplicate) {
         for (const auto &target : selected) {
             QString name = "developer-" + QFileInfo(target.path).fileName();
-            if (target.boot)
+            if (target.isBootImage)
                 name = "developer-boot-splash.bmp";
             else if (target.state == State::Sleep)
                 name = "developer-preview.png";
-            files.write(environment.appDirectory + "/" + name, bytesFor(target));
+            files.write(environment.appDirectory + "/" + name,
+                        target.isBootImage ? images.bootImage() : images.png(target.state));
         }
     }
     for (int index = 0; index < selected.size(); ++index) {
         const auto &target = selected[index];
-        progress(
-            {{"kind", "progress"},
-             {"phase", "saving"},
-             {"message", target.path},
-             {"imageProgress", QJsonObject{{"path", target.path}, {"remainingImages", selected.size() - index - 1}}}});
-        files.write(target.path, bytesFor(target));
+        progress({ProgressPhase::Saving, target.path, selected.size() - index - 1});
+        files.write(target.path, target.isBootImage ? images.bootImage() : images.png(target.state));
     }
     if (!deduplicate)
         return;
-    report(progress, "saving", signaturePath());
+    progress({ProgressPhase::Saving, signaturePath(), {}});
     files.write(signaturePath(),
                 QJsonDocument(QJsonObject{{"signature", QString::fromUtf8(signature)}}).toJson(QJsonDocument::Compact));
     lastSignature = signature;
 }
 
-QJsonObject Writer::execute(const Request &request, const Progress &progress) {
+void Writer::execute(const Request &request, const ProgressCallback &progress) {
     const bool developer = isDeveloper(request.operation);
     if (developer && !environment.testProfile)
         throw Error("Developer operations require the test build");
-    const bool single = request.operation == Operation::WriteOne || request.operation == Operation::RestoreOne;
-    auto selected = targets(developer, single);
+    const auto selected = targets(request.operation);
     if (request.operation == Operation::Backup) {
         backup(selected, progress);
-        return {{"ok", true}};
+        return;
     }
     if (isRestore(request.operation)) {
-        if (!developer && settings()["suspendImageEnabled"].toBool())
+        if (!developer && settings().writingEnabled)
             throw Error("Disable writing before restoring originals");
         if (environment.testProfile && !developer) {
             files.write(signaturePath(), "\"\"");
             lastSignature.clear();
         } else
             restore(selected, progress);
-        return {{"ok", true}};
+        return;
     }
     if (request.operation == Operation::Render) {
         const auto configuration = settings();
-        if (!configuration["suspendImageEnabled"].isBool() || !configuration["suspendImageEnabled"].toBool() ||
-            configuration["powerImageRestorePending"].toBool())
+        if (!configuration.writingEnabled || configuration.restorationPending)
             throw Error("Power-state image writing is disabled or restoration is incomplete");
     }
     const auto snapshot = capture(request.date, request.expected);
-    progress({{"kind", "captured"}});
+    progress({ProgressPhase::Captured, {}, {}});
     if (request.operation == Operation::Preview) {
         const auto path = environment.appDirectory + "/developer-preview.png";
-        report(progress, "saving", path);
+        progress({ProgressPhase::Saving, path, {}});
         files.write(path, encodePng(renderState(renderBase(snapshot), State::Sleep)));
     } else
         render(selected, snapshot, progress, request.operation == Operation::Render);
-    return {{"ok", true}, {"message", "Power-state images saved"}};
 }
 } // namespace powerimages

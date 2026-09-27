@@ -45,7 +45,9 @@
         "screenshots:remarkable": "node tools/readme-screenshots/capture-remarkable.mjs",
         "screenshots:frame": "node tools/readme-screenshots/frame-screenshots.mjs",
         "screenshots:showcase": "node tools/readme-screenshots/compose-showcase.mjs",
-        "screenshots:linking": "node tools/readme-screenshots/compose-linking-scene.mjs"
+        "screenshots:linking": "node tools/readme-screenshots/compose-linking-scene.mjs",
+        "remarkable:test:images": "pnpm --filter @habit-tracker/remarkable run test:images",
+        "screenshots:remarkable:compare": "node tools/readme-screenshots/compare-remarkable.mjs"
     },
     "devDependencies": {
         "prettier": "^3.8.3"

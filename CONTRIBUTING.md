@@ -40,8 +40,7 @@ pnpm remarkable:test
 If reMarkable drawing logic or its stored data shape changes, also run:
 
 ```sh
-cd apps/remarkable
-make suspend-writer-test
+pnpm remarkable:test:images
 ```
 
 The application-specific guides describe additional prerequisites and targeted commands.

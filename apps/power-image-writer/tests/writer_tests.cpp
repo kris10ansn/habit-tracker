@@ -3,10 +3,12 @@
 #include "Renderer.h"
 #include "Writer.h"
 #include <QFile>
+#include <QFileInfo>
 #include <QGuiApplication>
 #include <QHash>
 #include <QJsonArray>
 #include <QJsonDocument>
+#include <QJsonObject>
 #include <QTemporaryDir>
 #include <QtEndian>
 #include <functional>
@@ -49,7 +51,7 @@ class MemoryFiles final : public Files {
 QByteArray json(const QJsonObject &object) {
     return QJsonDocument(object).toJson(QJsonDocument::Compact);
 }
-const Progress quiet = [](const QJsonObject &) {};
+const ProgressCallback quiet = [](const ProgressEvent &) {};
 struct Fixture {
     MemoryFiles files;
     Environment environment{"/app", "/images", "/boot", "reMarkable 1.0", false};
@@ -115,8 +117,7 @@ int main(int argc, char **argv) {
     test("changed files rejected before capture or image writes", [&] {
         Fixture fixture(contract);
         Writer writer(fixture.files, fixture.environment);
-        const QJsonObject expected{{"roster", contentHash(fixture.files.read("/app/data/roster.json"))},
-                                   {"month", "missing"}};
+        const SavedDataFingerprint expected{contentHash(fixture.files.read("/app/data/roster.json")), "missing"};
         bool superseded = false;
         try {
             writer.execute({Operation::Render, fixture.date, expected}, quiet);
@@ -129,8 +130,8 @@ int main(int argc, char **argv) {
     test("captured batch stays immutable when JSON changes", [&] {
         Fixture fixture(contract);
         Writer writer(fixture.files, fixture.environment);
-        writer.execute({Operation::Render, fixture.date, {}}, [&](const QJsonObject &progress) {
-            if (progress["kind"] == "captured")
+        writer.execute({Operation::Render, fixture.date, {}}, [&](const ProgressEvent &progress) {
+            if (progress.phase == ProgressPhase::Captured)
                 fixture.files.contents["/app/data/roster.json"] = "invalid";
         });
         const auto snapshot =

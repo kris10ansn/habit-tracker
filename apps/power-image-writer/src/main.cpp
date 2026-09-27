@@ -1,5 +1,6 @@
-#include "AppLoad.h"
+#include "AppLoadSession.h"
 #include "Renderer.h"
+#include "WriterProtocol.h"
 #include <QCommandLineParser>
 #include <QDir>
 #include <QFileInfo>
@@ -51,28 +52,29 @@ Environment fixtureEnvironment(const QString &path) {
     return result;
 }
 #endif
-int run(QGuiApplication &application) {
+int runAppLoad(QGuiApplication &application) {
     const auto args = application.arguments();
     LocalFiles files;
-    const bool appLoad = args.size() >= 2 && !args[1].startsWith('-') && args[1].startsWith('/');
-    if (appLoad) {
-        auto config = environment(QDir::currentPath(), false);
-        const auto profilePath = config.appDirectory + "/writer-profile.json";
-        if (!files.exists(profilePath))
-            throw Error("Missing writer-profile.json");
-        QString lockPath = "/tmp/habit-tracker-power-images.lock";
+    auto config = environment(QDir::currentPath(), false);
+    const auto profilePath = config.appDirectory + "/writer-profile.json";
+    if (!files.exists(profilePath))
+        throw Error("Missing writer-profile.json");
+    QString lockPath = "/tmp/habit-tracker-power-images.lock";
 #ifdef POWER_IMAGE_HOST_TEST
-        if (args.size() == 4) {
-            config = fixtureEnvironment(args[2]);
-            lockPath = args[3];
-        }
-#else
-        if (args.size() != 2)
-            throw Error("Unexpected AppLoad arguments");
-#endif
-        AppLoad transport(args[1], lockPath, config);
-        return application.exec();
+    if (args.size() == 4) {
+        config = fixtureEnvironment(args[2]);
+        lockPath = args[3];
     }
+#else
+    if (args.size() != 2)
+        throw Error("Unexpected AppLoad arguments");
+#endif
+    AppLoadSession session(args[1], lockPath, config);
+    return application.exec();
+}
+
+int runStandalone(QGuiApplication &application) {
+    LocalFiles files;
     QCommandLineParser parser;
     parser.setApplicationDescription("Render reMarkable power-state images from saved habit JSON.");
     parser.addHelpOption();
@@ -139,8 +141,9 @@ int run(QGuiApplication &application) {
         throw Error("Another image writer is running");
     if (operation != "render" && operation != "backup" && operation != "restore")
         throw Error("Unknown operation");
-    writer.execute({parseOperation(operation), date, {}}, [](const QJsonObject &progress) {
-        QTextStream(stdout) << QJsonDocument(progress).toJson(QJsonDocument::Compact) << '\n';
+    writer.execute({WriterProtocol::parseOperation(operation), date, {}}, [](const ProgressEvent &progress) {
+        QTextStream(stdout) << QJsonDocument(WriterProtocol::progressMessage(progress)).toJson(QJsonDocument::Compact)
+                            << '\n';
     });
     return 0;
 }
@@ -150,7 +153,10 @@ int main(int argc, char **argv) {
     ::nice(10);
     QGuiApplication application(argc, argv);
     try {
-        return run(application);
+        const auto args = application.arguments();
+        if (args.size() >= 2 && args[1].startsWith('/'))
+            return runAppLoad(application);
+        return runStandalone(application);
     } catch (const std::exception &error) {
         QTextStream(stderr) << error.what() << '\n';
         return 1;

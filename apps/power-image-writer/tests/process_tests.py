@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exercise the native CLI and actual AppLoad socket protocol with disposable files."""
+"""Host-only black-box tests: launch the writer and act as AppLoad using disposable files."""
 import hashlib
 import json
 import os
@@ -11,7 +11,7 @@ import tempfile
 import unittest
 
 APP = Path(__file__).resolve().parents[1]
-BINARY = APP / "build/host/power-image-writer"
+BINARY = Path(os.environ.get("POWER_IMAGE_WRITER_BINARY", APP / "build/host/power-image-writer"))
 CONTRACT = json.loads((APP / "tests/habit-contract.json").read_text())
 
 

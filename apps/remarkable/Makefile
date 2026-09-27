@@ -30,7 +30,7 @@ SCREENSHOT_DIR := tools/readme-screenshots
 	suspend-writer-host suspend-writer-device suspend-writer-clean \
 	readme-screenshot-host readme-screenshot-clean
 
-build: inject-pragma image-worker-device
+build: inject-pragma power-image-writer-device
 	node scripts/stage-profile.mjs $(PROFILE) $(BUILD_DIR)
 	cd $(BUILD_DIR) && $(RCC) --binary -o resources.rcc application.qrc
 	cp icon.png $(BUILD_DIR)/
@@ -104,17 +104,16 @@ clean:
 	rm -rf $(BUILD_DIR)
 
 # Native writer; every build/test target is local.
-suspend-writer-host image-worker-host:
+power-image-writer-host suspend-writer-host image-worker-host:
 	$(WRITER_DIR)/scripts/build-host.sh
 
-suspend-writer-test image-worker-test: image-worker-host
+power-image-writer-test suspend-writer-test image-worker-test: power-image-writer-host
 	ctest --test-dir $(WRITER_DIR)/build/host --output-on-failure
-	python3 $(WRITER_DIR)/tests/integration.py
 
-suspend-writer-device image-worker-device:
+power-image-writer-device suspend-writer-device image-worker-device:
 	$(WRITER_DIR)/scripts/build-device.sh
 
-suspend-writer-clean:
+power-image-writer-clean suspend-writer-clean:
 	rm -rf $(WRITER_DIR)/build
 
 # Host-only Qt Quick shell for README captures. It loads the live Main.qml and points its public
@@ -126,4 +125,5 @@ readme-screenshot-clean:
 	rm -rf $(SCREENSHOT_DIR)/build
 
 # Local builds only; the ARM binary is bundled as apploader's backend/entry.
-.PHONY: image-worker-host image-worker-device image-worker-test
+.PHONY: image-worker-host image-worker-device image-worker-test \
+	power-image-writer-host power-image-writer-device power-image-writer-test power-image-writer-clean

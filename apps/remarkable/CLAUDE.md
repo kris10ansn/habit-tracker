@@ -41,8 +41,8 @@ Local (agent-runnable):
 - `make build` — stages `src/` into `build/src/` (see the `.pragma library` injection below), then compiles `application.qrc` → `build/resources.rcc` via `rcc-qt5` and stages `manifest.json` + `icon.png` alongside it. Also cross-builds `backend/entry` with the installed SDK; set `REMARKABLE_SDK` to its directory.
 - `make lint` — runs `qmllint-qt5` over every `src/**/*.qml`. Best-effort to a fault: the recipe is `command -v … && $(QMLLINT) … || echo "not installed; skipping"`, so **a missing linter _and_ a failing lint both print the skip notice and exit 0**. `make lint` can never fail the build — read its output, don't trust its exit code.
 - `make test` — Qt Quick Test over `tests/tst_*.qml`, headless on host Qt 5.15 (the device's Qt), against live `src/`. Covers the JS modules and the stores. **Unlike `lint`, this target fails properly** — never give it the `|| echo skipping` treatment. See the testing section below.
-- `make image-worker-host` / `image-worker-device` / `image-worker-test` — local host build, local ARM cross-build with the SDK, and process integration tests against temporary host files. No tablet access.
-- `make suspend-writer-test` — alias for `image-worker-test`, including native unit and process tests.
+- `make power-image-writer-host` / `power-image-writer-device` / `power-image-writer-test` — local host build, local ARM cross-build with the SDK, and process integration tests against temporary host files. No tablet access.
+- `make suspend-writer-test` — alias for `power-image-writer-test`, including native unit and process tests.
 - `make clean` — removes local `build/`.
 - `make suspend-writer-host` / `suspend-writer-clean` — local writer build/cleanup; see the writer README for previews.
 
@@ -50,7 +50,7 @@ Device-touching (**user-only**, never run these): `make deploy`, `make remove`, 
 
 Overrides: `make REMARKABLE_HOST=<host>` (default `remarkable`), `make HOTSPOT_HOST=<host>` (default `remarkable-hotspot`, the alias `find-hotspot-ip` repoints), `make RCC=<path>` (default `rcc-qt5`; rM1 is Qt 5.15, so Qt 5's rcc is required), `make QMLLINT=<path>`, `make QML_IMPORT_PATH=<dir>` (default `/usr/lib/qt/qml`, passed to the linter as `-I`).
 
-`make test` and `make image-worker-test` fail on errors. `make lint` is best-effort; inspect its output.
+`make test` and `make power-image-writer-test` fail on errors. `make lint` is best-effort; inspect its output.
 
 ## Tests
 
@@ -81,7 +81,7 @@ with a test.
   and the `x`/`o` ↔ `Success`/`Failure` respelling (0005). Sync's terminal paths are reached by
   calling `_handleDone` with a plain `{status, responseText}` stand-in — no server needed.
 - **Not covered:** full QML views and the real XHR-over-HTTP round trip. Native image behavior is
-  covered by `make image-worker-test`; shared habit fixtures also run in `tst_writercontract.qml`.
+  covered by `make power-image-writer-test`; shared habit fixtures also run in `tst_writercontract.qml`.
 
 ## Native power-state images
 

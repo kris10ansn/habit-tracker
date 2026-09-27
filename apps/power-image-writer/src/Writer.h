@@ -1,8 +1,8 @@
 #pragma once
 #include "Files.h"
 #include "Model.h"
-#include <QJsonObject>
 #include <functional>
+#include <optional>
 
 namespace powerimages {
 struct Environment {
@@ -12,42 +12,57 @@ struct Environment {
     QString deviceModel;
     bool testProfile = false;
 };
-struct Target {
+struct ImageTarget {
     State state;
     QString path;
-    QString backup;
-    bool boot = false;
-    bool optional = false;
+    QString backupPath;
+    bool isBootImage = false;
+    bool isOptional = false;
 };
 enum class Operation { Render, Backup, Restore, Preview, WriteOne, WriteAll, RestoreOne, RestoreAll };
-Operation parseOperation(const QString &name);
 bool isDeveloper(Operation operation);
 bool requiresData(Operation operation);
 bool isRestore(Operation operation);
 
+struct SavedDataFingerprint {
+    QString roster;
+    QString month;
+};
+
 struct Request {
     Operation operation;
     QDate date;
-    QJsonObject expected;
+    std::optional<SavedDataFingerprint> expected;
 };
-using Progress = std::function<void(const QJsonObject &)>;
+enum class ProgressPhase { Captured, BackingUp, Saving, Restoring };
+struct ProgressEvent {
+    ProgressPhase phase;
+    QString path;
+    std::optional<int> remainingImages;
+};
+using ProgressCallback = std::function<void(const ProgressEvent &)>;
 
 class Writer final {
   public:
     Writer(Files &files, Environment environment);
-    QJsonObject execute(const Request &request, const Progress &progress);
-    Snapshot capture(const QDate &date, const QJsonObject &expected = {}) const;
+    void execute(const Request &request, const ProgressCallback &progress);
+    Snapshot capture(const QDate &date, const std::optional<SavedDataFingerprint> &expected = std::nullopt) const;
 
   private:
     Files &files;
     Environment environment;
     QByteArray lastSignature;
-    QVector<Target> targets(bool developer, bool single) const;
-    void validateBootTargets(const QVector<Target> &selected, bool restoring) const;
-    void backup(const QVector<Target> &selected, const Progress &progress);
-    void restore(const QVector<Target> &selected, const Progress &progress);
-    void render(const QVector<Target> &selected, const Snapshot &snapshot, const Progress &progress, bool deduplicate);
-    QJsonObject settings() const;
+    QVector<ImageTarget> targets(Operation operation) const;
+    void validateBootTargets(const QVector<ImageTarget> &selected, bool restoring) const;
+    void backup(const QVector<ImageTarget> &selected, const ProgressCallback &progress);
+    void restore(const QVector<ImageTarget> &selected, const ProgressCallback &progress);
+    void render(const QVector<ImageTarget> &selected, const Snapshot &snapshot, const ProgressCallback &progress,
+                bool deduplicate);
+    struct Settings {
+        bool writingEnabled = false;
+        bool restorationPending = false;
+    };
+    Settings settings() const;
     QString signaturePath() const;
 };
 } // namespace powerimages

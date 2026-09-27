@@ -7,6 +7,7 @@
 #include <QtEndian>
 #include <algorithm>
 #include <cmath>
+#include <utility>
 
 namespace powerimages {
 namespace {
@@ -255,4 +256,24 @@ QByteArray encodeBootImage(const QImage &portrait) {
     }
     return bytes;
 }
+RenderedImages::RenderedImages(Snapshot snapshot) : snapshot(std::move(snapshot)) {}
+
+const QImage &RenderedImages::baseImage() {
+    if (base.isNull())
+        base = renderBase(snapshot);
+    return base;
+}
+
+QByteArray RenderedImages::png(State state) {
+    if (!pngs.contains(state))
+        pngs.insert(state, encodePng(renderState(baseImage(), state)));
+    return pngs.value(state);
+}
+
+QByteArray RenderedImages::bootImage() {
+    if (boot.isEmpty())
+        boot = encodeBootImage(renderState(baseImage(), State::Starting));
+    return boot;
+}
+
 } // namespace powerimages

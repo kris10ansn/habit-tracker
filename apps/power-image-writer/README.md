@@ -14,7 +14,11 @@ QML stores → confirmed saved JSON → immutable snapshot → QPainter → veri
 all grid, badge, icon, and boot-image drawing. `Writer` selects targets, retains backups, installs
 images, and commits signatures. `Files` is the injected I/O boundary; `LocalFiles` uses QSaveFile
 and full readback verification, following existing image symlinks without replacing the aliases.
-`AppLoad` owns socket framing, request validation, locks, heartbeat, and a single worker thread.
+`AppLoadConnection` hides socket framing behind Qt events. `AppLoadSession` owns job lifetime,
+locks, and one worker thread. `WriterProtocol` converts wire JSON to typed requests and progress;
+`Writer` does not construct transport messages. `RenderedImages` keeps each batch's drawing and
+encoding cache together. Start with the [code tour](docs/code-tour.md) for a reading order and
+C++ concepts explained using C#/Kotlin terminology.
 No dependency-injection container is needed: constructors supply file access and environment,
 while rendering takes values and returns images.
 
@@ -30,21 +34,28 @@ The interactive grid, habit edits, and sync remain in the QML app. A small set o
 ```sh
 ./scripts/build-host.sh
 ctest --test-dir build/host --output-on-failure
-python3 tests/integration.py
 make -C ../remarkable test
 ```
 
 Host builds require CMake, a C++17 compiler, Qt 5 Core/Gui development headers, and Python 3 for
-process tests. CMake also supports Qt 6 (`-DPOWER_IMAGE_QT_MAJOR=6`). `build-host.sh` enables
+process tests. CTest runs both `writer-tests` (in-process C++) and `writer-process-tests`
+([host-only Python harness](tests/process_tests.py)). Python is not deployed or used by the app.
+CMake also supports Qt 6 (`-DPOWER_IMAGE_QT_MAJOR=6`). `build-host.sh` enables
 `POWER_IMAGE_HOST_TEST`, allowing disposable fixture directories; production builds omit it.
 
 `./scripts/build-device.sh` cross-compiles locally with the reMarkable ARM/Qt 6 SDK. Set
 `REMARKABLE_SDK` to the unpacked SDK root. For existing installations the default is still
 `../remarkable/tools/suspend-writer/sdk`. It never contacts the tablet. The frontend's `make build`
 packages this binary as `backend/entry`, with `writer-profile.json` beside the frontend manifest.
-The target requires Qt 6 Core/Gui and the offscreen platform plugin; it does not require Qt Quick.
+Host and ARM builds use the same CMake source list. CMake runs Qt's `moc` automatically for the
+connection's signals, using host tools even while compiling for ARM. `WRITER_BUILD_JOBS` controls
+parallel compilation (default 4). The target requires Qt 6 Core/Gui and the offscreen platform
+plugin; it does not require Qt Quick.
 
-The old `make image-worker-*` and `make suspend-writer-*` local targets delegate here.
+From `apps/remarkable`, use `make power-image-writer-host`, `power-image-writer-device`,
+`power-image-writer-test`, or `power-image-writer-clean`. The old `image-worker-*` and
+`suspend-writer-*` local targets remain aliases. From the repository root, use
+`pnpm remarkable:test:images`.
 Deploy the frontend, writer, and profile together using the app's normal user-run deployment.
 
 ## Standalone CLI

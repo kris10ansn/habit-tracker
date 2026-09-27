@@ -14,6 +14,7 @@
         "backup:test": "make backup-test",
         "remove": "make remove",
         "backup": "make backup",
-        "find-hotspot-ip": "make find-hotspot-ip"
+        "find-hotspot-ip": "make find-hotspot-ip",
+        "test:images": "make power-image-writer-test"
     }
 }
