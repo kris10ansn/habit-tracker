@@ -337,6 +337,7 @@ Rectangle {
             anchors.fill: parent
             visible: landscape.editing
             habits: editSession.habits
+            originalHabits: editSession.original
             syncStatusText: syncStore.statusText
             suspendStatusText: root.suspendStatusText
             onNameEdited: editSession.setName(index, name)

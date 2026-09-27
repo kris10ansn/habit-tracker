@@ -6,6 +6,7 @@ Row {
     id: addRow
 
     property string polarity: Polarity.POSITIVE
+    readonly property bool hasPendingName: input.text.trim().length > 0
     signal addRequested(string name, string polarity)
 
     width: App.Theme.habitsWidth
@@ -39,6 +40,7 @@ Row {
 
         TextInput {
             id: input
+            objectName: "habit-add-name"
             anchors.fill: parent
             anchors.margins: App.Theme.inputPadding
             font.pixelSize: App.Theme.labelFont
