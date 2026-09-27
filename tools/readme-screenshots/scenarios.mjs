@@ -39,6 +39,11 @@ export const scenarios = Object.freeze({
     android: Object.freeze({
         today: Object.freeze({
             output: "android-today.png",
+            appearanceShowcase: Object.freeze({
+                light: "dark-mode/light-today.png",
+                dark: "dark-mode/dark-today.png",
+                output: "android-appearance-showcase.png",
+            }),
         }),
         month: Object.freeze({
             output: "android-month.png",

@@ -47,6 +47,29 @@ and Android captures fill their windows exactly. Smaller differences from other 
 are centered against the frame's off-white screen color rather than stretching or cropping the app
 UI. ImageMagick provides the only image-processing dependency.
 
+### Light/dark mobile showcase
+
+The README's first phone uses `framed/android-appearance-showcase.png`. ImageMagick slices
+the real `dark-mode/light-today.png` and `dark-mode/dark-today.png` captures diagonally from
+top right to bottom left, with light above/left and dark below/right. It keeps both screens
+aligned and applies the existing phone frame once. No UI pixels are invented.
+
+The normal `screenshots:frame` command (including its use in `mobile:test:readme`) regenerates
+this composite whenever it processes Android's `today` scenario. To rebuild just that scenario:
+
+```sh
+pnpm screenshots:frame -- --client android --scenario today
+```
+
+Both appearance captures are retained sources under `docs/assets/screenshots/dark-mode/`.
+Refreshing the regular light-only captures does not replace this pair: recapture Today in
+both modes with the same fixture, scroll position, and resolution, and save them as
+`light-today.png` and `dark-today.png` there before rebuilding. See
+[Light and dark appearance](#light-and-dark-appearance) for capture instructions.
+The compositor fails on missing or differently sized sources instead of silently using one mode.
+`--input-dir` relocates the source directory (including its `dark-mode/` child); `--out-dir`
+relocates the framed output. Regeneration from retained sources needs no emulator.
+
 ### Folio showcase
 
 The README's opening sleep-screen image uses `remarkable-showcase.png`. Its source is the blank
@@ -133,6 +156,31 @@ The frame command updates `docs/assets/screenshots/framed/android-*.png`. The li
 refreshes `framed/device-linking.png` from the current phone captures and existing tablet capture.
 To update only Today, capture with `--scenario today` and frame with `--client android --scenario today`.
 The combined `mobile:test:readme` command always updates all six screens.
+
+The Android `sync` capture scenario retains its filenames (`android-sync.png`) for existing
+README links, but now opens the Settings route and checks the appearance and sync controls.
+Account and connection controls remain below; scroll to inspect them. The tab-animation
+Maestro flow targets `tab-settings`.
+
+### Light and dark appearance
+
+The mobile app defaults to following Android's system appearance. Choose **System** in
+**Settings → Appearance** before capturing a pair controlled by the emulator's night setting.
+On your selected emulator, check the
+current setting with `adb -s emulator-5554 shell cmd uimode night`, then use
+`adb -s emulator-5554 shell cmd uimode night yes` for dark or `night no` for light before
+running the capture command. Substitute your emulator's serial in both commands. Copy each
+set of raw captures before the next run, since both appearances use the same output filenames.
+Keep the regular README captures in light mode. Save the paired Today captures as
+`docs/assets/screenshots/dark-mode/light-today.png` and `dark-today.png` for the
+[diagonal showcase](#lightdark-mobile-showcase); the other PR comparison images also live there.
+Restore the emulator's original setting afterward (`yes`, `no`, or `auto`).
+
+Also switch appearance while the app is open: the page, floating tabs, status bar, inputs, and
+polarity labels should update together without restarting or changing any entries. The camera
+viewfinder stays white in both modes. Use a separate emulator when another task is capturing;
+different Metro ports still share Expo Go on the same emulator.
+For clean captures on a fresh Expo Go installation, disable **Tools button** in its developer menu.
 
 Capture validates the full selected set before replacing raw images. A later framing failure
 leaves those new raw captures available; rerun framing without recapturing. Each replacement uses

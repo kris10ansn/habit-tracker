@@ -148,7 +148,7 @@ function ModeTab({
             <Text
                 className={twMerge(
                     "px-4 py-1.5 text-[13px] font-semibold",
-                    active ? "bg-accent text-white" : "text-ink-2",
+                    active ? "bg-accent text-on-accent" : "text-ink-2",
                 )}
             >
                 {label}

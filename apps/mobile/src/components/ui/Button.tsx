@@ -43,7 +43,7 @@ export function ButtonText({
     return (
         <Text
             className={twMerge(
-                "flex-row items-center justify-center text-[15px] font-semibold text-white",
+                "flex-row items-center justify-center text-[15px] font-semibold text-on-accent",
                 className,
             )}
         >

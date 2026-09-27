@@ -5,6 +5,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 import {
+    composeAndroidAppearanceShowcase,
     composeRemarkableShowcase,
     frameScreenshot,
 } from "./lib/device-frames.mjs";
@@ -117,6 +118,22 @@ if (options.input) {
                 `wrote ${path.relative(repositoryRoot, outputPath)}\n`,
             );
             written += 1;
+            if (scenario.appearanceShowcase) {
+                const appearance = scenario.appearanceShowcase;
+                const showcasePath = path.join(
+                    options.outDir,
+                    appearance.output,
+                );
+                await composeAndroidAppearanceShowcase({
+                    lightPath: path.join(options.inputDir, appearance.light),
+                    darkPath: path.join(options.inputDir, appearance.dark),
+                    outputPath: showcasePath,
+                    frameSourcePath,
+                });
+                process.stdout.write(
+                    `wrote ${path.relative(repositoryRoot, showcasePath)}\n`,
+                );
+            }
             if (scenario.showcase) {
                 const showcasePath = path.join(
                     options.outDir,

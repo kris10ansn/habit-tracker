@@ -28,11 +28,14 @@ const screens = [
     },
     {
         name: "sync",
-        route: "sync",
+        route: "settings",
         content: [
-            "Keep every device in step",
+            "Make yourself at home",
+            "Appearance",
+            "System",
+            "Light",
+            "Dark",
             "Changes not synced",
-            "alex@example.com",
         ],
     },
     {

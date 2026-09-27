@@ -1,3 +1,4 @@
+import { useColors } from "@/theme/colors";
 import { useMemo } from "react";
 
 import { DaySummary } from "@/components/today/DaySummary";
@@ -24,6 +25,7 @@ import { RefreshControl } from "react-native";
 // Today: the primary daily surface — log each habit at a glance. Always pinned to the real
 // current month, whatever the Month tab is viewing.
 export default function TodayScreen() {
+    const colors = useColors();
     const now = new Date();
     const view = currentMonthView(now);
     const today = todayKey(now);
@@ -57,6 +59,9 @@ export default function TodayScreen() {
             subtitle={`${logged} of ${habits.length} habits logged`}
             refreshControl={
                 <RefreshControl
+                    tintColor={colors.accent}
+                    colors={[colors.accent]}
+                    progressBackgroundColor={colors.surface}
                     refreshing={habitsQuery.isPending || sync.isPending}
                     onRefresh={() => sync.mutate({})}
                 />

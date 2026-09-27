@@ -12,7 +12,7 @@ interface Props {
     session: AuthSession;
 }
 
-// The signed-in view of the Sync tab's Account card: who's signed in, plus the two actions that
+// The signed-in view of the Settings tab's Account card: who's signed in, plus the two actions that
 // touch the account (linked devices, log out). Signing out here only clears the local token — see
 // useLogout — never local habit data.
 export function AccountSummary({ session }: Props) {

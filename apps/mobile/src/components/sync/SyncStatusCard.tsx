@@ -2,7 +2,7 @@ import { ActivityIndicator, Pressable, Text, View } from "react-native";
 
 import { Card } from "@/components/ui/Card";
 import { Icon, type MaterialIconName } from "@/components/ui/Icon";
-import { colors } from "@/theme/colors";
+import { useColors } from "@/theme/colors";
 import { twMerge } from "tailwind-merge";
 
 export type SyncState =
@@ -137,6 +137,7 @@ function SyncActionPill({
     busy,
     onPress,
 }: StateView["action"] & { onPress?: () => void }) {
+    const colors = useColors();
     return (
         <Pressable
             accessibilityRole="button"
@@ -162,13 +163,13 @@ function SyncActionPill({
                 <Icon
                     name="sync"
                     size={15}
-                    className={enabled ? "text-white" : "text-ink-3"}
+                    className={enabled ? "text-on-accent" : "text-ink-3"}
                 />
             )}
             <Text
                 className={twMerge(
                     "text-[13px] font-semibold",
-                    enabled ? "text-white" : "text-ink-3",
+                    enabled ? "text-on-accent" : "text-ink-3",
                 )}
             >
                 {label}

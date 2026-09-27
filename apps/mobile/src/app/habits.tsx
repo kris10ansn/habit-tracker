@@ -7,9 +7,11 @@ import { Loading } from "@/components/ui/Loading";
 import { SortableList, SortableListHandle } from "@/components/ui/SortableList";
 import { Habit } from "@/domain/types";
 import { useHabits, useReorderHabit, useSync } from "@/state/queries";
+import { useColors } from "@/theme/colors";
 import { RefreshControl } from "react-native";
 
 export default function HabitsScreen() {
+    const colors = useColors();
     const habitsQuery = useHabits();
     const reorder = useReorderHabit();
     const sync = useSync();
@@ -22,6 +24,9 @@ export default function HabitsScreen() {
             avoidKeyboard
             refreshControl={
                 <RefreshControl
+                    tintColor={colors.accent}
+                    colors={[colors.accent]}
+                    progressBackgroundColor={colors.surface}
                     refreshing={sync.isPending}
                     onRefresh={() => sync.mutate({})}
                 />
