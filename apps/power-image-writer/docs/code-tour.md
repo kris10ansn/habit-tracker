@@ -15,6 +15,7 @@ records, comparable to C# records, Kotlin data classes, or TypeScript object typ
 | `WriterProtocol`              | Converts between JSON messages and typed requests/progress              | QML ↔ writer message format                       |
 | `AppLoadSession`              | Runs one accepted job on a worker thread and forwards progress          | App lifecycle, busy state, job completion         |
 | `AppLoadConnection`           | Exchanges packets over the launcher's local socket                      | AppLoad's transport format                        |
+| `LaunchConfiguration`         | Resolves installed settings and build-specific host fixture overrides   | Launch paths, profiles, and host test options     |
 | `main.cpp`                    | Constructs dependencies and selects standalone or AppLoad mode          | CLI options and startup                           |
 
 ## Why AppLoad is involved
@@ -40,6 +41,14 @@ progress back to the event-loop thread, which alone touches the socket and timer
 waits for accepted work before destruction. The standalone CLI calls the same writer directly
 and does not need an AppLoad connection.
 
+## Why build configuration has a preprocessor branch
+
+`LaunchConfiguration` returns the environment and image-lock path for either launch mode.
+Its one `#ifdef` selects the implementation at compile time, similar to C# conditional compilation.
+The host test build accepts disposable fixture paths; the production binary contains only the
+installed-device configuration. `main.cpp` uses the same methods in both builds. This keeps
+build differences out of the job flow without adding a runtime service or DI container.
+
 ## Why there is a Python file
 
 [process_tests.py](../tests/process_tests.py) is a host-only integration-test harness, analogous
@@ -53,6 +62,10 @@ and is neither deployed nor required on the tablet.
 to simulate disk failures. CTest runs both suites through `make power-image-writer-test`.
 
 ## The C++ conventions used here
+
+Namespaces group related names, like C# namespaces or Kotlin packages. C++ does not require
+indentation inside them; this project indents their contents to make the scope visible.
+`clang-format` enforces that choice along with braces, spacing, and line wrapping.
 
 - `const T &` is a borrowed read-only argument. It avoids copying; the caller retains ownership.
 - `T &` is a borrowed dependency, like `Files &files` in the writer constructor. There is no DI

@@ -18,74 +18,75 @@
 using namespace powerimages;
 
 namespace {
-void require(bool condition, const char *message) {
-    if (!condition) {
-        throw std::runtime_error(message);
-    }
-}
-
-void rejects(const std::function<void()> &action) {
-    try {
-        action();
-    } catch (const Error &) {
-        return;
-    }
-
-    throw std::runtime_error("Expected operation to fail");
-}
-
-class MemoryFiles final : public Files {
-  public:
-    QHash<QString, QByteArray> contents;
-    QString failPath;
-    QStringList writes;
-
-    bool exists(const QString &path) const override {
-        return contents.contains(path);
-    }
-
-    QByteArray read(const QString &path) const override {
-        if (!contents.contains(path)) {
-            throw Error("Missing file", path);
-        }
-
-        return contents.value(path);
-    }
-
-    void write(const QString &path, const QByteArray &bytes) override {
-        if (path == failPath) {
-            throw Error("Injected write failure", path);
-        }
-
-        writes.append(path);
-        contents[path] = bytes;
-    }
-};
-
-QByteArray json(const QJsonObject &object) {
-    return QJsonDocument(object).toJson(QJsonDocument::Compact);
-}
-
-const ProgressCallback quiet = [](const ProgressEvent &) {};
-
-struct Fixture {
-    MemoryFiles files;
-    Environment environment{"/app", "/images", "/boot", "reMarkable 1.0", false};
-    QDate date{2026, 8, 9};
-
-    explicit Fixture(const QJsonObject &contract) {
-        files.contents["/app/data/roster.json"] = json(contract["roster"].toObject());
-        files.contents["/app/data/2026-08.json"] = json(contract["month"].toObject());
-        files.contents["/app/settings.json"] = "{\"suspendImageEnabled\":true}";
-        for (const auto &name : {"suspended", "poweroff", "batteryempty", "starting", "rebooting", "restart-crashed"}) {
-            files.contents["/images/" + QString(name) + ".png"] = "original-" + QByteArray(name);
+    void require(bool condition, const char *message) {
+        if (!condition) {
+            throw std::runtime_error(message);
         }
     }
 
-    void disabled() {
-        files.contents["/app/settings.json"] = "{\"suspendImageEnabled\":false,\"powerImageRestorePending\":true}";
+    void rejects(const std::function<void()> &action) {
+        try {
+            action();
+        } catch (const Error &) {
+            return;
+        }
+
+        throw std::runtime_error("Expected operation to fail");
     }
-};
+
+    class MemoryFiles final : public Files {
+      public:
+        QHash<QString, QByteArray> contents;
+        QString failPath;
+        QStringList writes;
+
+        bool exists(const QString &path) const override {
+            return contents.contains(path);
+        }
+
+        QByteArray read(const QString &path) const override {
+            if (!contents.contains(path)) {
+                throw Error("Missing file", path);
+            }
+
+            return contents.value(path);
+        }
+
+        void write(const QString &path, const QByteArray &bytes) override {
+            if (path == failPath) {
+                throw Error("Injected write failure", path);
+            }
+
+            writes.append(path);
+            contents[path] = bytes;
+        }
+    };
+
+    QByteArray json(const QJsonObject &object) {
+        return QJsonDocument(object).toJson(QJsonDocument::Compact);
+    }
+
+    const ProgressCallback quiet = [](const ProgressEvent &) {};
+
+    struct Fixture {
+        MemoryFiles files;
+        Environment environment{"/app", "/images", "/boot", "reMarkable 1.0", false};
+        QDate date{2026, 8, 9};
+
+        explicit Fixture(const QJsonObject &contract) {
+            files.contents["/app/data/roster.json"] = json(contract["roster"].toObject());
+            files.contents["/app/data/2026-08.json"] = json(contract["month"].toObject());
+            files.contents["/app/settings.json"] = "{\"suspendImageEnabled\":true}";
+            for (const auto &name :
+                 {"suspended", "poweroff", "batteryempty", "starting", "rebooting", "restart-crashed"}) {
+                files.contents["/images/" + QString(name) + ".png"] = "original-" + QByteArray(name);
+            }
+        }
+
+        void disabled() {
+            files.contents["/app/settings.json"] = "{\"suspendImageEnabled\":false,\"powerImageRestorePending\":true}";
+        }
+    };
 } // namespace
 
 int main(int argc, char **argv) {

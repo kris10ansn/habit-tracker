@@ -1,0 +1,360 @@
+{
+    "samples": 12,
+    "warmup": 2,
+    "cpu": 15,
+    "date": "2026-09-09",
+    "platform": {
+        "system": "Linux",
+        "release": "6.6.156-2-MANJARO",
+        "architecture": "x86_64"
+    },
+    "cases": {
+        "single_5": {
+            "qml_pr53": {
+                "changed": {
+                    "median_ms": 523.4438095,
+                    "minimum_ms": 512.298512,
+                    "maximum_ms": 542.929302,
+                    "q1_ms": 519.975816,
+                    "q3_ms": 531.468355,
+                    "samples_ms": [
+                        525.529135, 531.328316, 521.358484, 512.298512,
+                        531.468355, 515.08513, 515.83065, 519.975816,
+                        521.233083, 542.929302, 527.653541, 531.83229
+                    ]
+                },
+                "unchanged": {
+                    "median_ms": 525.6180005,
+                    "minimum_ms": 513.522832,
+                    "maximum_ms": 558.237374,
+                    "q1_ms": 521.87211,
+                    "q3_ms": 549.851096,
+                    "samples_ms": [
+                        558.237374, 528.546439, 549.851096, 552.760276,
+                        522.689562, 514.885443, 516.90966, 521.87211,
+                        534.026313, 522.076268, 513.522832, 530.386346
+                    ]
+                },
+                "startup_ms": 200.311427,
+                "first_batch_ms": 1109.813842,
+                "outputs": {
+                    "suspend-preview.png": 135290
+                }
+            },
+            "native_initial": {
+                "changed": {
+                    "median_ms": 362.877783,
+                    "minimum_ms": 349.021352,
+                    "maximum_ms": 386.356408,
+                    "q1_ms": 359.413461,
+                    "q3_ms": 371.987037,
+                    "samples_ms": [
+                        385.945024, 363.0911, 353.585335, 362.664466,
+                        359.413461, 371.987037, 349.021352, 369.076527,
+                        362.621076, 386.356408, 358.625155, 363.266629
+                    ]
+                },
+                "unchanged": {
+                    "median_ms": 2.6708585,
+                    "minimum_ms": 2.305417,
+                    "maximum_ms": 3.160323,
+                    "q1_ms": 2.454969,
+                    "q3_ms": 2.981896,
+                    "samples_ms": [
+                        2.454969, 2.914509, 2.981896, 3.160323, 2.610274,
+                        2.385989, 3.029075, 2.305417, 2.731443, 2.320386,
+                        2.551863, 2.735259
+                    ]
+                },
+                "startup_ms": 37.104249,
+                "first_batch_ms": 503.51875,
+                "outputs": {
+                    "suspend-preview.png": 119345
+                }
+            },
+            "native_current": {
+                "changed": {
+                    "median_ms": 363.4041135,
+                    "minimum_ms": 344.460288,
+                    "maximum_ms": 377.8065,
+                    "q1_ms": 359.448235,
+                    "q3_ms": 372.492117,
+                    "samples_ms": [
+                        372.492117, 363.386038, 363.805661, 359.448235,
+                        344.460288, 363.422189, 363.015, 374.389108, 370.573006,
+                        357.383368, 351.37363, 377.8065
+                    ]
+                },
+                "unchanged": {
+                    "median_ms": 2.7317530000000003,
+                    "minimum_ms": 2.115348,
+                    "maximum_ms": 4.996985,
+                    "q1_ms": 2.367725,
+                    "q3_ms": 3.059883,
+                    "samples_ms": [
+                        4.750549, 4.996985, 2.821834, 2.757441, 2.367725,
+                        3.059883, 2.786727, 2.28552, 2.488684, 2.253018,
+                        2.706065, 2.115348
+                    ]
+                },
+                "startup_ms": 34.817046,
+                "first_batch_ms": 516.897959,
+                "outputs": {
+                    "suspend-preview.png": 119345
+                }
+            }
+        },
+        "batch_5": {
+            "qml_pr53": {
+                "changed": {
+                    "median_ms": 3935.6523895,
+                    "minimum_ms": 3717.813894,
+                    "maximum_ms": 4040.353686,
+                    "q1_ms": 3903.000034,
+                    "q3_ms": 4003.691127,
+                    "samples_ms": [
+                        4026.062072, 4040.353686, 3956.626883, 3934.154617,
+                        3920.51737, 3940.075095, 4003.691127, 3903.000034,
+                        3937.150162, 3800.709713, 3735.829574, 3717.813894
+                    ]
+                },
+                "unchanged": {
+                    "median_ms": 3940.5113819999997,
+                    "minimum_ms": 3708.934077,
+                    "maximum_ms": 4281.15632,
+                    "q1_ms": 3887.079737,
+                    "q3_ms": 3952.414367,
+                    "samples_ms": [
+                        3961.75465, 4281.15632, 3934.072345, 3948.594347,
+                        3917.455828, 3947.739216, 3952.414367, 3887.079737,
+                        3946.950419, 3731.528606, 3708.934077, 3789.145427
+                    ]
+                },
+                "startup_ms": 194.815846,
+                "first_batch_ms": 5610.350407,
+                "outputs": {
+                    "system/suspended.png": 135290,
+                    "system/poweroff.png": 134838,
+                    "system/batteryempty.png": 134752,
+                    "system/starting.png": 139668,
+                    "system/rebooting.png": 140875,
+                    "system/overheating.png": 143383,
+                    "system/restart-crashed.png": 140875,
+                    "system/splash/splash.bmp": 2629366,
+                    "uboot/splash.bmp": 2629366
+                }
+            },
+            "native_initial": {
+                "changed": {
+                    "median_ms": 1970.1359325,
+                    "minimum_ms": 1868.384749,
+                    "maximum_ms": 2130.815222,
+                    "q1_ms": 1953.073816,
+                    "q3_ms": 1983.517416,
+                    "samples_ms": [
+                        1983.517416, 2130.815222, 1956.49281, 1974.675085,
+                        1974.932903, 1965.59678, 1985.982852, 1976.561738,
+                        1941.472361, 1953.073816, 1868.384749, 1906.602313
+                    ]
+                },
+                "unchanged": {
+                    "median_ms": 2.7485545,
+                    "minimum_ms": 2.316799,
+                    "maximum_ms": 5.926669,
+                    "q1_ms": 2.578213,
+                    "q3_ms": 3.085011,
+                    "samples_ms": [
+                        2.965716, 3.89422, 2.764195, 2.578213, 2.744627,
+                        3.085011, 2.511917, 2.316799, 2.520052, 2.731902,
+                        2.752482, 5.926669
+                    ]
+                },
+                "startup_ms": 34.801598,
+                "first_batch_ms": 2166.634189,
+                "outputs": {
+                    "system/suspended.png": 119345,
+                    "system/poweroff.png": 119552,
+                    "system/batteryempty.png": 119429,
+                    "system/starting.png": 124198,
+                    "system/rebooting.png": 125155,
+                    "system/overheating.png": 126853,
+                    "system/restart-crashed.png": 125155,
+                    "system/splash/splash.bmp": 2629366,
+                    "uboot/splash.bmp": 2629366
+                }
+            },
+            "native_current": {
+                "changed": {
+                    "median_ms": 1952.6847619999999,
+                    "minimum_ms": 1850.579681,
+                    "maximum_ms": 1983.9486,
+                    "q1_ms": 1935.788931,
+                    "q3_ms": 1976.238443,
+                    "samples_ms": [
+                        1976.238443, 1964.929639, 1980.072023, 1955.911503,
+                        1955.216612, 1950.152912, 1983.9486, 1937.879205,
+                        1910.309735, 1935.788931, 1850.579681, 1854.179585
+                    ]
+                },
+                "unchanged": {
+                    "median_ms": 2.528853,
+                    "minimum_ms": 1.997575,
+                    "maximum_ms": 6.481822,
+                    "q1_ms": 2.23901,
+                    "q3_ms": 3.932352,
+                    "samples_ms": [
+                        2.667292, 2.804932, 2.228723, 2.319074, 6.481822,
+                        5.869013, 3.932352, 1.997575, 2.513679, 2.20124,
+                        2.23901, 2.544027
+                    ]
+                },
+                "startup_ms": 34.499336,
+                "first_batch_ms": 2189.56743,
+                "outputs": {
+                    "system/suspended.png": 119345,
+                    "system/poweroff.png": 119552,
+                    "system/batteryempty.png": 119429,
+                    "system/starting.png": 124198,
+                    "system/rebooting.png": 125155,
+                    "system/overheating.png": 126853,
+                    "system/restart-crashed.png": 125155,
+                    "system/splash/splash.bmp": 2629366,
+                    "uboot/splash.bmp": 2629366
+                }
+            }
+        },
+        "batch_30": {
+            "qml_pr53": {
+                "changed": {
+                    "median_ms": 3754.7127755,
+                    "minimum_ms": 3709.482958,
+                    "maximum_ms": 3828.29673,
+                    "q1_ms": 3729.93388,
+                    "q3_ms": 3797.820145,
+                    "samples_ms": [
+                        3828.29673, 3823.713016, 3709.482958, 3782.563194,
+                        3731.17242, 3729.93388, 3745.80358, 3722.795776,
+                        3774.307484, 3719.914873, 3797.820145, 3763.621971
+                    ]
+                },
+                "unchanged": {
+                    "median_ms": 3744.402436,
+                    "minimum_ms": 3702.372218,
+                    "maximum_ms": 3861.493615,
+                    "q1_ms": 3737.093138,
+                    "q3_ms": 3762.59467,
+                    "samples_ms": [
+                        3861.493615, 3702.372218, 3741.572351, 3738.50138,
+                        3747.232521, 3721.00735, 3750.930278, 3758.269497,
+                        3822.468427, 3728.778621, 3737.093138, 3762.59467
+                    ]
+                },
+                "startup_ms": 126.115882,
+                "first_batch_ms": 5295.131799,
+                "outputs": {
+                    "system/suspended.png": 134295,
+                    "system/poweroff.png": 133701,
+                    "system/batteryempty.png": 133775,
+                    "system/starting.png": 138673,
+                    "system/rebooting.png": 139964,
+                    "system/overheating.png": 142590,
+                    "system/restart-crashed.png": 139964,
+                    "system/splash/splash.bmp": 2629366,
+                    "uboot/splash.bmp": 2629366
+                }
+            },
+            "native_initial": {
+                "changed": {
+                    "median_ms": 1769.4927855,
+                    "minimum_ms": 1754.964076,
+                    "maximum_ms": 1809.187372,
+                    "q1_ms": 1764.290383,
+                    "q3_ms": 1772.782032,
+                    "samples_ms": [
+                        1809.187372, 1763.286487, 1764.290383, 1769.264768,
+                        1770.669377, 1791.575879, 1771.394373, 1769.720803,
+                        1767.235559, 1772.782032, 1763.341315, 1754.964076
+                    ]
+                },
+                "unchanged": {
+                    "median_ms": 5.524525000000001,
+                    "minimum_ms": 4.983909,
+                    "maximum_ms": 8.95392,
+                    "q1_ms": 5.289707,
+                    "q3_ms": 6.002234,
+                    "samples_ms": [
+                        5.970713, 5.490646, 5.568593, 8.95392, 5.558404,
+                        5.289707, 5.436965, 5.174218, 4.983909, 7.660197,
+                        5.225044, 6.002234
+                    ]
+                },
+                "startup_ms": 36.91707,
+                "first_batch_ms": 2063.621072,
+                "outputs": {
+                    "system/suspended.png": 117579,
+                    "system/poweroff.png": 117781,
+                    "system/batteryempty.png": 117778,
+                    "system/starting.png": 122537,
+                    "system/rebooting.png": 123688,
+                    "system/overheating.png": 125394,
+                    "system/restart-crashed.png": 123688,
+                    "system/splash/splash.bmp": 2629366,
+                    "uboot/splash.bmp": 2629366
+                }
+            },
+            "native_current": {
+                "changed": {
+                    "median_ms": 1762.5731095,
+                    "minimum_ms": 1757.32294,
+                    "maximum_ms": 1843.284894,
+                    "q1_ms": 1758.491244,
+                    "q3_ms": 1776.567945,
+                    "samples_ms": [
+                        1843.284894, 1757.496751, 1757.394718, 1758.491244,
+                        1762.611485, 1770.578164, 1762.534734, 1757.32294,
+                        1761.448776, 1819.010252, 1776.567945, 1768.404253
+                    ]
+                },
+                "unchanged": {
+                    "median_ms": 5.524069000000001,
+                    "minimum_ms": 4.836029,
+                    "maximum_ms": 7.494694,
+                    "q1_ms": 5.324332,
+                    "q3_ms": 6.483663,
+                    "samples_ms": [
+                        6.483663, 5.510894, 5.537244, 7.387991, 5.655849,
+                        5.324332, 4.836029, 5.464396, 5.314844, 5.019928,
+                        5.843133, 7.494694
+                    ]
+                },
+                "startup_ms": 31.827002,
+                "first_batch_ms": 2291.434606,
+                "outputs": {
+                    "system/suspended.png": 117579,
+                    "system/poweroff.png": 117781,
+                    "system/batteryempty.png": 117778,
+                    "system/starting.png": 122537,
+                    "system/rebooting.png": 123688,
+                    "system/overheating.png": 125394,
+                    "system/restart-crashed.png": 123688,
+                    "system/splash/splash.bmp": 2629366,
+                    "uboot/splash.bmp": 2629366
+                }
+            }
+        }
+    },
+    "provenance": {
+        "measured_on": "2026-09-27",
+        "processor": "AMD Ryzen 7 5800U",
+        "qt": "5.15.19",
+        "compiler": "GCC 16.2.1",
+        "flags": "-O2 -g -DNDEBUG (C++17, host fixtures enabled)",
+        "commits": {
+            "qml_pr53": "b7046f99c6d8e55b7e502f4fbc7a175a7aa89e9a",
+            "native_initial": "0918d4e9f8b5da6931be261827a4d7e0c8138d65",
+            "native_current": "0dc556785b1a6860b954f02ef2b21841af9ce745"
+        },
+        "ordering_seed": 20260927,
+        "notes": "Persistent actual AppLoad workers; changed requests followed by unchanged requests. First batch and two warmups excluded. Temporary host filesystem only. No tablet access."
+    }
+}

@@ -28,6 +28,8 @@ The interactive grid, habit edits, and sync remain in the QML app. A small set o
 `tst_writercontract.qml`. See [ADR 0009](../remarkable/docs/adr/0009-independent-power-state-image-writer.md).
 
 [Before/after previews of all six states](docs/render-verification.md) document visual preservation.
+[Host performance measurements](docs/performance.md) compare the old worker, initial native writer,
+and readability refactor, with raw samples and reproduction commands.
 
 ## Local build and verification
 

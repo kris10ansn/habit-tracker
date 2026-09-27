@@ -1,5 +1,6 @@
 BasedOnStyle: LLVM
 IndentWidth: 4
+NamespaceIndentation: All
 ColumnLimit: 120
 BreakBeforeBraces: Attach
 InsertBraces: true
