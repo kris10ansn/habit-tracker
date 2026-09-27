@@ -16,6 +16,13 @@ QtObject {
     // enforces the block.
     property bool isUnwritable: false
 
+    readonly property bool hasPendingSave: _saveTimer.running || _writing || _queue.length > 0
+    property string lastSaveError: ""
+    property bool _writing: false
+    property var _queue: []
+    property var _waiters: []
+    property var writeFile: Storage.writeFile
+
     signal saved
     signal saveFailed(string message)
 
@@ -43,6 +50,18 @@ QtObject {
     // calling (see HabitsStore.loadMonth). Every read re-decides isUnwritable, so navigating off
     // an unreadable file and back onto a readable one lifts the block.
     function reload() {
+        const requestedPath = filePath;
+        if (_writing || _queue.length) {
+            isLoaded = false;
+            whenSaved(() => {
+                if (filePath === requestedPath) _reload();
+            });
+            return;
+        }
+        _reload();
+    }
+
+    function _reload() {
         jsonStore.isUnwritable = false;
         jsonStore.applyLoaded(Storage.readJson(jsonStore.filePath));
         jsonStore.isLoaded = true;
@@ -61,29 +80,58 @@ QtObject {
         jsonStore._doSave();
     }
 
+    function whenSaved(onDone) {
+        _waiters = _waiters.concat([onDone]);
+        flushPendingSave();
+        _notifySettled();
+    }
+
+    function _notifySettled() {
+        if (hasPendingSave || !_waiters.length) return;
+
+        const callbacks = _waiters;
+        _waiters = [];
+        callbacks.forEach(callback => callback(lastSaveError));
+    }
+
     function _doSave() {
-        if (jsonStore.isUnwritable) {
-            jsonStore.saveFailed("Nothing is written to " + jsonStore.filePath + " while its contents are unreadable.");
+        _saveTimer.stop();
+        if (isUnwritable) {
+            _failed("Nothing is written to " + filePath + " while its contents are unreadable.");
             return;
         }
-
         try {
-            Storage.writeJson(jsonStore.filePath, jsonStore.serialize(), jsonStore._onWriteDone);
-        } catch (e) {
-            jsonStore._onWriteDone(String(e));
+            const body = JSON.stringify(serialize());
+            if (!body) throw new Error("No serializable data for " + filePath);
+            const write = { path: filePath, body: body };
+            _queue = _queue.filter(pending => pending.path !== write.path).concat([write]);
+            _writeNext();
+        } catch (error) {
+            _failed(String(error));
         }
     }
 
-    // The write only reports once it has landed, so `saved` means the bytes are on disk rather
-    // than merely queued — which is what makes a missing data/ dir a visible modal instead of a
-    // silent no-op the session then believes it persisted.
-    function _onWriteDone(error) {
-        if (error) {
-            console.warn("JsonStore: save failed for", jsonStore.filePath, "-", error);
-            jsonStore.saveFailed("Check that the data/ folder exists on the device.\n\n" + error);
-            return;
-        }
+    function _writeNext() {
+        if (_writing || !_queue.length) return;
 
-        jsonStore.saved();
+        const write = _queue[0];
+        _writing = true;
+        _queue = _queue.slice(1);
+        writeFile(write.path, write.body, error => {
+            _writing = false;
+            if (error) _failed("Check that the data/ folder exists on the device.\n\n" + error);
+            else {
+                lastSaveError = "";
+                saved();
+            }
+            _writeNext();
+            _notifySettled();
+        });
+    }
+
+    function _failed(message) {
+        lastSaveError = message;
+        saveFailed(message);
+        _notifySettled();
     }
 }

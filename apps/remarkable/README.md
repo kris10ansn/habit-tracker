@@ -157,7 +157,7 @@ The four additional images are included when their original or backup can be rea
 
 Each contains the landscape Quiet ledger layout and a state icon and instruction. The icon and regular-weight sans-serif label sit in a softly rounded badge with generous vertical padding. Sleeping uses a white badge with a black outline, powered off uses a black badge with white content, and battery empty and overheating use a gray badge with a black outline. Startup and restart use white outlined badges with power and restart icons. The rest of every screen stays white. Icons align with the label's visible height, with a compact gap; the battery is wider to retain that same height. No O marks are added, matching the previous suspend renderer. Long names are ellipsized, and larger rosters use tighter rows to keep the state footer clear.
 
-All originals must be readable and backed up before the first write. PNG backups use adjacent `.bak` files; boot BMP backups are `device-system-splash-original.bmp` and `device-boot-splash-original.bmp` inside the stable app directory. Existing backups are reused, including the original suspend backup on upgrade. Backup, restore, and save failures name the affected path. Disabling preflights every backup, restores every selected image, then commits the setting off; a failed restore pauses further rendering until retried. Uninstalling does not restore images: disable the feature successfully first. An already-enabled suspend setting now covers all available images, without changing the persisted settings shape. The render signature changes on upgrade and includes the selected paths so newly supported screens are rendered even when the habit data is unchanged.
+All originals must be readable and backed up before the first write. PNG backups use adjacent `.bak` files; boot BMP backups are `device-system-splash-original.bmp` and `device-boot-splash-original.bmp` inside the stable app directory. Existing backups are reused, including the original suspend backup on upgrade. Backup, restore, and save failures name the affected path. Disabling first saves the setting off and records pending restoration, then preflights every backup and restores the selected images. A failed restore keeps writing disabled and shows **Restoration incomplete · Retry** in Settings, including after reopening. A failed settings save prevents restoration and leaves the previous setting in place. Uninstalling does not restore images: disable the feature successfully first. An already-enabled suspend setting now covers all available images, with an additive `powerImageRestorePending` settings flag. The render signature changes on upgrade and includes the selected paths so newly supported screens are rendered even when the habit data is unchanged.
 
 **Startup versus early boot.** `starting.png` is [documented as the loading screen](https://xavier.arnaus.net/blog/remarkable-2-customizing-screens); this is the likely source of “Paper tablet is loading”, but the exact wording still needs checking on the device's firmware. Firmware may draw its own progress indicator over the image. Automatic renders replace the PNG background, not that overlay. The earlier “Paper tablet is starting” image on reMarkable 1 comes from a separate bootloader BMP. With power-state-image writing enabled, the regular app updates both existing `/usr/share/remarkable/splash/splash.bmp` and `/var/lib/uboot/splash.bmp` alongside the PNGs. It checks the device model and the original and backup BMP formats before writing any image. Both BMP copies use the same 1872×1404, uncompressed 8-bit starting snapshot and are verified by readback. Disabling the setting restores their separate backups too. See [bootloader evidence and BMP requirements](docs/research/early-boot-splash.md). It leaves first-use `factory.png`, firmware-update artwork, and release-note artwork alone. OS updates can restore stock images; reopen the app and check the power-state-image status after updating.
 
@@ -171,9 +171,9 @@ After installing, check startup and restart on the tablet, including any firmwar
 
 The images are prepared while the app is running; battery depletion does not need to launch the renderer. All outputs are dated snapshots and stay unchanged while the tablet is off. Device firmware activation and e-ink appearance still need checking on the tablet after deployment.
 
-**Cheap re-renders.** Saving a 1404×1872 PNG for every trivial edit is wasteful, so renders are _debounced_ (a 3-second timer restarts after saved changes) and _deduplicated_ via a content signature persisted alongside the PNG — after a successful batch in the current session, unchanged snapshots are skipped. The first batch on each launch refreshes all selected images, replacing images left by test builds or OS updates. A small status line on the grid ("Saving power-state images in 3s" → "Saving poweroff.png (7 left)" → "Power-state images saved", and the backup/restore phases) makes the pipeline visible. Rendering, PNG/BMP encoding, backup, verification, and restore run in a separate offscreen process, keeping that work off xochitl's UI thread. The UI sends a captured snapshot and receives progress; edits made during a batch coalesce into a later render. Quit waits for pending jobs. An accepted job finishes if the frontend unloads, then the helper exits; a forced unload can still discard a newer snapshot that has not been submitted. A helper timeout reports failure without falling back to UI-thread rendering. If completion is unknown, reopen the app before retrying. The content signature includes the layout version and is committed only when every selected save succeeds, so a partial failure is retried.
+**Cheap re-renders.** Saving a 1404×1872 PNG for every trivial edit is wasteful, so renders are _debounced_ (a 3-second timer restarts after saved changes) and _deduplicated_ via a content signature persisted alongside the PNG — after a successful batch in the current session, unchanged snapshots are skipped. The first batch on each launch refreshes all selected images, replacing images left by test builds or OS updates. A small status line on the grid ("Saving power-state images in 3s" → "Saving poweroff.png (7 left)" → "Power-state images saved", and the backup/restore phases) makes the pipeline visible. Rendering, PNG/BMP encoding, backup, verification, and restore run in a separate offscreen process, keeping that work off xochitl's UI thread. The UI waits for confirmed saves and sends file fingerprints. The writer reads the saved JSON once, checks those fingerprints, and sends progress; edits made during a batch coalesce into a later render. Quit waits for pending jobs. An accepted job finishes if the frontend unloads, then the helper exits; a forced unload can still discard a newer snapshot that has not been submitted. A helper timeout reports failure without falling back to UI-thread rendering. If completion is unknown, reopen the app before retrying. The content signature includes the layout version and is committed only when every selected save succeeds, so a partial failure is retried.
 
-**Shared drawing.** Within each PNG batch, the worker draws the common grid once and replaces only each power-state label and badge. Identical states reuse a verified copy of the already encoded PNG. BMP conversion avoids repeated pixel-coordinate calculations, and binary readback compares complete words plus any trailing bytes while still checking every byte. Output appearance and backup verification are unchanged.
+**Shared drawing.** Within each PNG batch, the worker draws the common grid once and replaces only each power-state label and badge. Identical states reuse a verified copy of the already encoded PNG. QPainter draws into QImage directly; the writer uses Qt Core/Gui without QML, Canvas, or a JavaScript engine. Every saved image is verified against its complete encoded bytes. The native port preserves the design with minor font/antialias differences. See the [writer architecture and standalone CLI](../power-image-writer/README.md).
 
 **QML + plain JS, with a native image helper.** State lives in JSON-backed QML stores sharing a `JsonStore.qml` base for the load/debounced-save plumbing. `HabitsStore.qml` is a facade that splits persistence across two files — a `roster.json` (identity + config, plus tombstones for deleted habits) and a per-month file holding that month's entries as flat `(habitId, date)` rows — so a single toggle rewrites only the current month, not all history, and corruption is isolated to one month. The rows match the backend's shape exactly while the month partitioning keeps launch and per-tap cost bounded to one month, which matters on a 1 GHz device. Components forward signals upward; only the store mutates state. Updates are immutable (array spread, `Object.assign`) — the V4 engine handles re-bindings from there. Optional sync is a separate `SyncStore.qml` (the network engine + a `sync.json` sidecar) over a pure-JS `Sync.js` translation layer, sending `Authorization: Bearer <token>` once paired; the merge itself runs server-side, so the client just sends its state and accepts the authoritative result. Tablet pairing is `PairingStore.qml` (ephemeral — nothing it holds persists) over a pure-JS `Pairing.js` translation layer. Both stores share `ServerUrl.js`'s scheme-defaulting/endpoint-joining and `HttpError.js`, which displays the backend's `ProblemDetails.title` for server rejections; the stores only supply messages for device-side network and response failures.
 
@@ -210,8 +210,7 @@ The grid and Settings display **TEST**. Ordinary test writes stay inside the tes
 including when **Save local suspend preview** is enabled: automatic renders, edits, and quitting only
 update `suspend-preview.png`. Only explicit developer write/restore actions change device power-state images.
 Test builds refuse writes to production habit data, settings, and the
-stable suspend-image backup. The separate native device suspend-writer is unavailable in the test
-profile. Both apps run inside xochitl; this is not an operating-system sandbox. Keep the test
+stable suspend-image backup. Both apps run inside xochitl; this is not an operating-system sandbox. Keep the test
 directory as a normal directory, without symlinks to production files.
 
 #### Developer options (test builds only)
@@ -252,10 +251,8 @@ settings before opening it. The page shows the test data, preview, and backup pa
 [Developer-options preview](../../docs/assets/screenshots/remarkable-developer-options.png).
 
 The developer UI and controller live under `src/testing/`, behind `DeveloperTools.qml`.
-The PNG and boot BMP renderers are shared components used by both builds. The developer page submits snapshots through the same image helper as automatic rendering; previews, one-shot writes, and restores run outside the UI process. Stable bundles omit every `src/testing/` resource.
-The ordinary suspend renderer exposes reusable one-shot and batch preview operations. The developer
-controller permits explicit device writes only to the supported screen paths; ordinary test storage
-and preview rendering still refuse writes outside the test app directory.
+The native PNG and boot BMP renderer serves both builds. The developer page requests saved-data batches through the same writer as automatic rendering; previews, one-shot writes, and restores run outside the UI process. Stable bundles omit every `src/testing/` resource.
+The writer permits explicit developer device writes only in test mode and only to supported screen paths. Ordinary test storage and automatic previews stay inside the test app directory.
 
 Render actions require readable, loaded data for the current month. Private habits remain excluded.
 Failures are displayed on the developer page; a failed render or backup never proceeds to a device
@@ -295,10 +292,10 @@ You need Node.js to stage the build profile, the installed reMarkable ARM SDK fo
 Override the binary with `make RCC=<path>` if it isn't on `$PATH` as `rcc-qt5`.
 The SDK defaults to `tools/suspend-writer/sdk/`; for an SDK installed elsewhere,
 export `REMARKABLE_SDK=/absolute/path/to/sdk`. The helper links the SDK's Qt 6
-libraries and needs matching Qt Quick/QML libraries and the offscreen platform plugin on
-the tablet. See [image-worker build and runtime details](tools/image-worker/README.md).
+Core/Gui libraries and needs those libraries plus the offscreen platform plugin on
+the tablet. See [writer build and runtime details](../power-image-writer/README.md).
 Close both app variants and let any image job finish before deploying; deploy installs the
-helper together with its matching resources and manifest.
+helper together with its matching frontend, profile, and manifest.
 
 ```sh
 make build      # produces resources.rcc, icon/manifest, and backend/entry in build/
@@ -315,20 +312,22 @@ make clean      # nukes local build/
 ```sh
 make test                  # Qt Quick Test over tests/tst_*.qml
 make image-worker-test     # host IPC, image writes, restore, locking, and detach tests
-make suspend-writer-test   # smoke-tests the off-device renderer against tests/fixtures/
+make suspend-writer-test   # alias for image-worker-test
 ```
 
 `make test` needs `qmltestrunner-qt5` (Arch/Manjaro: `pacman -S qt5-declarative`; Debian/Ubuntu:
 `apt install qtdeclarative5-dev-tools`), and runs headless against the sources in `src/` — no build
 step first. It covers the plain-JS modules (the sync and pairing wire formats, the outcome cycles,
-the date and scroll helpers, the suspend-image signature) and the QML stores (debounced saving, the
+the date and scroll helpers, shared native/JS habit semantics) and the QML stores (debounced saving, the
 refusal of unreadable files, month navigation, the sync engine's terminal paths including a 401, and
 the pairing flow's poll-status handling). Override the runner with `make QMLTESTRUNNER=<path>`.
 
-`make image-worker-test` needs Python 3, a host C++ compiler, Qt 5 Quick development headers, moc, and rcc. It runs the real helper against disposable host files through a host-only bootstrap configuration, using the normal staged resources. The device binary uses fixed profile paths. The [worker runtime check](tools/image-worker/README.md#build-and-test-locally) lets you verify the deployed Qt runtime without writing images.
-
-`make suspend-writer-test` additionally needs a host C++ toolchain and Qt 5 dev headers, since it
-builds `tools/suspend-writer` first.
+`make image-worker-test` needs Python 3, CMake, a C++17 compiler, and Qt 5 Core/Gui development
+headers. It runs native unit tests and the real helper against disposable files through its
+host-only configuration, without frontend resources. Coverage includes confirmed data, backups,
+partial failures, exact restoration, progress, CLI exclusion, cross-profile locking, and finishing
+after frontend detach. See the [writer README](../power-image-writer/README.md) for previews and
+the runtime check, which renders in memory without changing images.
 
 ### Finding the tablet after its address changes
 
@@ -384,11 +383,8 @@ can't read, blocks saves and sync, and tells you which file is the problem — f
 
 **Current migration: private habits.** The habit-private-flag change (ADR 0008) ships
 `scripts/migrate-is-private.mjs`, which renames each roster row's `hideFromSleep` to `isPrivate` and
-leaves the month files untouched — run it as `<the-migration-script>.mjs` above. This migration also
-**requires rebuilding and redeploying `tools/suspend-writer`** (`make suspend-writer-device` then
-`make suspend-writer-deploy`) before you reopen the app: an un-rebuilt suspend-writer binary reads the
-migrated roster's absent `hideFromSleep` as false and would draw private habits on the lock screen. Do
-this before the final `make deploy` above, not after.
+leaves the month files untouched — run it as `<the-migration-script>.mjs` above. The native writer is rebuilt and deployed with the app, so `make deploy` installs both readers of
+the migrated JSON together. Close the app before deploying the migration and matching build.
 
 ## Repo layout
 
@@ -406,8 +402,8 @@ this before the final `make deploy` above, not after.
 │   ├── SettingsStore.qml# JSON-backed app settings (power-state images on/off, sync server URL, bearer token)
 │   ├── SyncStore.qml    # offline-first sync engine + sidecar (last-synced time)
 │   ├── PairingStore.qml # tablet device-code pairing (Connect flow); ephemeral, nothing persists
-│   ├── components/      # reusable QML pieces (AppButton, HabitsGrid, SuspendCanvas, SettingsPage, …)
-│   └── js/              # plain JS modules (date helpers, scroll math, suspend-image draw, sync translation)
+│   ├── components/      # reusable QML pieces (AppButton, HabitsGrid, PowerImageController, SettingsPage, …)
+│   └── js/              # plain JS modules (date helpers, scroll math, image protocol, sync translation)
 ├── scripts/             # one-shot storage migrations, run on your computer (see ADR 0006)
 ├── docs/adr/            # the decisions behind the storage layout, suspend image and migrations
 └── build/               # rcc output + deploy staging (gitignored)

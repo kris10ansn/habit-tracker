@@ -1,19 +1,19 @@
 import QtQuick 2.15
 import "../js/DateUtils.js" as DateUtils
 import "../js/BuildProfile.js" as BuildProfile
-import "../js/HabitsModel.js" as HabitsModel
 
 Item {
     id: tools
 
-    property var habits: null
+    property var habitsStore: null
     property bool canRender: false
     property string dataDirectory: ""
     signal backRequested
 
     property var backend: null
     property string statusText: ""
-    readonly property bool busy: !!backend && backend.busy
+    property bool preparing: false
+    readonly property bool busy: preparing || (!!backend && backend.busy)
     readonly property string previewPath: BuildProfile.appDirectory + "/developer-preview.png"
     readonly property string backupPath: BuildProfile.appDirectory + "/device-suspend-original.png"
 
@@ -31,10 +31,16 @@ Item {
         const date = new Date();
         const dateText = DateUtils.dateKey(date.getFullYear(), date.getMonth(), date.getDate());
         statusText = restoring ? "Restoring original images…" : "Preparing power-state images…";
-        backend.request(operation, {
-            snapshot: HabitsModel.toSuspendHabits(tools.habits).filter(habit => !habit.isPrivate),
-            date: dateText
-        }, result => tools.statusText = result.message || result.error || "Image operation finished");
+        if (restoring) {
+            backend.request(operation, {}, result => tools.statusText = result.message || result.error || "Original images restored");
+            return;
+        }
+        preparing = true;
+        habitsStore.prepareImageInput((error, expected) => {
+            if (error) { tools.statusText = error; preparing = false; return; }
+            backend.request(operation, { expected: expected, date: dateText }, result => tools.statusText = result.message || result.error || "Image operation finished");
+            preparing = false;
+        });
     }
 
     DeveloperPage {

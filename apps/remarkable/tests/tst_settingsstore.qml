@@ -35,7 +35,7 @@ TestCase {
     // an earlier write's landing rather than the one under test. Wait for the exact body each
     // step should have produced, exactly as JsonStore writers are expected to (see CLAUDE.md).
     function readBackExact(target, expected) {
-        const body = JSON.stringify(expected);
+        const body = JSON.stringify(Object.assign({}, expected, { powerImageRestorePending: false }));
         tryVerify(() => Storage.readFile(target) === body, 2000, `${target} never took the written body`);
 
         return Storage.readJson(target);
@@ -227,6 +227,27 @@ TestCase {
         compare(store.showPrivateHabits, false);
         compare(store.token, "");
 
+        store.destroy();
+    }
+
+    function test_failedPowerImageStateSaveCanBeRetried() {
+        const store = makeStore("power-state-retry.json");
+        store.suspendImageEnabled = true;
+        store.writeFile = (target, body, done) => done("disk full");
+        let result = undefined;
+        store.savePowerImageState(false, true, error => result = error);
+        compare(result, "Check that the data/ folder exists on the device.\n\ndisk full");
+        verify(store.suspendImageEnabled);
+        verify(!store.powerImageRestorePending);
+
+        store.writeFile = Storage.writeFile;
+        result = undefined;
+        store.savePowerImageState(false, true, error => result = error);
+        tryVerify(() => result !== undefined);
+        compare(result, "");
+        const saved = Storage.readJson(store.filePath);
+        compare(saved.suspendImageEnabled, false);
+        compare(saved.powerImageRestorePending, true);
         store.destroy();
     }
 

@@ -10,6 +10,7 @@ JsonStore {
     // Retain the persisted setting name; this is an extension of the existing opt-in.
     // Opt-in: off until the user turns it on in Settings.
     property bool suspendImageEnabled: false
+    property bool powerImageRestorePending: false
 
     // The backend this client syncs with. Empty = standalone (no sync attempts).
     property string serverUrl: ""
@@ -28,7 +29,8 @@ JsonStore {
             suspendImageEnabled: settingsStore.suspendImageEnabled,
             serverUrl: settingsStore.serverUrl,
             showPrivateHabits: settingsStore.showPrivateHabits,
-            token: settingsStore.token
+            token: settingsStore.token,
+            powerImageRestorePending: settingsStore.powerImageRestorePending
         };
     }
 
@@ -40,6 +42,7 @@ JsonStore {
         if (typeof data.suspendImageEnabled === "boolean") {
             settingsStore.suspendImageEnabled = data.suspendImageEnabled;
         }
+        settingsStore.powerImageRestorePending = data.powerImageRestorePending === true;
         if (typeof data.serverUrl === "string") {
             settingsStore.serverUrl = data.serverUrl;
         }
@@ -57,7 +60,23 @@ JsonStore {
     // and corrupt it, so same-tick setter calls coalesce into a single write of the final
     // state (Qt.callLater collapses repeated calls to the same function).
     function _saveCoalesced() {
-        Qt.callLater(settingsStore._doSave);
+        settingsStore.scheduleSave();
+        Qt.callLater(settingsStore.flushPendingSave);
+    }
+
+    function savePowerImageState(enabled, pending, onDone) {
+        const previousEnabled = suspendImageEnabled;
+        const previousPending = powerImageRestorePending;
+        suspendImageEnabled = enabled;
+        powerImageRestorePending = pending;
+        scheduleSave();
+        whenSaved(error => {
+            if (error) {
+                suspendImageEnabled = previousEnabled;
+                powerImageRestorePending = previousPending;
+            }
+            onDone(error);
+        });
     }
 
     function setSuspendImageEnabled(value) {

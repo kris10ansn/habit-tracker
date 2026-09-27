@@ -42,7 +42,7 @@ TestCase {
         endpoint.destroy();
     }
     function ready(busy = false) {
-        endpoint.reply({ kind: "ready", version: 1, ready: true, busy: busy });
+        endpoint.reply({ kind: "ready", version: 2, ready: true, busy: busy });
     }
     function complete(index, ok = true) {
         endpoint.reply({ kind: "done", id: endpoint.sent[index].id, ok: ok });
@@ -184,97 +184,11 @@ TestCase {
         complete(0);
         verify(result.ok);
     }
-    function test_protocolRejectsMalformedAndOversizedSnapshots() {
-        const payload = { date: "2026-09-22", snapshot: [{ name: "a".repeat(61000), polarity: "Positive", isPrivate: false, entries: {} }] };
-        let result = null;
-        ready();
-        client.request("render", payload, reply => result = reply);
-        verify(!result.ok);
-        compare(endpoint.sent.length, 0);
+    function test_protocolRequiresConfirmedFileHashes() {
+        verify(ImageProtocol.validate({ version: 2, id: "id", operation: "render", date: "2026-09-22", expected: { roster: "a".repeat(32), month: "missing" } }, false) === "");
+        verify(ImageProtocol.validate({ version: 2, id: "id", operation: "render", date: "2026-09-22", snapshot: [] }, false) !== "");
+        verify(ImageProtocol.validate({ version: 2, id: "id", operation: "developer-restore" }, false) !== "");
         compare(ImageProtocol.parseDate("2026-02-30"), null);
-        verify(ImageProtocol.validate({ version: 1, id: "id", operation: "render", date: "2026-09-22", snapshot: [{}] }, true) !== "");
-        verify(ImageProtocol.validate({ version: 1, id: "id", operation: "developer-restore" }, false) !== "");
-    }
-    function makeController() {
-        ready();
-        controller = controllerComponent.createObject(testCase, {
-            backend: client, renderAllowed: true, today: new Date(2026, 8, 22),
-            habits: Fixtures.fakeModel([Fixtures.habitRow(), Fixtures.habitRow({ name: "Secret", isPrivate: true })])
-        });
-    }
-    function test_controllerCapturesPublicSnapshotAndCoalescesChanges() {
-        makeController();
-        controller.renderAsync();
-        compare(endpoint.sent.length, 1);
-        compare(endpoint.sent[0].snapshot.length, 1);
-        compare(endpoint.sent[0].date, "2026-09-22");
-        controller.habits = Fixtures.fakeModel([Fixtures.habitRow({ name: "Changed" })]);
-        controller.renderAsync();
-        controller.renderAsync();
-        compare(endpoint.sent.length, 1);
-        compare(endpoint.sent[0].snapshot[0].name, "Read 20 pages");
-        complete(0);
-        tryCompare(controller, "phase", "pending");
-        controller.renderAsync();
-        compare(endpoint.sent.length, 2);
-        compare(endpoint.sent[1].snapshot[0].name, "Changed");
-        complete(1);
-        controller.renderAsync();
-        compare(endpoint.sent.length, 2);
-    }
-    function test_controllerShowsProgressAndClearsItOnFailureAndRetry() {
-        makeController();
-        controller.renderAsync();
-        const progress = { path: "/usr/share/remarkable/poweroff.png", remainingImages: 7 };
-        endpoint.reply({ kind: "progress", id: "unrelated", phase: "saving", imageProgress: progress });
-        compare(controller.imageProgress, null);
-        endpoint.reply({ kind: "progress", id: endpoint.sent[0].id, phase: "saving", imageProgress: progress });
-        compare(SuspendStatus.text(controller.phase, controller.remainingSeconds, controller.failedPath, controller.imageProgress), "Saving poweroff.png (7 left)");
-        complete(0, false);
-        compare(controller.imageProgress, null);
-        compare(controller.phase, "save-failed");
-        controller.renderAsync();
-        compare(controller.failedPath, "");
-        compare(controller.imageProgress, null);
-        endpoint.reply({ kind: "progress", id: endpoint.sent[1].id, phase: "saving", imageProgress: { path: "/var/lib/uboot/splash.bmp", remainingImages: 0 } });
-        compare(controller.imageProgress.remainingImages, 0);
-        endpoint.reply({ kind: "progress", id: endpoint.sent[1].id, phase: "saving" });
-        compare(controller.imageProgress, null);
-        complete(1);
-        compare(controller.phase, "saved");
     }
 
-    function test_restoreSuppressesPendingAutomaticRender() {
-        makeController();
-        controller.scheduleRender();
-        let restored = null;
-        controller.restore(ok => restored = ok);
-        compare(endpoint.sent[0].operation, "restore");
-        complete(0);
-        verify(restored);
-        controller.renderAsync();
-        compare(endpoint.sent.length, 1);
-        compare(controller.phase, "restored");
-    }
-    function test_leavingCurrentMonthCancelsQueuedSnapshot() {
-        makeController();
-        controller.renderAsync();
-        controller.habits = Fixtures.fakeModel([Fixtures.habitRow({ name: "Changed" })]);
-        controller.scheduleRender();
-        controller.renderAllowed = false;
-        complete(0);
-        wait(30);
-        controller.renderAsync();
-        compare(endpoint.sent.length, 1);
-        compare(controller.phase, "saved");
-        verify(!controller._renderRequested);
-    }
-    function test_backupFailureDoesNotReportEnabled() {
-        makeController();
-        let backedUp = null;
-        controller.backup(ok => backedUp = ok);
-        complete(0, false);
-        compare(backedUp, false);
-        compare(controller.phase, "backup-failed");
-    }
 }

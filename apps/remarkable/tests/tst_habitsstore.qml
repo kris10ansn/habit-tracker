@@ -455,6 +455,22 @@ TestCase {
 
     // Sync merges habits whole-row by editedAt last-write-wins, so a privacy flip that does not
     // restamp editedAt would always lose to the server's copy.
+    function test_imageCaptureRejectsALaterRosterFailureWhileMonthSaves() {
+        writeAndSettle(rosterPath(workingDir), { habits: [Fixtures.rosterRow({ id: "capture", name: "Read" })] });
+        makeStore(workingDir, 2031, 5);
+        let monthDone = null;
+        store._month.writeFile = (target, body, done) => monthDone = done;
+        store._month.scheduleSave();
+        let result = undefined;
+        store.prepareImageInput(error => result = error);
+        verify(monthDone !== null);
+        store._roster.writeFile = (target, body, done) => done("roster failed");
+        store.togglePrivate(0);
+        store._roster.flushPendingSave();
+        monthDone(null);
+        verify(String(result).indexOf("roster failed") !== -1);
+    }
+
     function test_togglePrivateFlipsAndRestamps() {
         writeAndSettle(rosterPath(workingDir), { habits: [Fixtures.rosterRow({ id: "a", isPrivate: false })] });
 

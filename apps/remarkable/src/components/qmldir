@@ -10,12 +10,9 @@ ConfirmDialog 1.0 ConfirmDialog.qml
 VerticalScrollButtons 1.0 VerticalScrollButtons.qml
 HabitsColumn 1.0 HabitsColumn.qml
 HabitsGrid 1.0 HabitsGrid.qml
-SuspendCanvas 1.0 SuspendCanvas.qml
-BootCanvas 1.0 BootCanvas.qml
 SegmentedToggle 1.0 SegmentedToggle.qml
 SettingsPage 1.0 SettingsPage.qml
 QrCode 1.0 QrCode.qml
 AppLoadTransport 1.0 AppLoadTransport.qml
 ImageBackend 1.0 ImageBackend.qml
 PowerImageController 1.0 PowerImageController.qml
-PowerImageJobs 1.0 PowerImageJobs.qml

@@ -76,17 +76,3 @@ function withRow(entriesByDate, row) {
 
     return next;
 }
-
-// The suspend canvas draws and dedups on the visible outcome alone, so tombstones and timestamps
-// are dropped before they reach SuspendDraw.
-function outcomesByDate(entriesByDate) {
-    const src = entriesByDate || {};
-
-    return Object.keys(src).reduce((outcomes, dateKey) => {
-        const outcome = outcomeOf(src[dateKey]);
-        if (outcome) {
-            outcomes[dateKey] = outcome;
-        }
-        return outcomes;
-    }, {});
-}

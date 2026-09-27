@@ -111,9 +111,12 @@ try {
             run(
                 path.join(
                     repositoryRoot,
-                    "apps/remarkable/tools/suspend-writer/build/suspend-writer",
+                    "apps/power-image-writer/build/host/power-image-writer",
                 ),
                 [
+                    "preview",
+                    "--app-dir",
+                    fixtureDirectory,
                     "--roster",
                     path.join(fixtureDirectory, "roster.json"),
                     "--month",
@@ -121,7 +124,7 @@ try {
                         fixtureDirectory,
                         `${fixture.today.slice(0, 7)}.json`,
                     ),
-                    "--today",
+                    "--date",
                     fixture.today,
                     "--out",
                     deviceOutputPath,

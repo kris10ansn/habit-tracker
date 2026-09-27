@@ -4,9 +4,6 @@ PROFILE ?= stable
 ifeq ($(PROFILE),test)
 override APP_ID := habit-tracker-test
 override BUILD_DIR := build/test
-ifneq ($(filter suspend-writer-device suspend-writer-deploy,$(MAKECMDGOALS)),)
-$(error The device suspend-writer is unavailable for test installs; use the app's suspend preview)
-endif
 else ifeq ($(PROFILE),stable)
 override APP_ID := habit-tracker
 override BUILD_DIR := build
@@ -25,14 +22,12 @@ endif
 TEST_DIR := tests
 TEST_TMP := $(TEST_DIR)/tmp
 QML_FILES := $(shell find src -name '*.qml')
-SW_DIR := tools/suspend-writer
-SW_REMOTE_DIR := $(REMOTE_DIR)/suspend-writer
-SW_JS_MODULES := $(addprefix src/js/,SuspendDraw.js DateUtils.js Entries.js Polarity.js HabitsModel.js)
+WRITER_DIR := ../power-image-writer
 SCREENSHOT_DIR := tools/readme-screenshots
 
 .PHONY: build inject-pragma deploy remove clean lint test suspend-writer-test backup find-hotspot-ip \
 	build-test deploy-test backup-test \
-	suspend-writer-host suspend-writer-device suspend-writer-deploy suspend-writer-clean \
+	suspend-writer-host suspend-writer-device suspend-writer-clean \
 	readme-screenshot-host readme-screenshot-clean
 
 build: inject-pragma image-worker-device
@@ -40,7 +35,7 @@ build: inject-pragma image-worker-device
 	cd $(BUILD_DIR) && $(RCC) --binary -o resources.rcc application.qrc
 	cp icon.png $(BUILD_DIR)/
 	mkdir -p $(BUILD_DIR)/backend
-	cp tools/image-worker/build/image-worker-arm $(BUILD_DIR)/backend/entry
+	cp $(WRITER_DIR)/build/device/power-image-writer $(BUILD_DIR)/backend/entry
 
 build-test:
 	$(MAKE) build PROFILE=test
@@ -77,12 +72,10 @@ lint:
 # deploy create data/ — ADR 0002), so a HabitsStore test cannot make its own: habits/ is the
 # shared working dir, habits-seed/ is left empty for the first-run seeding test.
 test:
-	node --test tests/build-profile.test.mjs tests/binary-files.test.mjs
+	node --test tests/build-profile.test.mjs
 	@command -v $(QMLTESTRUNNER) >/dev/null 2>&1 || { echo "$(QMLTESTRUNNER) not found (install qt5-declarative)"; exit 1; }
 	rm -rf $(TEST_TMP)
-	mkdir -p $(TEST_TMP)/habits $(TEST_TMP)/habits-seed $(TEST_TMP)/power-images $(TEST_TMP)/power-images-linked
-	ln -s rebooting.png $(TEST_TMP)/power-images-linked/restart-crashed.png
-	mkdir -p $(TEST_TMP)/boot-images/system/splash $(TEST_TMP)/boot-images/uboot
+	mkdir -p $(TEST_TMP)/habits $(TEST_TMP)/habits-seed
 	QT_QPA_PLATFORM=offscreen QT_QUICK_BACKEND=software QML_XHR_ALLOW_FILE_READ=1 QML_XHR_ALLOW_FILE_WRITE=1 \
 		$(QMLTESTRUNNER) -input $(TEST_DIR) -import $(QML_IMPORT_PATH)
 
@@ -91,7 +84,7 @@ test:
 deploy: build
 	ssh $(REMARKABLE_HOST) "mkdir -p $(REMOTE_DIR)/data $(REMOTE_DIR)/backend"
 	scp $(BUILD_DIR)/backend/entry $(REMARKABLE_HOST):$(REMOTE_DIR)/backend/
-	scp $(BUILD_DIR)/resources.rcc $(BUILD_DIR)/manifest.json $(BUILD_DIR)/icon.png $(REMARKABLE_HOST):$(REMOTE_DIR)/
+	scp $(BUILD_DIR)/resources.rcc $(BUILD_DIR)/manifest.json $(BUILD_DIR)/writer-profile.json $(BUILD_DIR)/icon.png $(REMARKABLE_HOST):$(REMOTE_DIR)/
 
 remove:
 	ssh $(REMARKABLE_HOST) "rm -rf $(REMOTE_DIR)"
@@ -110,35 +103,19 @@ backup:
 clean:
 	rm -rf $(BUILD_DIR)
 
-# --- suspend-writer: headless renderer for the device suspend image ----------
-# A standalone C++ tool (tools/suspend-writer) that reuses the app's JS renderer
-# to draw the suspend image off-device. See its README for the SDK setup.
+# Native writer; every build/test target is local.
+suspend-writer-host image-worker-host:
+	$(WRITER_DIR)/scripts/build-host.sh
 
-# Host build (Qt5, no SDK) for previewing renders on your machine.
-suspend-writer-host:
-	$(SW_DIR)/build-host.sh
+suspend-writer-test image-worker-test: image-worker-host
+	ctest --test-dir $(WRITER_DIR)/build/host --output-on-failure
+	python3 $(WRITER_DIR)/tests/integration.py
 
-# Smoke-test the host build against committed fixtures. Separate from `test` because it needs a
-# C++ build: `make test` stays a fast, dependency-free loop. Run this after touching src/js or the
-# on-disk shape — neither `build` nor `lint` notices when the tool drifts out of date.
-suspend-writer-test: suspend-writer-host
-	mkdir -p $(TEST_TMP)
-	$(TEST_DIR)/suspend-writer-smoke.sh
-
-# Cross-build for the device (ARM, Qt6) — requires the SDK unpacked at $(SW_DIR)/sdk.
-suspend-writer-device:
-	$(SW_DIR)/build-device.sh
-
-# Deploy the ARM binary plus the loose JS modules it reads at runtime. The app bundles those
-# inside resources.rcc, so they are not otherwise on-device. SuspendDraw.js reaches the other
-# four, so all five ship together — see the tool's README.
-suspend-writer-deploy: suspend-writer-device
-	ssh $(REMARKABLE_HOST) "mkdir -p $(SW_REMOTE_DIR)"
-	scp $(SW_DIR)/build/suspend-writer-arm $(REMARKABLE_HOST):$(SW_REMOTE_DIR)/
-	scp $(SW_JS_MODULES) $(REMARKABLE_HOST):$(SW_REMOTE_DIR)/
+suspend-writer-device image-worker-device:
+	$(WRITER_DIR)/scripts/build-device.sh
 
 suspend-writer-clean:
-	rm -rf $(SW_DIR)/build
+	rm -rf $(WRITER_DIR)/build
 
 # Host-only Qt Quick shell for README captures. It loads the live Main.qml and points its public
 # screenshot inputs at temporary fixture files; it is not included in resources.rcc.
@@ -150,11 +127,3 @@ readme-screenshot-clean:
 
 # Local builds only; the ARM binary is bundled as apploader's backend/entry.
 .PHONY: image-worker-host image-worker-device image-worker-test
-image-worker-host:
-	tools/image-worker/build-host.sh
-
-image-worker-device:
-	tools/image-worker/build-device.sh
-
-image-worker-test: image-worker-host
-	python3 tests/image-worker-integration.py

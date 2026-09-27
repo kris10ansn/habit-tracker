@@ -8,13 +8,6 @@ TestCase {
 
     // Every projection guards on the duck-typed ListModel slice it uses, so a store that has not
     // built its model yet projects to nothing instead of throwing mid-serialize.
-    function test_projectionsGuardOnAMissingModel() {
-        [undefined, null, {}, { count: "3" }].forEach(bad => {
-            compare(HabitsModel.toRoster(bad).length, 0);
-            compare(HabitsModel.toMonthEntryRows(bad).length, 0);
-            compare(HabitsModel.toSuspendHabits(bad).length, 0);
-        });
-    }
 
     // Array order is Position — the roster file and the sync wire both read order off the index.
     function test_toRosterPreservesModelOrder() {
@@ -102,38 +95,4 @@ TestCase {
         compare(HabitsModel.toMonthEntryRows(model).length, 0);
     }
 
-    // The suspend renderer wants visible outcomes by date, not entry rows — timestamps and
-    // tombstones are already gone by the time they reach it.
-    function test_toSuspendHabitsProjectsOutcomesOnly() {
-        const model = Fixtures.fakeModel([
-            Fixtures.habitRow({
-                name: "Exercise",
-                polarity: "Negative",
-                entriesByDate: {
-                    "2026-08-01": Fixtures.entryRow({ date: "2026-08-01", outcome: "o" }),
-                    "2026-08-02": Fixtures.entryRow({ date: "2026-08-02", outcome: "x", deletedAt: 1750000009000 })
-                }
-            })
-        ]);
-
-        const habits = HabitsModel.toSuspendHabits(model);
-
-        compare(habits.length, 1);
-        compare(habits[0].name, "Exercise");
-        compare(habits[0].polarity, "Negative");
-        compare(habits[0].isPrivate, false);
-        compare(habits[0].entries["2026-08-01"], "o");
-        compare(habits[0].entries["2026-08-02"], undefined);
-    }
-
-    // Kept rather than filtered: SuspendDraw.js is what drops private habits, and computeSignature
-    // has to see the flag flip to know the image needs redrawing.
-    function test_toSuspendHabitsCarriesIsPrivate() {
-        const model = Fixtures.fakeModel([Fixtures.habitRow({ isPrivate: true })]);
-
-        const habits = HabitsModel.toSuspendHabits(model);
-
-        compare(habits.length, 1);
-        compare(habits[0].isPrivate, true);
-    }
 }

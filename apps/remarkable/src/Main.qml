@@ -32,7 +32,7 @@ Rectangle {
 
     function _waitForPendingOperations() {
         const syncInProgress = syncStore.isRequestInFlight || syncStore.status === "pending";
-        const renderInProgress = suspendCanvas.busy || suspendCanvas.phase === "saving" || suspendCanvas.phase === "pending";
+        const renderInProgress = habitsStore.hasPendingSave || settingsStore.hasPendingSave || suspendCanvas.hasPendingWork;
 
         if (syncInProgress || renderInProgress) {
             quitWaitTimer.restart();
@@ -82,22 +82,7 @@ Rectangle {
     }
 
     function applySuspendSetting(enabled) {
-        if (BuildProfile.isTest) {
-            settingsStore.setSuspendImageEnabled(enabled);
-            return;
-        }
-
-        if (!enabled) {
-            suspendCanvas.restore(restored => {
-                if (restored) settingsStore.setSuspendImageEnabled(false);
-            });
-            return;
-        }
-        suspendCanvas.backup(ok => {
-            if (!ok) return;
-            suspendCanvas.restorationPending = false;
-            settingsStore.setSuspendImageEnabled(true);
-        });
+        suspendCanvas.setEnabled(enabled);
     }
 
     property bool _initialEditStarted: false
@@ -146,7 +131,8 @@ Rectangle {
     App.PowerImageController {
         id: suspendCanvas
         backend: imageBackend
-        habits: habitsStore.habits
+        habitsStore: habitsStore
+        settingsStore: settingsStore
         today: root.today
         renderAllowed: landscape.canRenderSuspend && landscape.gridReady && !landscape.editing
     }
@@ -360,6 +346,8 @@ Rectangle {
             visible: landscape.currentView === "settings"
             suspendImageEnabled: settingsStore.suspendImageEnabled
             suspendImageBusy: suspendCanvas.busy
+            restorationPending: suspendCanvas.restorationPending
+            onRestoreRequested: suspendCanvas.restore()
             showPrivateHabits: settingsStore.showPrivateHabits
             serverUrl: settingsStore.serverUrl
             syncStatusText: syncStore.statusText
@@ -388,7 +376,7 @@ Rectangle {
             source: "testing/DeveloperTools.qml"
             onLoaded: {
                 item.backend = imageBackend;
-                item.habits = Qt.binding(() => habitsStore.habits);
+                item.habitsStore = habitsStore;
                 item.canRender = Qt.binding(() => !root.screenshotMode && landscape.isCurrentMonth && habitsStore.isLoaded && !habitsStore.hasUnreadableData);
                 item.dataDirectory = Qt.binding(() => root.dataDir);
             }

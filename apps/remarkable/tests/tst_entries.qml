@@ -122,24 +122,4 @@ TestCase {
         compare(original["2026-08-01"].outcome, Entries.X);
     }
 
-    // The suspend canvas dedups on the visible outcome alone, so timestamps and tombstones are
-    // dropped before they reach it.
-    function test_outcomesByDateKeepsOnlyVisibleOutcomes() {
-        const entriesByDate = {
-            "2026-08-01": Fixtures.entryRow({ date: "2026-08-01", outcome: Entries.X }),
-            "2026-08-02": Fixtures.entryRow({ date: "2026-08-02", outcome: Entries.O }),
-            "2026-08-03": Fixtures.entryRow({ date: "2026-08-03", outcome: Entries.X, deletedAt: 1750000001000 })
-        };
-
-        const outcomes = Entries.outcomesByDate(entriesByDate);
-
-        compare(Object.keys(outcomes).length, 2);
-        compare(outcomes["2026-08-01"], Entries.X);
-        compare(outcomes["2026-08-02"], Entries.O);
-        compare(outcomes["2026-08-03"], undefined);
-    }
-
-    function test_outcomesByDateToleratesNothing() {
-        compare(Object.keys(Entries.outcomesByDate(undefined)).length, 0);
-    }
 }

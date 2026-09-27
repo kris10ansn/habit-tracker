@@ -12,7 +12,6 @@
         <file>src/testing/qmldir</file>
         <file>src/testing/DeveloperTools.qml</file>
         <file>src/testing/DeveloperPage.qml</file>
-        <file>src/testing/SuspendController.qml</file>
         <file>src/components/qmldir</file>
         <file>src/components/AppButton.qml</file>
         <file>src/components/TrackerPage.qml</file>
@@ -26,8 +25,6 @@
         <file>src/components/VerticalScrollButtons.qml</file>
         <file>src/components/HabitsColumn.qml</file>
         <file>src/components/HabitsGrid.qml</file>
-        <file>src/components/SuspendCanvas.qml</file>
-        <file>src/components/BootCanvas.qml</file>
         <file>src/components/SegmentedToggle.qml</file>
         <file>src/components/SettingsPage.qml</file>
         <file>src/components/QrCode.qml</file>
@@ -39,11 +36,7 @@
         <file>src/js/Polarity.js</file>
         <file>src/js/Ids.js</file>
         <file>src/js/Storage.js</file>
-        <file>src/js/BinaryFiles.js</file>
         <file>src/js/BuildProfile.js</file>
-        <file>src/js/SuspendRender.js</file>
-        <file>src/js/SuspendDraw.js</file>
-        <file>src/js/BootSplash.js</file>
         <file>src/js/SuspendStatus.js</file>
         <file>src/js/Sync.js</file>
         <file>src/js/ServerUrl.js</file>
@@ -58,10 +51,5 @@
         <file>src/components/ImageBackend.qml</file>
         <file>src/components/PowerImageController.qml</file>
         <file>src/js/ImageProtocol.js</file>
-        <file>src/testing/DeveloperImageJobs.qml</file>
-        <file>src/worker/PowerImageWorker.qml</file>
-        <file>src/worker/qmldir</file>
-        <file>src/components/PowerImageJobs.qml</file>
-        <file>src/worker/ImageEnvironment.qml</file>
     </qresource>
 </RCC>

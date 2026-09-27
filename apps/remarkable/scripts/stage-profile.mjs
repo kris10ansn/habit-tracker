@@ -38,3 +38,8 @@ writeFileSync(
         ? resources
         : resources.replace(/^.*<file>src\/testing\/.*\n/gm, ""),
 );
+
+writeFileSync(
+    path.join(buildDirectory, "writer-profile.json"),
+    JSON.stringify({ testProfile: profile === "test" }) + "\n",
+);
