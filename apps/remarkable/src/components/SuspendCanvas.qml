@@ -23,6 +23,7 @@ Canvas {
     renderStrategy: Canvas.Cooperative
     renderTarget: Canvas.Image
 
+    signal imageStarted(string path)
     signal imageSaved(string path)
 
     Timer {
@@ -68,6 +69,7 @@ Canvas {
             return;
         }
         const target = batch.targets[batch.index++];
+        canvas.imageStarted(target.path);
         const savedPath = batch.savedStates[target.state];
         if (savedPath) {
             SuspendRender.copyFile(savedPath, target.path, ok => canvas._finishImage(batch, target, ok));

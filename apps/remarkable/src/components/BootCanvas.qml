@@ -14,6 +14,8 @@ Canvas {
     renderTarget: Canvas.Image
     property bool busy: false
 
+    signal imageStarted(string path)
+
     function renderOnce(path, snapshot, date, onDone) {
         renderImages([{ path: path }], snapshot, date, onDone);
     }
@@ -29,6 +31,7 @@ Canvas {
             return;
         }
         canvas.busy = true;
+        canvas.imageStarted(targets[0].path);
         Qt.callLater(() => {
             let buffer;
             try {
@@ -54,6 +57,7 @@ Canvas {
             return;
         }
         const path = targets[index].path;
+        if (index > 0) canvas.imageStarted(path);
         Storage.writeBinary(path, buffer, error => {
             if (error) {
                 canvas.busy = false;

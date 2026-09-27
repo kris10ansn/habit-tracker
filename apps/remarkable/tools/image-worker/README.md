@@ -82,8 +82,12 @@ separate SOCK_SEQPACKET records. Type 1 carries requests; type 2 carries replies
 System messages -1/-2/-3 handle termination and frontend attachment changes.
 
 `ImageProtocol.js` defines version 1 and the accepted operations. Requests carry a
-unique id, an operation, and (for rendering) a date plus projected habits. The
-frontend limits messages to 60 KB; malformed snapshots and developer operations
+unique id, an operation, and (for rendering) a date plus projected habits.
+Render progress includes the current image path and the number of selected images
+remaining after it, covering PNG copies and both boot BMPs. The frontend displays
+these fields while the image is being rendered or written.
+
+The frontend limits messages to 60 KB; malformed snapshots and developer operations
 in stable bundles are rejected. The helper owns all paths through BuildProfile and
 the existing controllers. PNGs and BMPs never cross IPC.
 

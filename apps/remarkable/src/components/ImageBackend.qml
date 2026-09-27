@@ -18,7 +18,7 @@ Item {
     property bool _uncertain: false
     property int _handshakeAttempts: 0
     signal failed(string message)
-    signal progress(string operation, string phase, string message)
+    signal progress(string operation, string phase, string message, var imageProgress)
 
     Loader { id: connection; active: client.enabled && !client.transport; source: "AppLoadTransport.qml" }
     Connections {
@@ -110,7 +110,7 @@ Item {
         if (!_pending || message.id !== _pending.request.id) return;
         if (message.kind === "progress") {
             deadline.restart();
-            progress(_pending.request.operation, message.phase || "", message.message || "");
+            progress(_pending.request.operation, message.phase || "", message.message || "", message.imageProgress || null);
         } else if (message.kind === "done") {
             finish(message);
         }

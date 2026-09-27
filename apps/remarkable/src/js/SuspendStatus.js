@@ -10,7 +10,20 @@ const LABELS = {
     "restore-failed": "Could not restore power-state images",
 };
 
-function text(phase, remainingSeconds, failedPath = "") {
+function text(
+    phase,
+    remainingSeconds,
+    failedPath = "",
+    imageProgress = null
+) {
+    if (phase === "saving" && imageProgress) {
+        const pathParts = imageProgress.path.split("/");
+        const filename = pathParts[pathParts.length - 1];
+        const image =
+            filename === "splash.bmp" ? pathParts.slice(-2).join("/") : filename;
+        return `Saving ${image} (${imageProgress.remainingImages} left)`;
+    }
+
     if (phase === "pending") {
         return remainingSeconds > 0
             ? `Saving power-state images in ${remainingSeconds}s`

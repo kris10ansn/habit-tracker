@@ -3,6 +3,7 @@ import QtTest 1.2
 import "../src/components" as App
 import "../src/js/ImageProtocol.js" as ImageProtocol
 import "Fixtures.js" as Fixtures
+import "../src/js/SuspendStatus.js" as SuspendStatus
 
 TestCase {
     id: testCase
@@ -221,6 +222,28 @@ TestCase {
         controller.renderAsync();
         compare(endpoint.sent.length, 2);
     }
+    function test_controllerShowsProgressAndClearsItOnFailureAndRetry() {
+        makeController();
+        controller.renderAsync();
+        const progress = { path: "/usr/share/remarkable/poweroff.png", remainingImages: 7 };
+        endpoint.reply({ kind: "progress", id: "unrelated", phase: "saving", imageProgress: progress });
+        compare(controller.imageProgress, null);
+        endpoint.reply({ kind: "progress", id: endpoint.sent[0].id, phase: "saving", imageProgress: progress });
+        compare(SuspendStatus.text(controller.phase, controller.remainingSeconds, controller.failedPath, controller.imageProgress), "Saving poweroff.png (7 left)");
+        complete(0, false);
+        compare(controller.imageProgress, null);
+        compare(controller.phase, "save-failed");
+        controller.renderAsync();
+        compare(controller.failedPath, "");
+        compare(controller.imageProgress, null);
+        endpoint.reply({ kind: "progress", id: endpoint.sent[1].id, phase: "saving", imageProgress: { path: "/var/lib/uboot/splash.bmp", remainingImages: 0 } });
+        compare(controller.imageProgress.remainingImages, 0);
+        endpoint.reply({ kind: "progress", id: endpoint.sent[1].id, phase: "saving" });
+        compare(controller.imageProgress, null);
+        complete(1);
+        compare(controller.phase, "saved");
+    }
+
     function test_restoreSuppressesPendingAutomaticRender() {
         makeController();
         controller.scheduleRender();

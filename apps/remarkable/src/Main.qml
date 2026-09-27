@@ -26,7 +26,7 @@ Rectangle {
     readonly property bool screenshotReady: habitsStore.isLoaded && settingsStore.isLoaded
         && syncStore.isLoaded && (!root.initialEditing || editSession.active)
         && (landscape.currentView === "settings" || landscape.editing || landscape.gridReady)
-    readonly property string suspendStatusText: SuspendStatus.text(suspendCanvas.phase, suspendCanvas.remainingSeconds, suspendCanvas.failedPath)
+    readonly property string suspendStatusText: SuspendStatus.text(suspendCanvas.phase, suspendCanvas.remainingSeconds, suspendCanvas.failedPath, suspendCanvas.imageProgress)
 
     signal close
 

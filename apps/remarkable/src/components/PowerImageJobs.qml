@@ -27,14 +27,18 @@ Item {
     property var _completion: null
     property var _selectedTargets: null
     property bool _backupsReady: BuildProfile.isTest
+    property int _remainingImages: 0
 
-    signal progress(string phase, string path)
+    signal progress(string phase, string path, var imageProgress)
 
     SuspendCanvas {
         id: png
-        onImageSaved: function(path) { jobs.progress("saving", path); }
+        onImageStarted: function(path) { jobs._imageStarted(path); }
     }
-    BootCanvas { id: boot }
+    BootCanvas {
+        id: boot
+        onImageStarted: function(path) { jobs._imageStarted(path); }
+    }
 
     function _begin(phase, onDone) {
         if (busy || !available) {
@@ -48,7 +52,11 @@ Item {
     }
     function _progress(phase, path) {
         jobs.phase = phase;
-        jobs.progress(phase, path);
+        jobs.progress(phase, path, null);
+    }
+    function _imageStarted(path) {
+        _remainingImages--;
+        jobs.progress("saving", path, { path: path, remainingImages: _remainingImages });
     }
     function _finish(ok, path, successPhase, failurePhase) {
         if (!_completion) return;
@@ -114,6 +122,7 @@ Item {
         });
     }
     function _renderCaptured(selected, snapshot, date) {
+        _remainingImages = selected.length;
         _progress("saving", "");
         SuspendRender.invalidBootPath(selected, deviceModel, invalid => {
             if (invalid) { _finish(false, invalid, "saved", "save-failed"); return; }

@@ -13,6 +13,7 @@ Item {
     property bool restorationPending: false
     property string phase: ""
     property string failedPath: ""
+    property var imageProgress: null
     property int remainingSeconds: 0
     property string lastRenderedSignature: ""
     property bool _renderRequested: false
@@ -25,8 +26,11 @@ Item {
             controller.failedPath = message;
             controller.phase = "save-failed";
         }
-        function onProgress(operation, phase, message) {
-            if (operation === "render" && phase) controller.phase = phase;
+        function onProgress(operation, phase, message, imageProgress) {
+            if (operation !== "render") return;
+
+            controller.imageProgress = imageProgress;
+            if (phase) controller.phase = phase;
         }
     }
     Timer { id: debounce; interval: 3000; onTriggered: controller.renderAsync() }
@@ -87,10 +91,13 @@ Item {
         });
     }
     function submit(operation, payload, onDone) {
+        imageProgress = null;
+        failedPath = "";
         if (!backend) { onDone({ ok: false, error: "Image helper is unavailable" }); return; }
         backend.request(operation, payload, onDone);
     }
     function finish(result, success, failure) {
+        imageProgress = null;
         failedPath = result.ok ? "" : (result.error || result.path || "Image operation failed");
         phase = result.ok ? success : failure;
     }

@@ -17,7 +17,7 @@ Item {
         signaturePath: environment.appDirectory + "/.sleep-sig"
         targetPath: environment.suspendPath
         backupPath: environment.suspendBackupPath
-        onProgress: function(phase, path) { worker.progress(path); }
+        onProgress: function(phase, path, imageProgress) { worker.progress(path, imageProgress); }
     }
     Loader { id: developer }
     Component.onCompleted: {
@@ -64,8 +64,8 @@ Item {
             developer.item.execute(request.operation, (ok, message) => worker.finish(ok, "", message));
         }
     }
-    function progress(message) {
-        if (activeRequest) send({ kind: "progress", id: activeRequest.id, phase: writer.phase, message: message || "" });
+    function progress(message, imageProgress = null) {
+        if (activeRequest) send({ kind: "progress", id: activeRequest.id, phase: writer.phase, message: message || "", imageProgress: imageProgress });
     }
     function finish(ok, path, message = "") {
         if (!activeRequest) return;

@@ -157,6 +157,28 @@ class WorkerIntegration(unittest.TestCase):
             self.assertEqual(path.read_bytes(), original)
         self.assertEqual(json.loads((directory / ".sleep-sig").read_text()), "")
 
+    def test_render_progress_covers_selected_png_and_boot_images(self):
+        # Optional targets absent on the device must not inflate the count.
+        absent = self.system / "overheating.png"
+        absent.unlink()
+        selected = [path for path in self.originals if path != absent]
+        worker, _ = self.worker()
+        identifier = worker.start("render", snapshot=SNAPSHOT, date="2026-09-22")
+        progress = []
+        while True:
+            message = worker.receive()
+            if message.get("kind") == "done":
+                self.assertEqual(message["id"], identifier)
+                self.assert_success(message)
+                break
+            if message.get("imageProgress"):
+                self.assertEqual(message["phase"], "saving")
+                progress.append(message["imageProgress"])
+        self.assertEqual(progress, [
+            {"path": str(path), "remainingImages": len(selected) - index - 1}
+            for index, path in enumerate(selected)
+        ])
+
     def test_runtime_check_loads_packaged_resources_without_writing_images(self):
         for profile in ["stable", "test"]:
             _, directory = self.worker(profile)

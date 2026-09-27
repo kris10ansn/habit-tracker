@@ -16,6 +16,12 @@ TestCase {
         compare(SuspendStatus.text("pending", 0), "Saving power-state images...");
     }
 
+    function test_savingNamesCurrentImageAndRemainingCount() {
+        compare(SuspendStatus.text("saving", 0, "", { path: "/usr/share/remarkable/poweroff.png", remainingImages: 7 }), "Saving poweroff.png (7 left)");
+        compare(SuspendStatus.text("saving", 0, "", { path: "/usr/share/remarkable/splash/splash.bmp", remainingImages: 1 }), "Saving splash/splash.bmp (1 left)");
+        compare(SuspendStatus.text("saving", 0, "", { path: "/var/lib/uboot/splash.bmp", remainingImages: 0 }), "Saving uboot/splash.bmp (0 left)");
+    }
+
     function test_everyPhaseHasALabel() {
         const phases = ["saving", "saved", "backing-up", "backed-up", "restoring", "restored", "backup-failed", "restore-failed", "save-failed"];
 
