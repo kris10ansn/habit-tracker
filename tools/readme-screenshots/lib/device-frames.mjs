@@ -13,6 +13,65 @@ import { fileURLToPath } from "node:url";
 
 const PNG_SIGNATURE = "89504e470d0a1a0a";
 
+// Keep both captures aligned, then frame the result once so the bezel stays intact.
+export async function composeAndroidAppearanceShowcase({
+    lightPath,
+    darkPath,
+    outputPath,
+    frameSourcePath,
+}) {
+    const light = pngDimensions(await readFile(lightPath), lightPath);
+    const dark = pngDimensions(await readFile(darkPath), darkPath);
+    validateScreenshotDimensions("android", light);
+    validateScreenshotDimensions("android", dark);
+    if (light.width !== dark.width || light.height !== dark.height) {
+        throw new Error(
+            "Light and dark captures must have identical dimensions",
+        );
+    }
+    const temporaryDirectory = await mkdtemp(
+        path.join(os.tmpdir(), "habit-appearance-frame-"),
+    );
+    try {
+        const compositePath = path.join(temporaryDirectory, "appearance.png");
+        executeMagick([
+            lightPath,
+            "(",
+            darkPath,
+            "(",
+            "-size",
+            `${light.width}x${light.height}`,
+            "xc:black",
+            "-fill",
+            "white",
+            "-stroke",
+            "none",
+            "-draw",
+            // Dark on the lower right; light on the upper left.
+            `polygon ${light.width - 1},0 ${light.width - 1},${light.height - 1} 0,${light.height - 1}`,
+            ")",
+            "-alpha",
+            "off",
+            "-compose",
+            "CopyOpacity",
+            "-composite",
+            ")",
+            "-compose",
+            "Over",
+            "-composite",
+            compositePath,
+        ]);
+        await frameScreenshot({
+            client: "android",
+            inputPath: compositePath,
+            outputPath,
+            frameSourcePath,
+        });
+    } finally {
+        await rm(temporaryDirectory, { recursive: true, force: true });
+    }
+}
+
 // The selected front-facing frame has an exact 4:3 display window.
 export const remarkableShowcase = Object.freeze({
     width: 1536,

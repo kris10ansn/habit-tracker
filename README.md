@@ -9,11 +9,11 @@ service to keep your habits up to date across devices.
 
 <table>
   <tr>
-    <td width="30%" align="center" valign="middle"><a href="docs/assets/screenshots/android-today.png"><img src="docs/assets/screenshots/framed/android-today.png" alt="Mobile Today view with daily habit progress, streaks, and a slip-up" width="220"></a></td>
+    <td width="30%" align="center" valign="middle"><a href="docs/assets/screenshots/framed/android-appearance-showcase.png"><img src="docs/assets/screenshots/framed/android-appearance-showcase.png" alt="Mobile Today view sliced diagonally between light and dark mode" width="220"></a></td>
     <td width="70%" align="center" valign="middle"><a href="docs/assets/screenshots/remarkable-grid.png"><img src="docs/assets/screenshots/framed/remarkable-grid.png" alt="reMarkable month grid with habit entries and today's column highlighted" width="480"></a></td>
   </tr>
   <tr>
-    <td align="center"><sub><b>Mobile</b> · Daily logging and streaks</sub></td>
+    <td align="center"><sub><b>Mobile</b> · Daily logging in light and dark mode</sub></td>
     <td align="center"><sub><b>reMarkable</b> · Habits at a glance on e-ink</sub></td>
   </tr>
   <tr>
