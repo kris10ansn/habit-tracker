@@ -8,7 +8,7 @@ function computeSignature(habits, today) {
     const month = today.getMonth();
     const visible = habits.filter((h) => !h.isPrivate);
 
-    const parts = [`power-images-ledger-v5|${year}-${month}-${currentDay}`];
+    const parts = [`power-images-ledger-v6|${year}-${month}-${currentDay}`];
 
     for (let i = 0; i < visible.length; i++) {
         const h = visible[i];
@@ -281,7 +281,8 @@ const drawStateIcon = (ctx, state, x, y, color) => {
     if (state === "sleep") {
         const outer = circlePoints(18, 18, 18, 0.465, 4.248);
         const inner = circlePoints(26, 10, 18, -2.676, -5.177);
-        drawPolyline(ctx, outer.concat(inner, [outer[0]]));
+        // Share the outer tips: near-duplicate endpoints produce a miter spike in Qt Canvas.
+        drawPolyline(ctx, outer.concat(inner.slice(1, -1), [outer[0]]));
     } else if (state === "off" || state === "starting") {
         drawPolyline(
             ctx,
