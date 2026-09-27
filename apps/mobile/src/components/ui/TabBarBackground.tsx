@@ -1,49 +1,65 @@
-import { useEffect } from "react";
 import { I18nManager, View } from "react-native";
 import Animated, {
     ReduceMotion,
+    useAnimatedReaction,
     useAnimatedStyle,
     useSharedValue,
     withSpring,
+    type SharedValue,
 } from "react-native-reanimated";
 
 interface Props {
     activeIndex: number;
     tabCount: number;
+    previewIndex: SharedValue<number>;
+    width: SharedValue<number>;
 }
 
-export function TabBarBackground({ activeIndex, tabCount }: Props) {
-    const width = useSharedValue(0);
-    const position = useSharedValue(Math.max(activeIndex, 0));
+export function TabBarBackground({
+    activeIndex,
+    tabCount,
+    previewIndex,
+    width,
+}: Props) {
+    const targetIndex = useSharedValue(Math.max(activeIndex, 0));
     const isRTL = I18nManager.isRTL;
 
-    useEffect(() => {
-        // Hidden routes have no selected tab. Keep the last position for the return trip.
-        if (activeIndex < 0) return;
-
-        position.set(
-            withSpring(activeIndex, {
-                stiffness: 520,
-                damping: 38,
-                mass: 0.8,
-                overshootClamping: true,
-                reduceMotion: ReduceMotion.System,
-            }),
-        );
-    }, [activeIndex, position]);
+    useAnimatedReaction(
+        () => (previewIndex.get() >= 0 ? previewIndex.get() : activeIndex),
+        (target, previous) => {
+            // Hidden routes have no selected tab. Keep the last position for the return trip.
+            if (target < 0 || target === previous) return;
+            targetIndex.set(target);
+        },
+    );
 
     const highlightStyle = useAnimatedStyle(() => {
         const tabWidth = width.get() / tabCount;
         const visualIndex = isRTL
-            ? tabCount - 1 - position.get()
-            : position.get();
+            ? tabCount - 1 - targetIndex.get()
+            : targetIndex.get();
 
         return {
-            // Match the navigator's 2px horizontal item margins. Normalized position
-            // keeps the pill aligned when the bar resizes, including mid-animation.
+            // Match the navigator's 2px horizontal item margins and retarget the
+            // spring to the selected tab when the bar resizes.
             width: Math.max(0, tabWidth - 4),
-            opacity: activeIndex >= 0 && width.get() > 0 ? 1 : 0,
-            transform: [{ translateX: visualIndex * tabWidth + 2 }],
+            opacity:
+                (activeIndex >= 0 || previewIndex.get() >= 0) && width.get() > 0
+                    ? 1
+                    : 0,
+            // Spring the transform property itself. Reanimated then updates only
+            // that property per frame; width/visibility are sent when the target
+            // or layout changes, not on every tick of an animated shared value.
+            transform: [
+                {
+                    translateX: withSpring(visualIndex * tabWidth + 2, {
+                        stiffness: 520,
+                        damping: 27,
+                        mass: 0.8,
+                        reduceMotion: ReduceMotion.System,
+                    }),
+                },
+            ],
         };
     });
 

@@ -235,6 +235,44 @@ and [short preview](../../docs/assets/demos/tab-pages.gif) for the slide-and-fad
 The preview removes idle waits, retaining the original transition speed. Still captures should wait
 for both the page transition and tab highlight to settle; settled screen layouts are unchanged.
 
+### Press-and-drag tab recording
+
+With the isolated Expo Go server running on port 8082, run:
+
+```sh
+maestro --device emulator-5554 test --test-output-dir .screenshots/tab-scrub tools/readme-screenshots/maestro/tab-scrub.yaml
+```
+
+This flow opens the test project, records slow drags across all four tabs in both directions,
+and asserts the destination after each release. It also checks ordinary stationary taps. The
+swipe coordinates target the floating tab bar on the Pixel 9a in portrait at default font size;
+adjust the vertical coordinate for other device layouts. The fourth tab now uses `tab-settings`;
+the flow checks the Settings subtitle after releasing over it.
+
+The [full emulator recording](../../docs/assets/demos/tab-scrub.mp4) is the unedited Maestro
+capture. The [GIF preview](../../docs/assets/demos/tab-scrub.gif) shows a ten-second excerpt at
+original speed, including highlight previews and page transitions after release. The recording
+uses the isolated fixture and Expo Go on Android; iOS was not exercised. This recording predates
+the merge of Settings and dark mode: it shows the former Sync tab. Refresh the recording with
+the updated flow to demonstrate the merged interface in light and dark appearances.
+
+The performance follow-up prepares the four main pages at startup, keeping device-management
+and linking pages lazy. Allow startup and fixture queries to settle before recording; this moves
+initial render work ahead of the first tab release and uses more memory at startup. The highlight's
+spring runs on its transform property, keeping size/visibility out of per-frame updates. The recording verifies
+interaction behavior, not production frame rates on physical hardware. The refreshed capture used
+ADB reverse on port 8082 and the same flow with its `openLink` host changed to `127.0.0.1` because
+the emulator's host-network connection was intermittent.
+
+Additional ADB checks held a touch over Month, moved to Sync, reversed to Habits, and verified
+that Today remained selected until `UP` selected Habits. Injecting `CANCEL` instead restored the
+Today highlight without navigating. These checks use `adb shell input touchscreen motionevent`
+and UIAutomator's selected tab state, with screenshots to inspect the preview highlight.
+
+The merged README captures cover Today, Month, Habits, and Settings in both appearances.
+Wait for release and for the spring/page transition to settle before capturing stills. The
+updated scrub flow has not yet been rerun against the merged interface.
+
 ### Test isolation
 
 With `APP_TEST_MODE=1`, Metro replaces the root layout's `AppProviders` import and `expo-camera`
