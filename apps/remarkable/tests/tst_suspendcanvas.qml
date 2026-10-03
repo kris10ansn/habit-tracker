@@ -10,6 +10,13 @@ TestCase {
     name: "SuspendCanvas"
     when: windowShown
 
+    property int uiTicks: 0
+    Timer { id: heartbeat; interval: 1; repeat: true; onTriggered: testCase.uiTicks++ }
+
+    function cleanup() {
+        heartbeat.stop();
+    }
+
     Component {
         id: factory
         App.SuspendCanvas {}
@@ -39,6 +46,24 @@ TestCase {
         canvas.renderOnce(ok => results.push(ok));
         tryVerify(() => results.length === 2);
         compare(results[1], true);
+    }
+
+    function test_batchProcessesUiEventsBetweenImages() {
+        const canvas = createCanvas("responsive-preview.png");
+        const targets = ["sleep", "off", "empty"].map(state => ({
+            state: state, path: TestPaths.tmpPath("responsive-" + state + ".png")
+        }));
+        let result = null;
+        let ticksDuringBatch = 0;
+        testCase.uiTicks = 0;
+        heartbeat.start();
+        canvas.renderImagesOnce(targets, ok => {
+            ticksDuringBatch = testCase.uiTicks;
+            result = ok;
+        });
+        tryVerify(() => result !== null);
+        verify(result);
+        verify(ticksDuringBatch > 1, "UI events must run during the image save batch");
     }
 
     function test_oneShotReportsSaveFailure() {

@@ -1,40 +1,76 @@
+const readResult = (xhr) => {
+    // Qt returns an empty buffer for an unreadable file as well as an empty one.
+    const readable =
+        (xhr.status === 200 || xhr.status === 0) &&
+        xhr.response &&
+        xhr.response.byteLength > 0;
+    return readable ? xhr.response : null;
+};
+
 function read(path) {
     try {
         const xhr = new XMLHttpRequest();
-
         xhr.open("GET", `file://${path}`, false);
         xhr.responseType = "arraybuffer";
         xhr.send();
-
-        // An unreadable file answers with a zero-length buffer rather than nothing, so length is
-        // the real test — otherwise a missing suspend image copies as an empty one.
-        const empty = !xhr.response || xhr.response.byteLength === 0;
-
-        return (xhr.status === 200 || xhr.status === 0) && !empty
-            ? xhr.response
-            : null;
-    } catch (e) {
-        console.warn("Storage: could not read binary", path, "-", e);
+        return readResult(xhr);
+    } catch (error) {
+        console.warn("Storage: could not read binary", path, "-", error);
         return null;
     }
 }
 
-// Verify bytes: a failed overwrite can leave an older image with exactly the same size.
+function readAsync(path, onDone) {
+    const xhr = new XMLHttpRequest();
+    xhr.onreadystatechange = () => {
+        if (xhr.readyState === xhr.DONE) onDone(readResult(xhr));
+    };
+    try {
+        xhr.open("GET", `file://${path}`);
+        xhr.responseType = "arraybuffer";
+        xhr.send();
+    } catch (error) {
+        console.warn("Storage: could not read binary", path, "-", error);
+        onDone(null);
+    }
+}
+
+const equalChunk = (actual, expected, start, end) => {
+    for (let index = start; index < end; index++) {
+        if (actual[index] !== expected[index]) return false;
+    }
+    return true;
+};
+
+const verifyBytes = (written, expected, onDone) => {
+    if (!written || written.byteLength !== expected.length) {
+        onDone(false);
+        return;
+    }
+
+    const actual = new Uint8Array(written);
+    let offset = 0;
+    const next = () => {
+        const end = Math.min(offset + 16384, expected.length);
+        if (!equalChunk(actual, expected, offset, end)) return onDone(false);
+        offset = end;
+        if (offset === expected.length) onDone(true);
+        else Qt.callLater(next);
+    };
+    next();
+};
+
+// A failed overwrite can leave an older image of the same size. Verify every byte,
+// yielding between chunks so a screen-sized backup does not monopolize the UI thread.
 function write(path, buffer, onDone) {
     const xhr = new XMLHttpRequest();
     const expected = buffer ? new Uint8Array(buffer) : new Uint8Array(0);
+    const report = (landed) =>
+        onDone(landed ? null : `Storage: binary write failed for ${path}`);
 
     xhr.onreadystatechange = () => {
         if (xhr.readyState !== xhr.DONE) return;
-
-        const written = read(path);
-        const landed =
-            !!written &&
-            written.byteLength === expected.length &&
-            new Uint8Array(written).every(
-                (value, index) => value === expected[index],
-            );
-        onDone(landed ? null : `Storage: binary write failed for ${path}`);
+        readAsync(path, (written) => verifyBytes(written, expected, report));
     };
 
     try {

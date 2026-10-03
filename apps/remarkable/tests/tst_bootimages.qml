@@ -64,7 +64,7 @@ TestCase {
         writer.deviceModel = "reMarkable 2.0";
         writer.renderAllowed = true;
         writer.renderAsync();
-        compare(writer.phase, "backup-failed");
+        tryCompare(writer, "phase", "backup-failed");
         compare(writer.failedPath, bootPaths[0]);
         verifyPngsUnchanged();
     }
@@ -73,7 +73,7 @@ TestCase {
         writeText(bootPaths[1], "invalid boot bitmap");
         writer.renderAllowed = true;
         writer.renderAsync();
-        compare(writer.phase, "backup-failed");
+        tryCompare(writer, "phase", "backup-failed");
         compare(writer.failedPath, bootPaths[1]);
         verifyPngsUnchanged();
     }
@@ -96,7 +96,7 @@ TestCase {
         writeText(boot.backup, "invalid backup");
         let restored = null;
         writer.restore(ok => restored = ok);
-        compare(restored, false);
+        tryVerify(() => restored === false);
         compare(writer.phase, "restore-failed");
         compare(writer.failedPath, boot.backup);
         verifyPngsUnchanged();

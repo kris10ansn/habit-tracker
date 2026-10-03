@@ -7,18 +7,16 @@
 // with no way back (ADR 0001).
 
 function copyFile(srcPath, dstPath, onDone) {
-    const buffer = Storage.readBinary(srcPath);
-    if (!buffer || !buffer.byteLength) {
-        console.warn("SuspendRender: could not read", srcPath);
-        onDone(false);
-        return;
-    }
-
-    Storage.writeBinary(dstPath, buffer, (error) => {
-        if (error) {
-            console.warn("SuspendRender: could not write", dstPath);
+    Storage.readBinaryAsync(srcPath, (buffer) => {
+        if (!buffer) {
+            console.warn("SuspendRender: could not read", srcPath);
+            onDone(false);
+            return;
         }
-        onDone(!error);
+        Storage.writeBinary(dstPath, buffer, (error) => {
+            if (error) console.warn("SuspendRender: could not write", dstPath);
+            onDone(!error);
+        });
     });
 }
 
@@ -60,69 +58,124 @@ function imageTargets(directory) {
     );
 }
 
-function availableImageTargets(targets) {
-    return targets.filter(
-        (target) =>
-            !target.optional ||
-            Storage.readBinary(target.path) !== null ||
-            Storage.readBinary(target.backup) !== null,
-    );
-}
-
-function invalidBootPath(targets, deviceModel, restoring = false) {
-    const bootTargets = targets.filter((target) => target.format === "boot-bmp");
-    if (bootTargets.length && deviceModel !== "reMarkable 1.0")
-        return bootTargets[0].path;
-
-    for (const target of bootTargets) {
-        const backup = Storage.readBinary(target.backup);
-        if ((restoring || backup !== null) && BootSplash.validationError(backup))
-            return target.backup;
-        if (
-            !restoring &&
-            BootSplash.validationError(Storage.readBinary(target.path) || backup)
-        )
-            return target.path;
+const isAvailable = (target, onDone) => {
+    if (!target.optional) {
+        onDone(true);
+        return;
     }
-    return "";
-}
+    Storage.readBinaryAsync(target.path, (image) => {
+        if (image) onDone(true);
+        else
+            Storage.readBinaryAsync(target.backup, (backup) =>
+                onDone(backup !== null),
+            );
+    });
+};
 
-// Existing backups survive retries, upgrades from suspend-only writing, and re-enabling.
-// Back up every target before any image is replaced.
-function backupImages(targets, onDone) {
+function availableImageTargets(targets, onDone) {
+    const selected = [];
     const next = (index) => {
-        if (index === targets.length) return onDone(true, "");
+        if (index === targets.length) return onDone(selected);
 
         const target = targets[index];
-        const existing = Storage.readBinary(target.backup);
-        if (existing !== null) {
-            if (!existing.byteLength) return onDone(false, target.backup);
-            next(index + 1);
-            return;
-        }
-        copyFile(target.path, target.backup, (ok) => {
-            if (!ok) return onDone(false, target.path);
+        isAvailable(target, (available) => {
+            if (available) selected.push(target);
             next(index + 1);
         });
     };
     next(0);
 }
 
-function restoreImages(targets, onDone) {
-    const missing = targets.find((target) => {
-        const backup = Storage.readBinary(target.backup);
-        return !backup || !backup.byteLength;
+const validateBootTarget = (target, restoring, onDone) => {
+    Storage.readBinaryAsync(target.backup, (backup) => {
+        if (
+            (restoring || backup !== null) &&
+            BootSplash.validationError(backup)
+        ) {
+            onDone(target.backup);
+            return;
+        }
+        if (restoring) {
+            onDone("");
+            return;
+        }
+        Storage.readBinaryAsync(target.path, (image) =>
+            onDone(
+                BootSplash.validationError(image || backup) ? target.path : "",
+            ),
+        );
     });
-    if (missing) return onDone(false, missing.backup);
+};
 
+function invalidBootPath(targets, deviceModel, onDone, restoring = false) {
+    const bootTargets = targets.filter(
+        (target) => target.format === "boot-bmp",
+    );
+    if (bootTargets.length && deviceModel !== "reMarkable 1.0") {
+        onDone(bootTargets[0].path);
+        return;
+    }
     const next = (index) => {
+        if (index === bootTargets.length) return onDone("");
+        validateBootTarget(bootTargets[index], restoring, (invalid) => {
+            if (invalid) onDone(invalid);
+            else next(index + 1);
+        });
+    };
+    next(0);
+}
+
+const backupImage = (target, onDone) => {
+    Storage.readBinaryAsync(target.backup, (existing) => {
+        if (existing) onDone(true);
+        else copyFile(target.path, target.backup, onDone);
+    });
+};
+
+// Existing backups survive retries, upgrades from suspend-only writing, and re-enabling.
+// Back up every target before any image is replaced.
+function backupImages(targets, onDone, deviceModel) {
+    const next = (index) => {
+        if (index === targets.length) return onDone(true, "");
+
+        const target = targets[index];
+        backupImage(target, (ok) => {
+            if (!ok) return onDone(false, target.path);
+            next(index + 1);
+        });
+    };
+    invalidBootPath(targets, deviceModel, (invalid) => {
+        if (invalid) onDone(false, invalid);
+        else next(0);
+    });
+}
+
+function restoreImages(targets, onDone, deviceModel) {
+    const restore = (index) => {
         if (index === targets.length) return onDone(true, "");
 
         const target = targets[index];
         copyFile(target.backup, target.path, (ok) => {
             if (!ok) return onDone(false, target.path);
-            next(index + 1);
+            restore(index + 1);
         });
     };
-    next(0);
+    const preflight = (index) => {
+        if (index === targets.length) return restore(0);
+
+        const target = targets[index];
+        Storage.readBinaryAsync(target.backup, (backup) => {
+            if (!backup) return onDone(false, target.backup);
+            preflight(index + 1);
+        });
+    };
+    invalidBootPath(
+        targets,
+        deviceModel,
+        (invalid) => {
+            if (invalid) onDone(false, invalid);
+            else preflight(0);
+        },
+        true,
+    );
 }

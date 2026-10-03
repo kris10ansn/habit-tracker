@@ -15,6 +15,19 @@ TestCase {
     width: 100
     height: 100
 
+    property var observeUi: null
+    Timer {
+        id: heartbeat
+        interval: 1
+        repeat: true
+        onTriggered: if (testCase.observeUi) testCase.observeUi()
+    }
+
+    function cleanup() {
+        heartbeat.stop();
+        testCase.observeUi = null;
+    }
+
     Component { id: writerComponent; Components.SuspendCanvas {} }
 
     function writeFile(path, content) {
@@ -37,10 +50,16 @@ TestCase {
     function test_newScreensAreIncludedOnlyWhenReadableOrBackedUp() {
         const images = targets("available");
         const required = images.slice(0, 3);
-        compare(SuspendRender.availableImageTargets(images), required);
+        let selected = null;
+        SuspendRender.availableImageTargets(images, targets => selected = targets);
+        tryVerify(() => selected !== null);
+        compare(selected, required);
         writeFile(images[3].path, "stock-starting");
         writeFile(images[4].backup, "stock-rebooting");
-        compare(SuspendRender.availableImageTargets(images), images.slice(0, 5));
+        selected = null;
+        SuspendRender.availableImageTargets(images, targets => selected = targets);
+        tryVerify(() => selected !== null);
+        compare(selected, images.slice(0, 5));
     }
 
     function test_backupPreservesOriginalsAcrossRetriesAndReenable() {
@@ -58,6 +77,15 @@ TestCase {
         SuspendRender.restoreImages(images, ok => result = ok);
         tryVerify(() => result === true);
         images.forEach(target => compare(Storage.readFile(target.path), `original-${target.state}`));
+    }
+
+    function test_existingBackupChecksAreAsynchronous() {
+        const images = targets("async-backups");
+        images.forEach(target => writeFile(target.backup, "original"));
+        let result = null;
+        SuspendRender.backupImages(images, ok => result = ok);
+        compare(result, null, "Backup checks must return control to the UI before completing");
+        tryVerify(() => result === true);
     }
 
     function test_upgradeKeepsTheSuspendBackup() {
@@ -101,7 +129,7 @@ TestCase {
         writeFile(images[0].backup, "restore-sleep");
         let result = null;
         SuspendRender.restoreImages(images, ok => result = ok);
-        compare(result, false);
+        tryVerify(() => result === false);
         compare(Storage.readFile(images[0].path), "original-sleep");
     }
 
@@ -115,6 +143,9 @@ TestCase {
         });
         verify(writer !== null);
         tryVerify(() => writer.available);
+        let selected = false;
+        writer._withTargets(() => selected = true);
+        tryVerify(() => selected);
         return writer;
     }
 
@@ -148,6 +179,60 @@ TestCase {
         tryVerify(() => result === true);
         writer.targets.forEach(target => compare(Storage.readFile(target.path), `original-${target.state}`));
         compare(writer.lastRenderedSignature, "");
+        writer.renderAllowed = false;
+        writer.destroy();
+    }
+
+    function test_editsDuringBatchQueueAnotherSnapshotAndRestoreCannotOverlap() {
+        const writer = createWriter();
+        let backedUp = false;
+        writer.backup(ok => backedUp = ok);
+        tryVerify(() => backedUp);
+        writer.lastRenderedSignature = "";
+        const initialSignature = writer._signature(HabitsModel.toSuspendHabits(writer.habits), writer.today);
+        let editedBetweenImages = false;
+        let restoreResult = null;
+        testCase.observeUi = () => {
+            if (editedBetweenImages || writer.phase !== "saving") return;
+            const firstImage = Storage.readBinary(writer.targets[0].path);
+            if (!firstImage || new Uint8Array(firstImage)[0] !== 137) return;
+            if (Storage.readFile(writer.targets[1].path) !== "original-off") return;
+
+            editedBetweenImages = true;
+            verify(writer.busy);
+            compare(writer.lastRenderedSignature, "");
+            writer.restore(ok => restoreResult = ok);
+            writer.habits = Fixtures.fakeModel([Fixtures.habitRow({ name: "Edited during saving" })]);
+            writer.scheduleRender();
+            writer.renderAsync();
+        };
+        heartbeat.start();
+        writer.renderAllowed = true;
+        writer.renderAsync();
+        tryVerify(() => editedBetweenImages, 10000);
+        tryCompare(writer, "phase", "pending", 10000);
+        heartbeat.stop();
+        compare(restoreResult, false);
+        compare(writer.lastRenderedSignature, initialSignature);
+        compare(SuspendRender.readSignature(writer.signaturePath), initialSignature);
+        writer.renderAsync();
+        tryCompare(writer, "phase", "saved", 10000);
+        compare(writer.lastRenderedSignature, writer._signature(HabitsModel.toSuspendHabits(writer.habits), writer.today));
+        verify(writer.lastRenderedSignature !== initialSignature);
+        writer.renderAllowed = false;
+        writer.destroy();
+    }
+
+    function test_unloadingSavesPreparedImagesWithoutWaitingForATimer() {
+        const writer = createWriter();
+        let backedUp = false;
+        writer.backup(ok => backedUp = ok);
+        tryVerify(() => backedUp);
+        writer.lastRenderedSignature = "";
+        writer.renderAllowed = true;
+        writer.renderSync();
+        writer.targets.forEach(target => compare(new Uint8Array(Storage.readBinary(target.path))[0], 137));
+        tryVerify(() => !writer.busy);
         writer.renderAllowed = false;
         writer.destroy();
     }

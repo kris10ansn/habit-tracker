@@ -37,6 +37,9 @@ TestCase {
     function test_profileTargets() {
         const canvas = createTemporaryObject(factory, testCase, {});
         verify(canvas !== null);
+        let selected = false;
+        canvas._withTargets(() => selected = true);
+        tryVerify(() => selected);
         const paths = canvas.targets.map(target => target.path);
         if (BuildProfile.isTest) {
             compare(paths, [BuildProfile.appDirectory + "/suspend-preview.png"]);
