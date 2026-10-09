@@ -2,10 +2,7 @@ import { useCameraPermissions } from "expo-camera";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 type CameraPermissionRequestOutcome =
-    | "granted"
-    | "denied"
-    | "error"
-    | "cancelled";
+    "granted" | "denied" | "error" | "cancelled";
 
 export function useCameraPermissionRequest() {
     const [cameraPermission, requestCameraPermission, getCameraPermission] =

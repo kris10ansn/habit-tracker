@@ -6,12 +6,7 @@ import { useColors } from "@/theme/colors";
 import { twMerge } from "tailwind-merge";
 
 export type SyncState =
-    | "connected"
-    | "dirty"
-    | "standalone"
-    | "syncing"
-    | "error"
-    | "not-synced";
+    "connected" | "dirty" | "standalone" | "syncing" | "error" | "not-synced";
 
 export type SyncStatusCardProps = {
     state: SyncState;
