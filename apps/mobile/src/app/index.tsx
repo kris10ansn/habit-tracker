@@ -3,6 +3,7 @@ import { useMemo } from "react";
 
 import { DaySummary } from "@/components/today/DaySummary";
 import { HabitListItem } from "@/components/today/HabitListItem";
+import PrivateHabitsGate from "@/components/today/PrivateHabitsGate";
 import { AppScreen } from "@/components/ui/AppScreen";
 import { Loading } from "@/components/ui/Loading";
 import {
@@ -87,6 +88,20 @@ export default function TodayScreen() {
                             }
                         />
                     ))}
+
+                    <PrivateHabitsGate>
+                        {habits.slice(0, 2).map((habit) => (
+                            <HabitListItem
+                                key={habit.id}
+                                habit={habit}
+                                outcome={outcomeOf(habit.id)}
+                                streak={streaksQuery.data?.[habit.id]}
+                                onToggle={() =>
+                                    toggle(habit.id, today, habit.polarity)
+                                }
+                            />
+                        ))}
+                    </PrivateHabitsGate>
                 </View>
             )}
         </AppScreen>

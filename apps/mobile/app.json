@@ -47,6 +47,12 @@
                     "recordAudioAndroid": false,
                     "barcodeScannerEnabled": true
                 }
+            ],
+            [
+                "expo-local-authentication",
+                {
+                    "faceIDPermission": "Allow $(PRODUCT_NAME) to use Face ID for protecting private habits."
+                }
             ]
         ],
         "experiments": {
