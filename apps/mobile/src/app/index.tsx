@@ -20,7 +20,7 @@ import {
     useSync,
     useToggleEntry,
 } from "@/state/queries";
-import { RefreshControl } from "react-native";
+import { RefreshControl, View } from "react-native";
 
 // Today: the primary daily surface — log each habit at a glance. Always pinned to the real
 // current month, whatever the Month tab is viewing.
@@ -70,7 +70,7 @@ export default function TodayScreen() {
             {habitsQuery.isPending ? (
                 <Loading />
             ) : (
-                <>
+                <View className="flex flex-col gap-3.5">
                     <DaySummary
                         logged={logged}
                         total={habits.length}
@@ -87,7 +87,7 @@ export default function TodayScreen() {
                             }
                         />
                     ))}
-                </>
+                </View>
             )}
         </AppScreen>
     );

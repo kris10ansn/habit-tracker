@@ -10,7 +10,7 @@ interface Props {
 
 export function DaySummary({ logged, total, slips }: Props) {
     return (
-        <View className="mb-4 mt-1 flex-row gap-2.5">
+        <View className="flex-row gap-2.5">
             <StatCard value={`${logged}/${total}`} label="logged today" />
             <StatCard
                 value={slips}
