@@ -1,9 +1,9 @@
 import { useColors } from "@/theme/colors";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 
 import { DaySummary } from "@/components/today/DaySummary";
 import { HabitListItem } from "@/components/today/HabitListItem";
-import PrivateHabitsGate from "@/components/today/PrivateHabitsGate";
+import { PrivateHabitsGate } from "@/components/today/PrivateHabitsGate";
 import { AppScreen } from "@/components/ui/AppScreen";
 import { Loading } from "@/components/ui/Loading";
 import {
@@ -14,6 +14,7 @@ import {
 } from "@/domain/dates";
 import { entryIndex, outcomeAt } from "@/domain/entries";
 import { isSuccess } from "@/domain/marks";
+import { todayHabits } from "@/domain/todayHabits";
 import {
     useHabits,
     useMonthEntries,
@@ -33,6 +34,11 @@ export default function TodayScreen() {
 
     const habitsQuery = useHabits();
     const habits = habitsQuery.data ?? [];
+    const [privateHabitsUnlocked, setPrivateHabitsUnlocked] = useState(false);
+    const { publicHabits, privateHabits, summaryHabits } = todayHabits(
+        habits,
+        privateHabitsUnlocked,
+    );
     const entriesQuery = useMonthEntries(view.monthKey);
     const streaksQuery = useStreaks(habits);
 
@@ -43,10 +49,10 @@ export default function TodayScreen() {
     );
     const outcomeOf = (habitId: string) => outcomeAt(index, habitId, today);
 
-    const logged = habits.filter((habit) =>
+    const logged = summaryHabits.filter((habit) =>
         isSuccess(habit.polarity, outcomeOf(habit.id)),
     ).length;
-    const slips = habits.filter(
+    const slips = summaryHabits.filter(
         (habit) =>
             habit.polarity === "Negative" && outcomeOf(habit.id) === "Failure",
     ).length;
@@ -57,7 +63,7 @@ export default function TodayScreen() {
         <AppScreen
             eyebrow={`${weekdayLabel(now)} · Today`}
             title={monthDayLabel(now)}
-            subtitle={`${logged} of ${habits.length} habits logged`}
+            subtitle={`${logged} of ${summaryHabits.length} habits logged`}
             refreshControl={
                 <RefreshControl
                     tintColor={colors.accent}
@@ -74,10 +80,10 @@ export default function TodayScreen() {
                 <View className="flex flex-col gap-3.5">
                     <DaySummary
                         logged={logged}
-                        total={habits.length}
+                        total={summaryHabits.length}
                         slips={slips}
                     />
-                    {habits.map((habit) => (
+                    {publicHabits.map((habit) => (
                         <HabitListItem
                             key={habit.id}
                             habit={habit}
@@ -89,19 +95,24 @@ export default function TodayScreen() {
                         />
                     ))}
 
-                    <PrivateHabitsGate>
-                        {habits.slice(0, 2).map((habit) => (
-                            <HabitListItem
-                                key={habit.id}
-                                habit={habit}
-                                outcome={outcomeOf(habit.id)}
-                                streak={streaksQuery.data?.[habit.id]}
-                                onToggle={() =>
-                                    toggle(habit.id, today, habit.polarity)
-                                }
-                            />
-                        ))}
-                    </PrivateHabitsGate>
+                    {privateHabits.length > 0 && (
+                        <PrivateHabitsGate
+                            isUnlocked={privateHabitsUnlocked}
+                            onUnlockedChange={setPrivateHabitsUnlocked}
+                        >
+                            {privateHabits.map((habit) => (
+                                <HabitListItem
+                                    key={habit.id}
+                                    habit={habit}
+                                    outcome={outcomeOf(habit.id)}
+                                    streak={streaksQuery.data?.[habit.id]}
+                                    onToggle={() =>
+                                        toggle(habit.id, today, habit.polarity)
+                                    }
+                                />
+                            ))}
+                        </PrivateHabitsGate>
+                    )}
                 </View>
             )}
         </AppScreen>

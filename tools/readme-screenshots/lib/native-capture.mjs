@@ -8,7 +8,7 @@ const screens = [
         content: [
             "logged today",
             "Read 20 min",
-            "4 of 6 habits logged",
+            "3 of 5 habits logged",
             "6 days",
         ],
     },

@@ -1,7 +1,9 @@
 import { Icon } from "@/components/ui/Icon";
 import { BlurTargetView, BlurView } from "expo-blur";
-import React, { useCallback, useRef, useState } from "react";
-import { Pressable, Text, useColorScheme, View } from "react-native";
+import { useFocusEffect } from "expo-router";
+import React, { useCallback, useRef } from "react";
+import { AppState, Pressable, Text, useColorScheme, View } from "react-native";
+import { toast } from "sonner-native";
 import tailwindColors from "tailwindcss/colors";
 
 import * as LocalAuthentication from "expo-local-authentication";
@@ -13,46 +15,83 @@ import Animated, {
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
-export type PrivateHabitsGateProps = {} & React.PropsWithChildren;
+export type PrivateHabitsGateProps = React.PropsWithChildren<{
+    isUnlocked: boolean;
+    onUnlockedChange: (isUnlocked: boolean) => void;
+}>;
 
-export default function PrivateHabitsGate({
+export function PrivateHabitsGate({
     children,
+    isUnlocked,
+    onUnlockedChange,
 }: PrivateHabitsGateProps) {
     const colorScheme = useColorScheme();
     const blurTargetRef = useRef<View | null>(null);
 
-    const [isAuthed, setIsAuthed] = useState(false);
+    const authenticating = useRef(false);
+    const authGeneration = useRef(0);
+
+    useFocusEffect(
+        useCallback(() => {
+            const lock = () => {
+                authGeneration.current += 1;
+                onUnlockedChange(false);
+            };
+            const subscription = AppState.addEventListener(
+                "change",
+                (state) => {
+                    // Authentication itself can make iOS inactive.
+                    if (state === "background") lock();
+                },
+            );
+            return () => {
+                subscription.remove();
+                lock();
+            };
+        }, [onUnlockedChange]),
+    );
 
     const handlePress = useCallback(async () => {
-        if (isAuthed) {
-            setIsAuthed(false);
+        if (isUnlocked) {
+            onUnlockedChange(false);
             return;
         }
-        const authResult = await LocalAuthentication.authenticateAsync({
-            promptMessage: "View private habits",
-            promptDescription: "Authenticate to view your private habits",
-            biometricsSecurityLevel: "weak",
-        });
+        if (authenticating.current) return;
 
-        setIsAuthed(authResult.success);
-    }, [isAuthed]);
+        authenticating.current = true;
+        const generation = authGeneration.current;
+        try {
+            const authResult = await LocalAuthentication.authenticateAsync({
+                promptMessage: "View private habits",
+                promptDescription: "Authenticate to view your private habits",
+                biometricsSecurityLevel: "weak",
+            });
+            if (generation === authGeneration.current) {
+                onUnlockedChange(authResult.success);
+            }
+        } catch {
+            toast.error("Could not authenticate. Try again.");
+        } finally {
+            authenticating.current = false;
+        }
+    }, [isUnlocked, onUnlockedChange]);
 
     const childrenContainerStyle = useAnimatedStyle(
-        () => ({ padding: withTiming(!isAuthed ? 16 : 0) }),
-        [isAuthed],
+        () => ({ padding: withTiming(!isUnlocked ? 16 : 0) }),
+        [isUnlocked],
     );
 
     const pressableStyle = useAnimatedStyle(
         () => ({
             borderColor: withTiming(
-                !isAuthed
+                !isUnlocked
                     ? colorScheme === "dark"
                         ? tailwindColors.gray[800]
                         : tailwindColors.gray[200]
                     : "transparent",
             ),
         }),
-        [isAuthed],
+        [isUnlocked, colorScheme],
     );
 
     return (
@@ -60,8 +99,19 @@ export default function PrivateHabitsGate({
             className="relative overflow-hidden rounded-3xl border"
             onPress={handlePress}
             style={pressableStyle}
+            accessible={!isUnlocked}
+            accessibilityRole="button"
+            accessibilityLabel="View private habits"
+            accessibilityHint="Authenticate to reveal private habits"
         >
-            <BlurTargetView ref={blurTargetRef}>
+            <BlurTargetView
+                ref={blurTargetRef}
+                pointerEvents={isUnlocked ? "auto" : "none"}
+                accessibilityElementsHidden={!isUnlocked}
+                importantForAccessibility={
+                    isUnlocked ? "auto" : "no-hide-descendants"
+                }
+            >
                 <Animated.View
                     style={childrenContainerStyle}
                     className="gap-3.5"
@@ -70,7 +120,7 @@ export default function PrivateHabitsGate({
                 </Animated.View>
             </BlurTargetView>
 
-            {!isAuthed && (
+            {!isUnlocked && (
                 <Animated.View
                     className="absolute inset-0"
                     exiting={FadeOut.duration(400)}
@@ -79,7 +129,7 @@ export default function PrivateHabitsGate({
                         className="absolute inset-0 flex-col items-center justify-center gap-1 px-28"
                         blurTarget={blurTargetRef}
                         intensity={20}
-                        tint={colorScheme == "dark" ? "dark" : "light"}
+                        tint={colorScheme === "dark" ? "dark" : "light"}
                         blurMethod="dimezisBlurView"
                     >
                         <Icon
@@ -93,7 +143,7 @@ export default function PrivateHabitsGate({
                         </Text>
 
                         <Text className="text-center text-gray-500 dark:text-gray-400">
-                            Click to authenticate and view private habits
+                            Tap to authenticate and view private habits
                         </Text>
                     </BlurView>
                 </Animated.View>

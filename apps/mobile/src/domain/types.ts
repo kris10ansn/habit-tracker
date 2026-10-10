@@ -24,8 +24,7 @@ export interface Habit {
     name: string;
     polarity: Polarity;
     position: number;
-    // Hidden from glanceable surfaces on devices that render them (reMarkable's suspend image and
-    // main grid). Synced verbatim; mobile persists it but has no UI for it yet.
+    // Synced verbatim. Today gates private habits behind device-local authentication.
     isPrivate: boolean;
     createdAt: number;
     editedAt: number;

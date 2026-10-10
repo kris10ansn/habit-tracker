@@ -47,8 +47,11 @@ on this device and applies across screens, navigation, and native controls.
    are view-only. The grid scrolls vertically through days and horizontally through habits.
 
 Changes save locally. Deleting a habit also removes its marks from view and propagates to other
-devices when synced. Habits marked private on reMarkable remain visible here; mobile currently
-has no working privacy toggle or hide-private setting.
+devices when synced. The `isPrivate` flag syncs too. On **Today**, private habits appear together
+behind the **Private Habits** gate. Tap it and authenticate with the phone to reveal them, then tap
+the group's background to lock it again. Leaving Today or backgrounding the app also locks it.
+Today's counts include private habits only while unlocked. Month and Habits still show the full
+roster; change a habit's private flag on reMarkable.
 
 ## Connect and sync
 
